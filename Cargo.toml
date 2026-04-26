@@ -2,6 +2,13 @@
 name = "claude-statusline"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Claude Code status line showing remaining 5h/7d Claude.ai token quota"
+repository = "https://github.com/jLAM-ERR/cc-myasl"
+readme = "README.md"
+keywords = ["claude-code", "status-line", "cli", "anthropic"]
+categories = ["command-line-utilities"]
+rust-version = "1.83"
 
 [[bin]]
 name = "claude-statusline"

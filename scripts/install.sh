@@ -13,8 +13,8 @@
 set -eu
 
 # ── configuration ─────────────────────────────────────────────────────────
-OWNER="${OWNER:-likhomanenko}"
-REPO="${REPO:-statusline}"
+OWNER="${OWNER:-jLAM-ERR}"
+REPO="${REPO:-cc-myasl}"
 VERSION="${VERSION:-latest}"
 
 DEST_BIN="${DEST_BIN:-$HOME/.claude/bin}"

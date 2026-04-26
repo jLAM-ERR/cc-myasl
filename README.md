@@ -20,18 +20,18 @@ typical Pro/Max session.
 ### One-liner (recommended)
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/likhomanenko/statusline/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/scripts/install.sh | sh
 ```
 
 Override defaults with environment variables:
 
 ```sh
 # Pin a specific release
-VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/likhomanenko/statusline/main/scripts/install.sh | sh
+VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/scripts/install.sh | sh
 
 # Override owner/repo if you've forked
-OWNER=likhomanenko REPO=statusline VERSION=v0.1.0 \
-  curl -fsSL https://raw.githubusercontent.com/likhomanenko/statusline/main/scripts/install.sh | sh
+OWNER=jLAM-ERR REPO=cc-myasl VERSION=v0.1.0 \
+  curl -fsSL https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/scripts/install.sh | sh
 ```
 
 The installer:
@@ -45,7 +45,7 @@ The installer:
 
 ### Manual tarball install
 
-1. Go to the [GitHub Releases](https://github.com/likhomanenko/statusline/releases) page.
+1. Go to the [GitHub Releases](https://github.com/jLAM-ERR/cc-myasl/releases) page.
 2. Download the tarball for your platform:
 
    | Platform | Target triple |
