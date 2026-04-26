@@ -1,3 +1,13 @@
+> **Superseded by [`docs/plans/2026-04-26-rust-statusline.md`](plans/2026-04-26-rust-statusline.md)**
+>
+> This file documents the original POSIX `sh + jq + curl` approach (Option B
+> in the original brainstorm). It was replaced by the Rust v0.1.0 implementation
+> for cross-platform reliability, perf, and type-safe API parsing.
+>
+> Kept for historical reference. See also:
+> - [`docs/research.md`](research.md) — API contract discovery
+> - [`docs/security-review.md`](security-review.md) — why we built our own instead of installing ccstatusline
+
 # Implementation plan — remaining-quota status line
 
 Source for this plan: `docs/research.md` (the API contract +

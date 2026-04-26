@@ -1,3 +1,5 @@
+> See the [root README](../README.md) for the full template gallery, Nerd Font tips, and troubleshooting.
+
 # Template Gallery
 
 `claude-statusline` ships eight built-in templates. Select one with

@@ -722,24 +722,24 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
 **Files:**
 - Create: `.github/workflows/release.yml`
 
-- [ ] `on: push: tags: ['v*']`
-- [ ] matrix: 4 targets (`aarch64-apple-darwin` on `macos-14`,
+- [x] `on: push: tags: ['v*']`
+- [x] matrix: 4 targets (`aarch64-apple-darwin` on `macos-14`,
       `x86_64-apple-darwin` on `macos-13`,
       `x86_64-unknown-linux-musl` on `ubuntu-latest`,
       `aarch64-unknown-linux-musl` on `ubuntu-latest` via `cross`)
-- [ ] use `taiki-e/upload-rust-binary-action@v1` with archive name
-      `claude-statusline-<ref>-<target>.tar.gz`. Include
-      `bin/claude-statusline`, `templates/*`, top-level `README.md`.
-      The action emits `.sha256` automatically — do NOT add a
-      separate sha256 step.
-- [ ] add `permissions: contents: write` for the release-upload step
-- [ ] write a tiny dry-run job (gated `if: github.event_name ==
+- [x] use `taiki-e/upload-rust-binary-action@v1` with archive name
+      `claude-statusline-<ver-without-v>-<target>` (computed via
+      `${GITHUB_REF_NAME#v}` to match install.sh's expectation).
+      Include `bin/claude-statusline`, `templates/*`, top-level
+      `README.md`. The action emits `.sha256` automatically — do NOT
+      add a separate sha256 step.
+- [x] add `permissions: contents: write` for the release-upload step
+- [x] write a tiny dry-run job (gated `if: github.event_name ==
       'pull_request'`) that runs `cargo build --release` only — no
       upload — sanity-check the build still works on PRs touching
       this file
-- [ ] verify by tagging a `v0.0.0-test` on a throwaway branch (clean
-      up afterwards)
-- [ ] run `cargo test` — must pass before Task 16
+- [ ] **verify by tagging a `v0.0.0-test` — Post-Completion item**
+- [x] run `cargo test` — must pass before Task 16
 
 ### Task 16: Remote installer `scripts/install.sh`
 
@@ -774,31 +774,31 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
 - Modify: `templates/README.md` (cross-reference)
 - Modify: `docs/plan.md` (add deprecation banner)
 
-- [ ] root `README.md` covers: install (`curl … | sh` line + manual
+- [x] root `README.md` covers: install (`curl … | sh` line + manual
       tarball steps), settings.json snippet, every shipped template
       rendered as a fenced code sample, placeholder reference table,
       threshold env vars, `--debug` and `--check` usage
-- [ ] **Nerd Font tips** section: list of common glyphs (`` clock,
+- [x] **Nerd Font tips** section: list of common glyphs (`` clock,
       `` warning, `` battery), recommended fonts (Nerd Font
       family overview), how to test rendering, fallback behaviour
-- [ ] **Troubleshooting** section:
+- [x] **Troubleshooting** section:
       - macOS quarantine: `xattr -d com.apple.quarantine
         ~/.claude/bin/claude-statusline`
       - blank status line: run `claude-statusline --check`, then
         `--debug` for stderr trace
       - "no credentials" diagnosis path
       - Linux Secret Service note (we don't use it; file fallback only)
-- [ ] **Tip section**: per `docs/research.md` "Failure modes we should
+- [x] **Tip section**: per `docs/research.md` "Failure modes we should
       plan for" — what users should watch out for (Anthropic shape
       changes, multi-account caching, proxy/MITM caveats)
-- [ ] add a `CHANGELOG.md` with `## v0.1.0` entry summarising the
+- [x] add a `CHANGELOG.md` with `## v0.1.0` entry summarising the
       feature set
-- [ ] `docs/plan.md` gets a top banner: "**Superseded by
+- [x] `docs/plan.md` gets a top banner: "**Superseded by
       `docs/plans/2026-04-26-rust-statusline.md`** — kept for
       historical reference of the sh-based design. See also
       `docs/research.md` (API contract) and `docs/security-review.md`
       (why we built our own instead of installing ccstatusline)."
-- [ ] no test changes (docs only); confirm `cargo test` still passes
+- [x] no test changes (docs only); confirm `cargo test` still passes
       to be safe
 
 ### Task 18: Verify acceptance criteria
