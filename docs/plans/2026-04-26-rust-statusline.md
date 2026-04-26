@@ -324,35 +324,35 @@ types. The mapping from `UsageResponse` (Task 6) and `UsageCache`
 (Task 9) into `RenderCtx` happens in `main.rs` (Task 11c). This
 prevents Task 4 work from being rewritten when Tasks 6/9 land.
 
-- [ ] `format::thresholds`: `enum State { Green, Yellow, Red, Unknown }`
+- [x] `format::thresholds`: `enum State { Green, Yellow, Red, Unknown }`
       and `pub fn classify(left: Option<f64>) -> State` honouring env
       vars `STATUSLINE_RED` (default 20) and `STATUSLINE_YELLOW`
       (default 50). `pick_color(state)` and `pick_icon(state)`
       returning `&'static str`
-- [ ] `format::placeholders`: define `pub struct RenderCtx` with
+- [x] `format::placeholders`: define `pub struct RenderCtx` with
       ONLY primitive Option types — `model: Option<String>`,
       `cwd: Option<PathBuf>`, `five_used: Option<f64>`,
       `five_reset_unix: Option<u64>`, `seven_used: Option<f64>`,
       `seven_reset_unix: Option<u64>`, `extra_*: Option<…>`,
       `now_unix: u64`. **No `use crate::api;` or `use crate::cache;`
       anywhere in `format/`.**
-- [ ] catalogue (15+) of placeholder name → render fn mappings:
+- [x] catalogue (15+) of placeholder name → render fn mappings:
       `{model}`, `{cwd}`, `{cwd_basename}`, `{five_used}`,
       `{five_left}`, `{five_bar}`, `{five_bar_long}`,
       `{five_reset_clock}`, `{five_reset_in}`, `{five_color}`,
       `{five_state}`, parallel `{seven_*}` set, `{extra_left}`,
       `{extra_used}`, `{extra_pct}`, `{state_icon}`, `{reset}`
-- [ ] `format::mod::render(template: &str, ctx: &RenderCtx) -> String`:
+- [x] `format::mod::render(template: &str, ctx: &RenderCtx) -> String`:
       tokenize via `parser`, evaluate. Each `Optional` block: if any
       placeholder inside resolves to empty, emit empty for the whole
       block; else substitute and emit
-- [ ] write tests for the catalogue: each placeholder rendered with
+- [x] write tests for the catalogue: each placeholder rendered with
       sample data and with missing data
-- [ ] write tests for `render`: full template, optional collapse,
+- [x] write tests for `render`: full template, optional collapse,
       colour/icon output bytes, threshold env-var overrides
-- [ ] write a test asserting `format/*.rs` files contain zero
+- [x] write a test asserting `format/*.rs` files contain zero
       `use crate::api` or `use crate::cache` substrings
-- [ ] run `cargo test` — must pass before Task 5
+- [x] run `cargo test` — must pass before Task 5
 
 ### Task 5: Implement `creds.rs` (Keychain + file fallback) with testable seam
 
