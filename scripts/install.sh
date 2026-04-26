@@ -1,5 +1,5 @@
 #!/bin/sh
-# claude-statusline remote installer.
+# cc-myasl remote installer.
 #
 # Usage:
 #   curl -fsSL <raw>/scripts/install.sh | sh
@@ -18,7 +18,7 @@ REPO="${REPO:-cc-myasl}"
 VERSION="${VERSION:-latest}"
 
 DEST_BIN="${DEST_BIN:-$HOME/.claude/bin}"
-DEST_TPL="${DEST_TPL:-$HOME/.config/claude-statusline/templates}"
+DEST_TPL="${DEST_TPL:-$HOME/.config/cc-myasl/templates}"
 
 # ── platform detection ────────────────────────────────────────────────────
 case "$(uname -sm)" in
@@ -41,7 +41,7 @@ fi
 
 # Strip leading "v" for the tarball name.
 VER_NUM="${VERSION#v}"
-TARBALL="claude-statusline-${VER_NUM}-${TARGET}.tar.gz"
+TARBALL="cc-myasl-${VER_NUM}-${TARGET}.tar.gz"
 SHA="${TARBALL}.sha256"
 URL_BASE="https://github.com/$OWNER/$REPO/releases/download/$VERSION"
 
@@ -68,26 +68,26 @@ fi
 
 # ── extract + install ─────────────────────────────────────────────────────
 tar -xzf "$TMP/$TARBALL" -C "$TMP"
-EXTRACTED="$TMP/claude-statusline-${VER_NUM}-${TARGET}"
+EXTRACTED="$TMP/cc-myasl-${VER_NUM}-${TARGET}"
 [ -d "$EXTRACTED" ] || {
     printf 'error: tarball did not produce expected dir %s\n' "$EXTRACTED" >&2
     exit 1
 }
 
 mkdir -p "$DEST_BIN" "$DEST_TPL"
-install -m 0755 "$EXTRACTED/bin/claude-statusline" "$DEST_BIN/claude-statusline"
+install -m 0755 "$EXTRACTED/bin/cc-myasl" "$DEST_BIN/cc-myasl"
 cp "$EXTRACTED"/templates/*.txt "$DEST_TPL/"
 
 # ── settings snippet (NEVER edit ~/.claude/settings.json) ─────────────────
 printf '\n'
-printf 'Installed claude-statusline %s -> %s/claude-statusline\n' "$VERSION" "$DEST_BIN"
+printf 'Installed cc-myasl %s -> %s/cc-myasl\n' "$VERSION" "$DEST_BIN"
 printf 'Templates -> %s\n' "$DEST_TPL"
 printf '\n'
 printf 'Add to ~/.claude/settings.json:\n'
 printf '  "statusLine": {\n'
 printf '    "type": "command",\n'
-printf '    "command": "%s/claude-statusline --template default"\n' "$DEST_BIN"
+printf '    "command": "%s/cc-myasl --template default"\n' "$DEST_BIN"
 printf '  }\n'
 printf '\n'
 printf 'macOS users: if you see an unidentified developer warning,\n'
-printf '  xattr -d com.apple.quarantine %s/claude-statusline\n' "$DEST_BIN"
+printf '  xattr -d com.apple.quarantine %s/cc-myasl\n' "$DEST_BIN"

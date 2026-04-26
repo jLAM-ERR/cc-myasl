@@ -1,27 +1,27 @@
-//! Entry point — orchestrates the render pipeline for claude-statusline.
+//! Entry point — orchestrates the render pipeline for cc-myasl.
 //! Hard invariants: exit 0 always in render mode; token never on disk or logged.
 
 use std::path::PathBuf;
 use std::time::SystemTime;
 
-use claude_statusline::api::{self, FetchOutcome};
-use claude_statusline::args::Args;
-use claude_statusline::cache::{
+use cc_myasl::api::{self, FetchOutcome};
+use cc_myasl::args::Args;
+use cc_myasl::cache::{
     self,
     lock::{Lock, LockError},
     ExtraUsageCache, UsageCache, UsageWindowCache,
 };
-use claude_statusline::check;
-use claude_statusline::creds;
-use claude_statusline::debug::Trace;
-use claude_statusline::format::{self, RenderCtx};
-use claude_statusline::payload;
-use claude_statusline::time;
+use cc_myasl::check;
+use cc_myasl::creds;
+use cc_myasl::debug::Trace;
+use cc_myasl::format::{self, RenderCtx};
+use cc_myasl::payload;
+use cc_myasl::time;
 
 // ── constants ─────────────────────────────────────────────────────────────────
 
-use claude_statusline::api::DEFAULT_OAUTH_BASE_URL;
-use claude_statusline::format::DEFAULT_TEMPLATE;
+use cc_myasl::api::DEFAULT_OAUTH_BASE_URL;
+use cc_myasl::format::DEFAULT_TEMPLATE;
 
 const CACHE_TTL_SECS: u64 = 180;
 
@@ -29,14 +29,14 @@ const CACHE_TTL_SECS: u64 = 180;
 
 fn main() {
     let argv: Vec<String> = std::env::args().skip(1).collect();
-    let args = claude_statusline::args::parse(&argv);
+    let args = cc_myasl::args::parse(&argv);
 
     if args.help {
         print_usage();
         std::process::exit(0);
     }
     if args.version {
-        println!("claude-statusline {}", env!("CARGO_PKG_VERSION"));
+        println!("cc-myasl {}", env!("CARGO_PKG_VERSION"));
         std::process::exit(0);
     }
     if args.check {
@@ -272,9 +272,9 @@ fn render_and_emit(trace: &mut Trace, args: &Args, ctx: &RenderCtx, started: Sys
 }
 
 fn print_usage() {
-    eprintln!("claude-statusline — Claude Code status line with remaining 5h/7d quota");
+    eprintln!("cc-myasl — Claude Code status line with remaining 5h/7d quota");
     eprintln!();
-    eprintln!("USAGE: claude-statusline [OPTIONS]");
+    eprintln!("USAGE: cc-myasl [OPTIONS]");
     eprintln!();
     eprintln!("OPTIONS:");
     eprintln!("  --format <STR>     Inline template string (highest precedence)");
@@ -296,8 +296,8 @@ fn print_usage() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use claude_statusline::args;
-    use claude_statusline::cache::{ExtraUsageCache, UsageCache, UsageWindowCache};
+    use cc_myasl::args;
+    use cc_myasl::cache::{ExtraUsageCache, UsageCache, UsageWindowCache};
     use std::sync::Mutex;
 
     static ENV_MUTEX: Mutex<()> = Mutex::new(());
@@ -379,7 +379,7 @@ mod tests {
 
     #[test]
     fn build_cache_from_response_round_trip() {
-        use claude_statusline::api::response::{ExtraUsage, UsageResponse, UsageWindow};
+        use cc_myasl::api::response::{ExtraUsage, UsageResponse, UsageWindow};
         let resp = UsageResponse {
             five_hour: Some(UsageWindow {
                 utilization: Some(55.0),

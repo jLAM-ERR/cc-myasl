@@ -72,7 +72,7 @@ jobs:
           key: release-${{ matrix.target }}
 
       # Strip the leading "v" so the archive name matches install.sh's
-      # tarball pattern: claude-statusline-${VER_NUM}-${TARGET}.tar.gz
+      # tarball pattern: cc-myasl-${VER_NUM}-${TARGET}.tar.gz
       # (install.sh does VER_NUM="${VERSION#v}" before constructing the URL).
       - name: Compute version
         id: version
@@ -82,16 +82,16 @@ jobs:
         if: github.event_name == 'push'
         uses: taiki-e/upload-rust-binary-action@v1
         with:
-          bin: claude-statusline
+          bin: cc-myasl
           target: ${{ matrix.target }}
           # `$target` here is the action's own placeholder (NOT a shell
           # variable, NOT a `${{ matrix.target }}` expression). The action
           # substitutes it to the matrix target at upload time. The leading
           # `${{ steps.version.outputs.version }}` is GitHub Actions
           # expression syntax, evaluated by the runner. End result:
-          #   claude-statusline-0.1.0-aarch64-apple-darwin.tar.gz
+          #   cc-myasl-0.1.0-aarch64-apple-darwin.tar.gz
           # which exactly matches install.sh's tarball pattern.
-          archive: claude-statusline-${{ steps.version.outputs.version }}-$target
+          archive: cc-myasl-${{ steps.version.outputs.version }}-$target
           include: templates,README.md
           tar: unix
           checksum: sha256

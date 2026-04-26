@@ -50,7 +50,7 @@ pub fn fetch_usage(token: &str, base_url: &str) -> Result<FetchOutcome, anyhow::
         .build();
 
     let url = format!("{base_url}/api/oauth/usage");
-    let user_agent = format!("claude-statusline/{}", env!("CARGO_PKG_VERSION"));
+    let user_agent = format!("cc-myasl/{}", env!("CARGO_PKG_VERSION"));
 
     let result = agent
         .get(&url)

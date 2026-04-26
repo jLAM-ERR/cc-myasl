@@ -6,7 +6,7 @@
 
 use std::fmt;
 
-/// Unified error type for the claude-statusline binary.
+/// Unified error type for the cc-myasl binary.
 ///
 /// Each variant carries a plain `String` message — no nested error
 /// chains — so that it is easy to redact sensitive content before

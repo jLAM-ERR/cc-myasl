@@ -4,13 +4,31 @@ All notable changes to this project will be documented in this file.
 
 ## [v0.1.1] — 2026-04-27
 
-Branding + first-release shakedown fixes. No runtime behaviour change.
+Full rebrand to `cc-myasl` + first-release CI shakedown fixes.
 
-### Changed
+### Breaking changes (acceptable for v0.1.x)
 
-- README rebranded to `cc-myasl — My Yet Another Status Line for
-  Claude Code` to match the GitHub repo. Binary keeps the descriptive
-  name `claude-statusline`.
+- **Crate / binary / cache directory all renamed** from
+  `claude-statusline` to `cc-myasl`:
+  - `Cargo.toml` `package.name` and `[[bin]].name` are now `cc-myasl`
+  - Released tarballs are `cc-myasl-X.Y.Z-<target>.tar.gz`
+  - install.sh installs the binary to `~/.claude/bin/cc-myasl`
+  - The User-Agent sent to `api.anthropic.com/api/oauth/usage` now
+    reads `cc-myasl/<version>` instead of `claude-statusline/<version>`
+  - Cache directory is now `<XDG_CACHE_HOME>/cc-myasl/` on Linux and
+    `~/Library/Caches/ai.cc-myasl.cc-myasl/` on macOS (was
+    `claude-statusline`). Existing v0.1.0 caches are abandoned in
+    place; on first v0.1.1 run the binary populates the new path.
+  - Imports inside the project changed from `use claude_statusline::…`
+    to `use cc_myasl::…`. Library users (none expected at this
+    pre-1.0 stage) need the same swap.
+- README, CLAUDE.md, and templates/README.md all updated accordingly.
+
+### Added
+
+- New `CLAUDE.md` at repo root: project guidance, hard invariants,
+  format-engine decoupling rule, cross-test env-var serialization
+  rules, "things to NOT do" list, reference-docs index.
 - New `CLAUDE.md` with project guidance, hard invariants, and a
   "do-not" list for future contributors (and for Claude Code itself
   when working in this tree).

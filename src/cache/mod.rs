@@ -15,35 +15,33 @@ use serde::{Deserialize, Serialize};
 
 // ── Cache directory resolver ────────────────────────────────────────────────
 
-/// Locate the cache directory for claude-statusline.
+/// Locate the cache directory for cc-myasl.
 ///
-/// Uses `directories::ProjectDirs::from("ai", "claude-statusline",
-/// "claude-statusline")` to find the platform-appropriate cache directory
-/// (e.g. `~/Library/Caches/claude-statusline/` on macOS,
-/// `~/.cache/claude-statusline/` on Linux).
+/// Uses `directories::ProjectDirs::from("ai", "cc-myasl",
+/// "cc-myasl")` to find the platform-appropriate cache directory
+/// (e.g. `~/Library/Caches/cc-myasl/` on macOS,
+/// `~/.cache/cc-myasl/` on Linux).
 ///
 /// Fallback (when `ProjectDirs` returns `None`): constructs the path from
-/// `$HOME` environment variable as `$HOME/.cache/claude-statusline/`.
-/// If `$HOME` is also unset, returns `~/.cache/claude-statusline/` literally.
+/// `$HOME` environment variable as `$HOME/.cache/cc-myasl/`.
+/// If `$HOME` is also unset, returns `~/.cache/cc-myasl/` literally.
 pub fn cache_dir() -> PathBuf {
-    if let Some(proj) =
-        directories::ProjectDirs::from("ai", "claude-statusline", "claude-statusline")
-    {
+    if let Some(proj) = directories::ProjectDirs::from("ai", "cc-myasl", "cc-myasl") {
         return proj.cache_dir().to_path_buf();
     }
 
     // Fallback: derive from BaseDirs or $HOME.
     if let Some(base) = directories::BaseDirs::new() {
-        return base.home_dir().join(".cache").join("claude-statusline");
+        return base.home_dir().join(".cache").join("cc-myasl");
     }
 
     // Last resort: use $HOME env var.
     if let Ok(home) = std::env::var("HOME") {
-        return PathBuf::from(home).join(".cache").join("claude-statusline");
+        return PathBuf::from(home).join(".cache").join("cc-myasl");
     }
 
     // Absolute fallback — caller will likely get an error on first write.
-    PathBuf::from("~/.cache/claude-statusline")
+    PathBuf::from("~/.cache/cc-myasl")
 }
 
 // ── Data types ──────────────────────────────────────────────────────────────

@@ -18,7 +18,7 @@ fn fixture(name: &str) -> String {
 }
 
 fn bin() -> Command {
-    Command::cargo_bin("claude-statusline").expect("binary must build")
+    Command::cargo_bin("cc-myasl").expect("binary must build")
 }
 
 /// Return the cache dir the binary will use given `home`.
@@ -30,19 +30,19 @@ fn bin() -> Command {
 ///   Windows: <organization>\<application>
 ///
 /// We're macOS + Linux only. On macOS we expect
-/// `<home>/Library/Caches/ai.claude-statusline.claude-statusline`; on Linux,
-/// `<home>/.cache/claude-statusline` (the test sets XDG_CACHE_HOME to
+/// `<home>/Library/Caches/ai.cc-myasl.cc-myasl`; on Linux,
+/// `<home>/.cache/cc-myasl` (the test sets XDG_CACHE_HOME to
 /// `<home>/.cache` so this lines up regardless of runner-set XDG values).
 fn cache_dir_for_home(home: &Path) -> PathBuf {
     #[cfg(target_os = "macos")]
     {
         home.join("Library")
             .join("Caches")
-            .join("ai.claude-statusline.claude-statusline")
+            .join("ai.cc-myasl.cc-myasl")
     }
     #[cfg(not(target_os = "macos"))]
     {
-        home.join(".cache").join("claude-statusline")
+        home.join(".cache").join("cc-myasl")
     }
 }
 

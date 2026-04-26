@@ -1,12 +1,8 @@
 # cc-myasl — My Yet Another Status Line for Claude Code
 
 Remaining Claude.ai 5h/7d quota in your Claude Code status line — single
-binary, ~3–5 ms cold start, no runtime deps.
-
-> The repo is `cc-myasl`. The shipped binary is `claude-statusline`
-> (kept descriptive for what it actually does and to avoid colliding with
-> existing Claude Code conventions). All install commands and `settings.json`
-> snippets below reference the binary name.
+binary, ~3–5 ms cold start, no runtime deps. Repo, crate, and binary all
+named `cc-myasl`.
 
 ## Demo
 
@@ -46,8 +42,8 @@ The installer:
 3. Verifies the SHA-256 checksum — aborts on mismatch. (If the
    `.sha256` sidecar is missing from the release, the installer warns
    and continues without verification.)
-4. Installs the binary to `~/.claude/bin/claude-statusline`.
-5. Copies templates to `~/.config/claude-statusline/templates/`.
+4. Installs the binary to `~/.claude/bin/cc-myasl`.
+5. Copies templates to `~/.config/cc-myasl/templates/`.
 6. Prints the `settings.json` snippet (never edits the file itself).
 
 ### Manual tarball install
@@ -68,13 +64,13 @@ The installer:
    # Example for macOS Apple Silicon, v0.1.0
    VERSION=v0.1.0
    TARGET=aarch64-apple-darwin
-   TARBALL="claude-statusline-${VERSION#v}-${TARGET}.tar.gz"
+   TARBALL="cc-myasl-${VERSION#v}-${TARGET}.tar.gz"
 
    shasum -a 256 -c "${TARBALL}.sha256"
    tar -xzf "$TARBALL"
    mkdir -p ~/.claude/bin
-   install -m 0755 "claude-statusline-${VERSION#v}-${TARGET}/bin/claude-statusline" \
-     ~/.claude/bin/claude-statusline
+   install -m 0755 "cc-myasl-${VERSION#v}-${TARGET}/bin/cc-myasl" \
+     ~/.claude/bin/cc-myasl
    ```
 
 ---
@@ -87,7 +83,7 @@ Add this block to `~/.claude/settings.json`:
 {
   "statusLine": {
     "type": "command",
-    "command": "/Users/<you>/.claude/bin/claude-statusline --template default"
+    "command": "/Users/<you>/.claude/bin/cc-myasl --template default"
   }
 }
 ```
@@ -275,11 +271,11 @@ your terminal emulator.
 
 ### `--check` — four-section diagnostic
 
-`claude-statusline --check` runs a diagnostic of all subsystems and exits
+`cc-myasl --check` runs a diagnostic of all subsystems and exits
 non-zero on any failure. Use it first when the status line looks wrong.
 
 ```
-$ claude-statusline --check
+$ cc-myasl --check
 
 Credentials
   ✓ macOS Keychain: found service "Claude Code-credentials"
@@ -289,7 +285,7 @@ Network
   ✓ GET https://api.anthropic.com/api/oauth/usage → 200 (142 ms)
 
 Cache
-  ✓ ~/.cache/claude-statusline/usage.json — fresh (38 s old, TTL 180 s)
+  ✓ ~/.cache/cc-myasl/usage.json — fresh (38 s old, TTL 180 s)
 
 Format
   ✓ default template renders without error
@@ -307,7 +303,7 @@ Exit code is `0` when all sections pass, `1` if any fail.
 
 ### `--debug` — per-render JSON trace
 
-`claude-statusline --debug` (or `STATUSLINE_DEBUG=1`) emits a single-line
+`cc-myasl --debug` (or `STATUSLINE_DEBUG=1`) emits a single-line
 JSON object to stderr after every render, containing timing, cache state,
 and HTTP outcome. The bearer token is never included — only a
 non-reversible fingerprint of its last 8 characters.
@@ -321,7 +317,7 @@ non-reversible fingerprint of its last 8 characters.
 You can pipe stderr to a file for post-mortem analysis:
 
 ```sh
-echo '{}' | claude-statusline --debug 2>trace.jsonl
+echo '{}' | cc-myasl --debug 2>trace.jsonl
 ```
 
 ---
@@ -380,7 +376,7 @@ Once your terminal font supports the glyphs, you can write:
 And use it with:
 
 ```sh
-claude-statusline --format "{model}   {five_left}%   {seven_left}%"
+cc-myasl --format "{model}   {five_left}%   {seven_left}%"
 ```
 
 Or set it in your environment:
@@ -389,7 +385,7 @@ Or set it in your environment:
 export STATUSLINE_FORMAT="{model}   {five_left}%   {seven_left}%"
 ```
 
-**Note:** `claude-statusline` does not ship a Nerd Font preset — Nerd
+**Note:** `cc-myasl` does not ship a Nerd Font preset — Nerd
 Fonts are an opt-in install that you configure in your terminal emulator.
 The built-in templates intentionally use only standard emoji and ASCII so
 they work out of the box in any terminal.
@@ -400,14 +396,14 @@ they work out of the box in any terminal.
 
 ### Blank status line
 
-1. Run `claude-statusline --check` to see which subsystem is failing.
+1. Run `cc-myasl --check` to see which subsystem is failing.
 2. If the check passes but the line is still blank, enable debug output:
    ```sh
-   echo '{}' | STATUSLINE_DEBUG=1 claude-statusline 2>&1 | head -5
+   echo '{}' | STATUSLINE_DEBUG=1 cc-myasl 2>&1 | head -5
    ```
 3. Inspect the cache file directly:
-   - macOS: `cat ~/Library/Caches/claude-statusline/usage.json`
-   - Linux: `cat ~/.cache/claude-statusline/usage.json`
+   - macOS: `cat ~/Library/Caches/cc-myasl/usage.json`
+   - Linux: `cat ~/.cache/cc-myasl/usage.json`
 
 ### macOS quarantine warning ("unidentified developer")
 
@@ -415,14 +411,14 @@ After installing via the curl-pipe script, macOS Gatekeeper may block the
 binary. Clear the quarantine attribute:
 
 ```sh
-xattr -d com.apple.quarantine ~/.claude/bin/claude-statusline
+xattr -d com.apple.quarantine ~/.claude/bin/cc-myasl
 ```
 
-Then re-run `claude-statusline --check` to confirm it works.
+Then re-run `cc-myasl --check` to confirm it works.
 
 ### "no credentials" error
 
-`claude-statusline --check` reports this when neither the Keychain nor
+`cc-myasl --check` reports this when neither the Keychain nor
 the credentials file contains a valid Bearer token.
 
 Diagnosis steps:
@@ -443,7 +439,7 @@ Diagnosis steps:
 
 ### Linux: Secret Service / kwallet not used
 
-`claude-statusline` deliberately does **not** integrate with
+`cc-myasl` deliberately does **not** integrate with
 D-Bus Secret Service or kwallet on Linux. Those services are too fragile
 in headless and container environments (SSH sessions, CI, Docker). On
 Linux the tool falls back to `~/.claude/.credentials.json` only.
@@ -464,8 +460,8 @@ the cache is invalidated.
 
 To force a refresh, delete the cache file:
 
-- macOS: `rm ~/Library/Caches/claude-statusline/usage.json`
-- Linux: `rm ~/.cache/claude-statusline/usage.json`
+- macOS: `rm ~/Library/Caches/cc-myasl/usage.json`
+- Linux: `rm ~/.cache/cc-myasl/usage.json`
 
 Enable `STATUSLINE_DEBUG=1` to confirm whether each render is a cache
 hit or a live fetch.
@@ -492,8 +488,8 @@ accounts (e.g. from a personal Pro account to a work Max account), the
 cached quota numbers still reflect the previous account until the cache
 expires or you delete it manually:
 
-- macOS: `rm ~/Library/Caches/claude-statusline/usage.json`
-- Linux: `rm ~/.cache/claude-statusline/usage.json`
+- macOS: `rm ~/Library/Caches/cc-myasl/usage.json`
+- Linux: `rm ~/.cache/cc-myasl/usage.json`
 
 ### Proxy / MITM caveat
 
@@ -519,7 +515,7 @@ local time when each window resets.
 
 ## Security Model
 
-`claude-statusline` is built with a small, auditable trusted-code surface:
+`cc-myasl` is built with a small, auditable trusted-code surface:
 
 - **Bearer token never written to disk.** The `UsageCache` struct
   deliberately omits any token field — this is a compile-time guarantee
@@ -608,7 +604,7 @@ future patch — this is a known TODO for the project maintainer.)
 
 ## Acknowledgments
 
-`claude-statusline` was built by studying two excellent prior projects:
+`cc-myasl` was built by studying two excellent prior projects:
 
 - **[sirmalloc/ccstatusline](https://github.com/sirmalloc/ccstatusline)**
   — TypeScript / Bun implementation that pioneered the two-tier cache,

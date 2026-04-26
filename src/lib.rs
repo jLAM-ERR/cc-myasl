@@ -1,4 +1,5 @@
-// claude-statusline library — modules will be added in subsequent tasks.
+// cc-myasl — My Yet Another Status Line for Claude Code.
+// Library crate; binary lives in src/main.rs.
 
 pub mod api;
 pub mod args;

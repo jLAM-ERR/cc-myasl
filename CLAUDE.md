@@ -7,7 +7,7 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 `cc-myasl` (My Yet Another Status Line) is a Rust v0.1 single-binary
 tool that renders remaining Claude.ai 5-hour and 7-day token quota in
 the Claude Code status line. The shipped binary is named
-`claude-statusline` (descriptive of what it does). Reads Claude Code's
+`cc-myasl` (descriptive of what it does). Reads Claude Code's
 stdin JSON; if the official `rate_limits` field is absent (fresh
 session, non-Pro/Max, first turn), falls back to
 `GET https://api.anthropic.com/api/oauth/usage` using a Bearer token
@@ -47,13 +47,13 @@ bash scripts/check-invariants.sh    # no dump-keychain / @latest / cargo refs in
 shellcheck scripts/*.sh
 
 # Manual cold-start benchmark (requires hyperfine)
-hyperfine --warmup 5 'echo "{}" | target/release/claude-statusline'
+hyperfine --warmup 5 'echo "{}" | target/release/cc-myasl'
 
 # Run the diagnostic
-./target/release/claude-statusline --check
+./target/release/cc-myasl --check
 
 # Run with debug trace to stderr
-STATUSLINE_DEBUG=1 ./target/release/claude-statusline < some-stdin.json
+STATUSLINE_DEBUG=1 ./target/release/cc-myasl < some-stdin.json
 ```
 
 ## Big-picture architecture
@@ -140,7 +140,7 @@ acquire the appropriate mutex.
   `create-release` job runs first to materialise the GitHub Release;
   matrix jobs depend on it and upload via
   `taiki-e/upload-rust-binary-action@v1`.
-- Release archives are named `claude-statusline-<ver-without-v>-<target>.tar.gz`
+- Release archives are named `cc-myasl-<ver-without-v>-<target>.tar.gz`
   to match `install.sh`'s URL pattern (the workflow strips the leading
   `v` from `GITHUB_REF_NAME` for this).
 

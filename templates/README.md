@@ -2,7 +2,7 @@
 
 # Template Gallery
 
-`claude-statusline` ships eight built-in templates. Select one with
+`cc-myasl` ships eight built-in templates. Select one with
 `--template <NAME>`, override with `--format "<INLINE>"`, or set
 `STATUSLINE_FORMAT` in your environment. Precedence (highest first):
 `--format` > `STATUSLINE_FORMAT` > `--template` > built-in `default`.
@@ -88,14 +88,14 @@ Remaining % above `STATUSLINE_YELLOW` is Green.
 
 ```
 # Named built-in template
-claude-statusline --template minimal
+cc-myasl --template minimal
 
 # Inline format string (highest precedence)
-claude-statusline --format "{model} · {five_left}%"
+cc-myasl --format "{model} · {five_left}%"
 
 # Via environment variable
 export STATUSLINE_FORMAT="{model} · {five_left}%"
-claude-statusline
+cc-myasl
 ```
 
 For Nerd Font glyphs and troubleshooting tips, see the root `README.md`

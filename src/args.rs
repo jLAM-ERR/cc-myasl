@@ -6,7 +6,7 @@
 //! # Example
 //! ```
 //! let raw: Vec<String> = std::env::args().skip(1).collect();
-//! let args = claude_statusline::args::parse(&raw);
+//! let args = cc_myasl::args::parse(&raw);
 //! ```
 
 #[derive(Debug, Default, PartialEq)]
