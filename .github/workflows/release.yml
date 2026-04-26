@@ -9,11 +9,41 @@ on:
       - ".github/workflows/release.yml"
 
 permissions:
-  contents: write   # required to create the GitHub Release
+  contents: write   # required to create the GitHub Release + upload assets
 
 jobs:
+  # Create the GitHub Release once, before any matrix job tries to upload to it.
+  # taiki-e/upload-rust-binary-action@v1 expects the release to exist; it does
+  # NOT auto-create one. Without this step the matrix jobs retry "release not
+  # found" until they time out. Single source of release metadata.
+  create-release:
+    name: Create GitHub Release
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release if it doesn't exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; skipping create."
+          else
+            gh release create "$TAG" --title "$TAG" \
+              --notes "Automated release $TAG. See CHANGELOG.md for details."
+          fi
+
   release:
     name: Build ${{ matrix.target }}
+    needs: [create-release]
+    # `always()` lets this job still run on PR events where create-release is
+    # skipped (its `if: github.event_name == 'push'` filter). We require either
+    # a successful create-release (tag push) or a skipped one (PR dry-run).
+    if: |
+      always() &&
+      (needs.create-release.result == 'success' ||
+       needs.create-release.result == 'skipped')
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
