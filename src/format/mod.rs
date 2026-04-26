@@ -46,6 +46,27 @@ fn render_tokens(tokens: &[Token], ctx: &RenderCtx, out: &mut String) {
     }
 }
 
+/// Look up a built-in template by name.
+///
+/// Returns `Some(&str)` for one of the shipped templates
+/// (`default`, `minimal`, `compact`, `bars`, `colored`,
+/// `emoji`, `emoji_verbose`, `verbose`).  Returns `None`
+/// for any unknown name.  The orchestrator (`main.rs`)
+/// resolves the precedence order; this is just the lookup.
+pub fn lookup_template(name: &str) -> Option<&'static str> {
+    match name {
+        "default" => Some(include_str!("../../templates/default.txt")),
+        "minimal" => Some(include_str!("../../templates/minimal.txt")),
+        "compact" => Some(include_str!("../../templates/compact.txt")),
+        "bars" => Some(include_str!("../../templates/bars.txt")),
+        "colored" => Some(include_str!("../../templates/colored.txt")),
+        "emoji" => Some(include_str!("../../templates/emoji.txt")),
+        "emoji_verbose" => Some(include_str!("../../templates/emoji_verbose.txt")),
+        "verbose" => Some(include_str!("../../templates/verbose.txt")),
+        _ => None,
+    }
+}
+
 fn render_optional(tokens: &[Token], ctx: &RenderCtx, out: &mut String) -> bool {
     let mut all_present = true;
     for t in tokens {
@@ -71,6 +92,10 @@ fn render_optional(tokens: &[Token], ctx: &RenderCtx, out: &mut String) -> bool 
 mod tests {
     use super::*;
     use std::path::PathBuf;
+    use std::sync::Mutex;
+
+    /// Shared mutex for all tests that set or read threshold env vars.
+    static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
     fn full_ctx() -> RenderCtx {
         RenderCtx {
@@ -184,10 +209,7 @@ mod tests {
 
     #[test]
     fn render_threshold_override_changes_color() {
-        // Serialize with thresholds tests' mutex to avoid env races.
-        // We use a separate mutex here rather than importing theirs.
-        static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-        let _guard = LOCK.lock().unwrap();
+        let _guard = ENV_MUTEX.lock().unwrap();
 
         // five_used=30 → left=70; with red=80, yellow=90 → Red
         std::env::set_var("STATUSLINE_RED", "80");
@@ -201,10 +223,79 @@ mod tests {
         std::env::remove_var("STATUSLINE_YELLOW");
     }
 
+    // ── lookup_template ──────────────────────────────────────────────────────
+
+    #[test]
+    fn lookup_default_returns_some() {
+        let s = lookup_template("default").expect("default exists");
+        assert!(!s.is_empty());
+        assert!(s.contains("{model}"));
+    }
+
+    #[test]
+    fn lookup_unknown_returns_none() {
+        assert!(lookup_template("does-not-exist").is_none());
+    }
+
+    #[test]
+    fn all_shipped_templates_render_against_full_ctx() {
+        let _guard = ENV_MUTEX.lock().unwrap();
+        use crate::format::placeholders::RenderCtx;
+        use std::path::PathBuf;
+        let ctx = RenderCtx {
+            model: Some("claude".into()),
+            cwd: Some(PathBuf::from("/tmp/proj")),
+            five_used: Some(30.0),
+            five_reset_unix: Some(3600),
+            seven_used: Some(60.0),
+            seven_reset_unix: Some(90000),
+            extra_enabled: Some(true),
+            extra_used: Some(50.0),
+            extra_limit: Some(100.0),
+            extra_pct: Some(50.0),
+            now_unix: 0,
+        };
+        for name in [
+            "default",
+            "minimal",
+            "compact",
+            "bars",
+            "colored",
+            "emoji",
+            "emoji_verbose",
+            "verbose",
+        ] {
+            let tmpl = lookup_template(name).expect(name);
+            let out = render(tmpl, &ctx);
+            assert!(!out.is_empty(), "{name} rendered empty");
+        }
+    }
+
+    #[test]
+    fn all_shipped_templates_render_against_empty_ctx() {
+        let _guard = ENV_MUTEX.lock().unwrap();
+        // Empty ctx → optional segments all collapse → output may be very short
+        // but must NOT panic.
+        use crate::format::placeholders::RenderCtx;
+        let ctx = RenderCtx::default();
+        for name in [
+            "default",
+            "minimal",
+            "compact",
+            "bars",
+            "colored",
+            "emoji",
+            "emoji_verbose",
+            "verbose",
+        ] {
+            let tmpl = lookup_template(name).expect(name);
+            let _out = render(tmpl, &ctx);
+        }
+    }
+
     #[test]
     fn render_threshold_override_changes_icon() {
-        static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-        let _guard = LOCK.lock().unwrap();
+        let _guard = ENV_MUTEX.lock().unwrap();
 
         // five_used=30 → left=70; with yellow=80 → Yellow
         std::env::remove_var("STATUSLINE_RED");

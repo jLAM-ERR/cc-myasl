@@ -655,28 +655,27 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
 - Modify: `src/format/mod.rs` (add `BUILTIN_TEMPLATES` table via
   `include_str!`)
 
-- [ ] author each template's one-line content per the catalogue in
+- [x] author each template's one-line content per the catalogue in
       `docs/research.md` and the brainstorm. `default.txt` is what
       ships in the printed `settings.json` snippet
-- [ ] `templates/README.md`: explain the format-string syntax,
+- [x] `templates/README.md`: explain the format-string syntax,
       placeholder list, threshold env vars. (Detailed Nerd Font /
       troubleshooting tips deferred to Task 17.)
-- [ ] in `format::mod`, expose
+- [x] in `format::mod`, expose
       `pub fn lookup_template(name: &str) -> Option<&'static str>`
       backed by a `match` over
       `include_str!("../../templates/<n>.txt")` (path is relative
       to the file containing the macro: `src/format/mod.rs` → `..`
       = `src/`, `../..` = repo root, `../../templates/<n>.txt`
-      = the template file)
-- [ ] verify the include path: `cargo build` must succeed; if it
-      fails with "file not found", the include path is wrong and
-      needs `../../../templates/<n>.txt` instead
-- [ ] precedence resolver in `main.rs` consumes this lookup
-- [ ] write tests: `lookup_template("default")` returns `Some(s)`
+      = the template file) — confirmed correct via `cargo build`.
+- [x] verify the include path: `cargo build` succeeded with
+      `../../templates/<n>.txt`.
+- [x] precedence resolver in `main.rs` consumes this lookup
+- [x] write tests: `lookup_template("default")` returns `Some(s)`
       where `!s.is_empty()`; unknown name returns `None`; every
       shipped template renders successfully against a known-good
       `RenderCtx` (no panics, no empty output)
-- [ ] run `cargo test` — must pass before Task 14
+- [x] run `cargo test` — must pass before Task 14
 
 ### Task 14: End-to-end golden tests in `tests/golden.rs`
 
@@ -740,25 +739,25 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
 **Files:**
 - Create: `scripts/install.sh`
 
-- [ ] POSIX `sh`, ~80 LOC, no `cargo`/`rust`/`rustup` references
+- [x] POSIX `sh`, 93 LOC, no `cargo`/`rust`/`rustup` references
       (asserted by Task 1's `check-invariants.sh`)
-- [ ] detect platform via `uname -sm` → one of the 4 targets
-- [ ] resolve version: env `VERSION` (default `latest`) → if `latest`,
+- [x] detect platform via `uname -sm` → one of the 4 targets
+- [x] resolve version: env `VERSION` (default `latest`) → if `latest`,
       `curl -fsSL api.github.com/repos/<owner>/<repo>/releases/latest`
       and extract `tag_name` via `sed`
-- [ ] `curl -fsSL` the tarball + `.sha256`; verify with
-      `shasum -a 256 -c`; abort on mismatch
-- [ ] `tar -xzf` into `mktemp -d`; `install -m 0755` the binary to
+- [x] `curl -fsSL` the tarball + `.sha256`; verify with
+      `shasum -a 256 -c`; abort on mismatch (warns on missing .sha256
+      and continues)
+- [x] `tar -xzf` into `mktemp -d`; `install -m 0755` the binary to
       `~/.claude/bin/`; `cp templates/*` to
       `~/.config/claude-statusline/templates/`
-- [ ] print a settings.json snippet — never edit settings.json
-- [ ] `trap 'rm -rf "$TMP"' EXIT` for cleanup
-- [ ] `chmod +x scripts/install.sh`
-- [ ] manual smoke test: run on a clean macOS box (no install),
-      verify it works end-to-end (also a Post-Completion item)
-- [ ] confirm Task 1's `check-invariants.sh` still passes now that
+- [x] print a settings.json snippet — never edit settings.json
+- [x] `trap 'rm -rf "$TMP"' EXIT INT TERM` for cleanup
+- [x] `chmod +x scripts/install.sh`
+- [ ] **manual smoke test on a clean macOS box (no install) — Post-Completion item, see end of doc**
+- [x] confirm Task 1's `check-invariants.sh` still passes now that
       `install.sh` exists (no cargo/rust references in it)
-- [ ] run `cargo test` and `bash scripts/check-invariants.sh` —
+- [x] run `cargo test` and `bash scripts/check-invariants.sh` —
       must pass before Task 17
 
 ### Task 17: README polish — Nerd Font, troubleshooting, gallery

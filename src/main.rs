@@ -254,9 +254,10 @@ fn resolve_template(args: &Args) -> String {
             return s;
         }
     }
-    if args.template.is_some() {
-        // TODO Task 13: replace with `lookup_template(name).unwrap_or(DEFAULT_TEMPLATE)`.
-        return DEFAULT_TEMPLATE.to_string();
+    if let Some(name) = &args.template {
+        return format::lookup_template(name)
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| DEFAULT_TEMPLATE.to_string());
     }
     DEFAULT_TEMPLATE.to_string()
 }
@@ -326,10 +327,17 @@ mod tests {
     fn resolve_template_default_fallback() {
         let _g = ENV_MUTEX.lock().unwrap();
         std::env::remove_var("STATUSLINE_FORMAT");
-        // --template falls through to DEFAULT_TEMPLATE (Task 13 adds lookup).
         assert_eq!(resolve_template(&args::parse(&[])), DEFAULT_TEMPLATE);
-        let a = args::parse(&["--template".to_string(), "minimal".to_string()]);
-        assert_eq!(resolve_template(&a), DEFAULT_TEMPLATE);
+    }
+
+    #[test]
+    fn resolve_template_template_flag_uses_lookup() {
+        let _g = ENV_MUTEX.lock().unwrap();
+        std::env::remove_var("STATUSLINE_FORMAT");
+        let a = args::parse(&["--template".to_string(), "default".to_string()]);
+        assert!(resolve_template(&a).contains("{model}"));
+        let b = args::parse(&["--template".to_string(), "does-not-exist".to_string()]);
+        assert_eq!(resolve_template(&b), DEFAULT_TEMPLATE);
     }
 
     // ── apply_cache_to_ctx ────────────────────────────────────────────────────

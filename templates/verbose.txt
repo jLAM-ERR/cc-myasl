@@ -1,0 +1,1 @@
+{model} · {cwd_basename}{? · 5h:{five_bar} {five_left}% (in {five_reset_in})}{? · 7d:{seven_bar} {seven_left}% (in {seven_reset_in})}{? · extra:{extra_left}}
