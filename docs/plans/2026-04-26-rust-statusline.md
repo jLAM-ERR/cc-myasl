@@ -270,20 +270,20 @@ After each agent reports done:
 - Modify: `src/lib.rs` (export `payload` module)
 - Modify: `src/main.rs` (read stdin, parse, print debug repr behind `--debug`)
 
-- [ ] declare `pub struct Payload` with serde-derived fields:
+- [x] declare `pub struct Payload` with serde-derived fields:
       `model.display_name`, `workspace.current_dir`, `transcript_path`,
       `session_id`, optional `rate_limits.{five_hour, seven_day}` with
       `used_percentage` and `resets_at`
-- [ ] make every field `Option<…>` where Claude Code may omit it;
+- [x] make every field `Option<…>` where Claude Code may omit it;
       never panic on unknown shapes (use `#[serde(default)]`; serde
       ignores unknown fields by default — do **not** add
       `deny_unknown_fields`)
-- [ ] `pub fn parse(reader: impl Read) -> Result<Payload, Error>` that
+- [x] `pub fn parse(reader: impl Read) -> Result<Payload, Error>` that
       returns a typed error on JSON parse failure; never panics
-- [ ] write tests for: full payload, payload missing `rate_limits`,
+- [x] write tests for: full payload, payload missing `rate_limits`,
       payload missing `workspace`, malformed JSON, empty stdin
-- [ ] write tests confirming unknown fields don't break parsing
-- [ ] run `cargo test` — must pass before Task 3
+- [x] write tests confirming unknown fields don't break parsing
+- [x] run `cargo test` — must pass before Task 3
 
 ### Task 3: Implement `format/parser.rs` and `format/values.rs`
 
