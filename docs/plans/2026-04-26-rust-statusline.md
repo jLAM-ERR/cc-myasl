@@ -293,21 +293,22 @@ After each agent reports done:
 - Create: `src/format/values.rs`
 - Modify: `src/lib.rs` (export `format`)
 
-- [ ] `format::parser`: tokenize a template string into
+- [x] `format::parser`: tokenize a template string into
       `Vec<Token>` where `Token = Text(String) | Placeholder(String) |
       Optional(Vec<Token>)`. Recognise `{name}` and `{? ... }`
-- [ ] write tests for parser: plain text, single placeholder, multiple
+- [x] write tests for parser: plain text, single placeholder, multiple
       placeholders, optional segment, nested optional, malformed
       `{...` (unterminated → treat as literal)
-- [ ] `format::values`: pure render helpers — `bar(percent, width) ->
+- [x] `format::values`: pure render helpers — `bar(percent, width) ->
       String` (block-fill ASCII), `percent_int(p) -> String`,
       `percent_decimal(p) -> String`, `clock_local(epoch_or_iso) ->
-      String` (HH:MM in local TZ), `countdown(epoch_or_iso, now) ->
-      String` (`"2h13m"` form)
-- [ ] write tests for values: bar at 0%, 50%, 100%, width 1 and 20;
+      String` (HH:MM in local TZ — **UTC-only stub in Task 3,
+      replaced by `time::format_clock_local` in Task 11a**),
+      `countdown(epoch_or_iso, now) -> String` (`"2h13m"` form)
+- [x] write tests for values: bar at 0%, 50%, 100%, width 1 and 20;
       countdown for 0 s, 1 min, 1 hour, 1 day; clock around midnight;
       epoch-vs-ISO input parity
-- [ ] run `cargo test` — must pass before Task 4
+- [x] run `cargo test` — must pass before Task 4
 
 ### Task 4: Implement `format/thresholds.rs`, `format/placeholders.rs`, `format/mod.rs`
 
