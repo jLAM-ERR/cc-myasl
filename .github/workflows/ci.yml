@@ -40,5 +40,9 @@ jobs:
       - name: Check invariants
         run: bash scripts/check-invariants.sh
 
+      # shellcheck only on Linux: ubuntu-latest has it pre-installed, while
+      # macos-latest does not. The check is OS-independent (POSIX sh syntax),
+      # so the ubuntu leg is sufficient coverage.
       - name: Shellcheck
+        if: runner.os == 'Linux'
         run: shellcheck scripts/*.sh
