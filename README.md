@@ -1,7 +1,12 @@
-# claude-statusline
+# cc-myasl — My Yet Another Status Line for Claude Code
 
 Remaining Claude.ai 5h/7d quota in your Claude Code status line — single
 binary, ~3–5 ms cold start, no runtime deps.
+
+> The repo is `cc-myasl`. The shipped binary is `claude-statusline`
+> (kept descriptive for what it actually does and to avoid colliding with
+> existing Claude Code conventions). All install commands and `settings.json`
+> snippets below reference the binary name.
 
 ## Demo
 
