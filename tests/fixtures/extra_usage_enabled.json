@@ -1,0 +1,6 @@
+{
+  "model": { "display_name": "claude-opus-4-7" },
+  "workspace": { "current_dir": "/Users/test/proj" },
+  "transcript_path": "/tmp/t.jsonl",
+  "session_id": "fixture-extra"
+}

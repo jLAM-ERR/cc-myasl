@@ -686,11 +686,11 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
 - Create: `tests/fixtures/extra_usage_enabled.json`
 - Create: `tests/fixtures/malformed_field.json`
 
-- [ ] each fixture is a realistic Claude Code stdin payload
-- [ ] use `assert_cmd` to spawn the release binary, pipe each fixture
+- [x] each fixture is a realistic Claude Code stdin payload
+- [x] use `assert_cmd` to spawn the release binary, pipe each fixture
       to stdin, capture stdout. Use `mockito` to override the OAuth
       endpoint (passed via env `STATUSLINE_OAUTH_BASE_URL` for tests)
-- [ ] **structural assertions** (not byte-exact) for stability:
+- [x] **structural assertions** (not byte-exact) for stability:
       `pro_max_with_rate_limits` → output matches regex
         `^[^·]+ · 5h: \d{1,3}% · 7d: \d{1,3}% \(resets \d{2}:\d{2}\)$`
       `api_key_no_rate_limits` + mocked OAuth 200 → similar regex
@@ -700,15 +700,22 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
         cache lock written
       `extra_usage_enabled` → contains `Extra:` segment
       `malformed_field` → graceful degrade, exit 0
-- [ ] add **one** byte-exact "snapshot" test on a frozen
+- [x] add **one** byte-exact "snapshot" test on a frozen
       template/fixture pair as a brittle-but-useful canary; mark with
       a comment that it's expected to break on intentional formatter
       changes and is updated by hand
-- [ ] write a test asserting `tests/fixtures/*.json` contains no
+- [x] write a test asserting `tests/fixtures/*.json` contains no
       string that looks like a real bearer token (length > 30 alnum
       sequence) — fixture hygiene
-- [ ] verify total integration suite < 5 s wall time
-- [ ] run `cargo test` — must pass before Task 15
+- [x] verify total integration suite < 5 s wall time (0.31 s actual)
+- [x] run `cargo test` — must pass before Task 15
+- [x] **bonus during Task 14**: fixed two pre-existing flaky tests —
+      `cache::atomic_helper::concurrent_writes_last_writer_wins_no_tmp_left`
+      (made `write_atomic` use a per-call unique tmp suffix to avoid
+      thread-shared O_TRUNC race; was producing torn cache files like
+      `"writer-79"` from interleaved writes) and `format` env-var-mutating
+      tests (centralized `ENV_MUTEX` in `format/mod.rs` so all tests
+      across `format/{mod,thresholds}.rs` share one lock).
 
 ### Task 15: CI release workflow `.github/workflows/release.yml`
 

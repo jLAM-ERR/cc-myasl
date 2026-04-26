@@ -1,0 +1,6 @@
+{
+  "model": { "display_name": "claude-sonnet-4-6" },
+  "workspace": { "current_dir": "/Users/test/proj" },
+  "transcript_path": "/tmp/t.jsonl",
+  "session_id": "fixture-api-key"
+}

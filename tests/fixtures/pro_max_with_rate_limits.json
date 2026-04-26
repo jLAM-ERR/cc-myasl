@@ -1,0 +1,10 @@
+{
+  "model": { "display_name": "claude-opus-4-7" },
+  "workspace": { "current_dir": "/Users/test/proj" },
+  "transcript_path": "/tmp/t.jsonl",
+  "session_id": "fixture-pro-max",
+  "rate_limits": {
+    "five_hour": { "used_percentage": 24.0, "resets_at": 1745700000 },
+    "seven_day": { "used_percentage": 41.0, "resets_at": 1746000000 }
+  }
+}

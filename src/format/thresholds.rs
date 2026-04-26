@@ -78,9 +78,7 @@ pub fn pick_icon(s: State) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // Serialize env-var mutations so tests don't race each other.
-    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    use crate::format::ENV_MUTEX as ENV_LOCK;
 
     #[test]
     fn classify_none_is_unknown() {

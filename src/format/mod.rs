@@ -88,14 +88,17 @@ fn render_optional(tokens: &[Token], ctx: &RenderCtx, out: &mut String) -> bool 
     all_present
 }
 
+/// Shared mutex serializing all tests across `format/*` that mutate the
+/// `STATUSLINE_RED` / `STATUSLINE_YELLOW` env vars.  Without this, tests
+/// in `format/mod.rs`, `format/thresholds.rs`, and `format/placeholders/`
+/// would race against each other on the process-global env table.
+#[cfg(test)]
+pub(crate) static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::path::PathBuf;
-    use std::sync::Mutex;
-
-    /// Shared mutex for all tests that set or read threshold env vars.
-    static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
     fn full_ctx() -> RenderCtx {
         RenderCtx {
