@@ -362,36 +362,40 @@ prevents Task 4 work from being rewritten when Tasks 6/9 land.
 
 **Testability seam**: split into pure parser + thin caller.
 
-- [ ] `pub fn parse_keychain_output(stdout: &str) -> Result<String,
+- [x] `pub fn parse_keychain_output(stdout: &str) -> Result<String,
       Error>` — pure function, no I/O. Parses the JSON returned by
       `security find-generic-password -w`, extracts
       `claudeAiOauth.accessToken`. Testable on **every** platform.
-- [ ] `pub fn parse_credentials_file(content: &str) -> Result<String,
+- [x] `pub fn parse_credentials_file(content: &str) -> Result<String,
       Error>` — same shape, for `~/.claude/.credentials.json`.
       Testable on every platform.
-- [ ] `fn keychain_command_output() -> Result<String, Error>` — the
+- [x] `fn keychain_command_output() -> Result<String, Error>` — the
       thin caller that invokes `security find-generic-password -s
       "Claude Code-credentials" -w` via `std::process::Command` and
-      pipes stdout into `parse_keychain_output`. **Never** call
-      `dump-keychain`. `#[cfg(target_os = "macos")]` gated.
-- [ ] `pub fn read_token() -> Result<String, Error>` — orchestrator:
+      pipes stdout into `parse_keychain_output`. **Never** the
+      forbidden enumeration call. `#[cfg(target_os = "macos")]` gated.
+- [x] `pub fn read_token() -> Result<String, Error>` — orchestrator:
       try Keychain on macOS first, fall back to credentials file.
       Returns the token; never logs it.
-- [ ] `pub fn fingerprint(token: &str) -> String` — SHA-256 of last 8
-      chars, truncated to 16 hex. Never reverses to the token.
-- [ ] write parser tests on every platform (no `cfg`-gating):
+- [x] `pub fn fingerprint(token: &str) -> String` — **stdlib SipHash**
+      (`std::collections::hash_map::DefaultHasher`) of last 8 chars,
+      formatted as 16 hex chars. **Deviation from research.md**: the
+      brainstorm called for SHA-256, but that requires the `sha2`
+      crate which is outside the locked dep set. SipHash is sufficient
+      for opaque rotation detection (not a security primitive).
+- [x] write parser tests on every platform (no `cfg`-gating):
       valid Keychain JSON, missing `claudeAiOauth`, missing
       `accessToken`, malformed JSON, empty string. Same set for
       `parse_credentials_file`.
-- [ ] write `tempfile`-based tests for the credentials-file path:
+- [x] write `tempfile`-based tests for the credentials-file path:
       file present + valid, file present + malformed, file missing.
-- [ ] write a `#[cfg(target_os = "macos")]` integration smoke test
+- [x] write a `#[cfg(target_os = "macos")]` integration smoke test
       that exercises `keychain_command_output` only when an env var
       is set (`CLAUDE_STATUSLINE_KEYCHAIN_TEST=1`); skip otherwise.
       Documented opt-in test for human runs.
-- [ ] write a test asserting the token never appears in
+- [x] write a test asserting the token never appears in
       `format!("{:?}", error)` for any error variant.
-- [ ] run `cargo test` — must pass before Task 6
+- [x] run `cargo test` — must pass before Task 6
 
 ### Task 6: Implement `api/response.rs` + `api/retry.rs`
 
@@ -401,23 +405,23 @@ prevents Task 4 work from being rewritten when Tasks 6/9 land.
 - Create: `src/api/retry.rs`
 - Modify: `src/lib.rs` (export `api`)
 
-- [ ] `api::response`: `pub struct UsageResponse` matching the OAuth
+- [x] `api::response`: `pub struct UsageResponse` matching the OAuth
       endpoint shape (`five_hour.utilization`, `five_hour.resets_at`,
       `seven_day.*`, `extra_usage.*`). All fields `Option<…>`.
       Include serde tests.
-- [ ] `api::retry::parse_retry_after(value: &str) -> Option<Duration>`
+- [x] `api::retry::parse_retry_after(value: &str) -> Option<Duration>`
       — **integer seconds only**. RFC 9110 also permits HTTP-date,
       but a stdlib-only HTTP-date parser is non-trivial; we
       deliberately accept only `"\d+"` and fall back to the default
       300 s lock if the header is HTTP-date format. Document this
       deviation in a doc-comment on the function.
-- [ ] write tests for the response parser: full response, partial
+- [x] write tests for the response parser: full response, partial
       response, all-null response, malformed JSON
-- [ ] write tests for `parse_retry_after`: `"60"`, `"0"`, `"3600"`,
+- [x] write tests for `parse_retry_after`: `"60"`, `"0"`, `"3600"`,
       whitespace, empty string, negative `"-1"`, malformed `"abc"`,
       HTTP-date `"Fri, 13 Mar 2026 12:00:00 GMT"` (returns None →
       caller uses default 300)
-- [ ] run `cargo test` — must pass before Task 7
+- [x] run `cargo test` — must pass before Task 7
 
 ### Task 7: Implement `api/mod.rs` (HTTP fetch with mockito tests)
 
@@ -459,23 +463,23 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
 - Create: `src/cache/atomic_helper.rs`
 - Modify: `src/lib.rs` (export `cache`)
 
-- [ ] `cache::atomic_helper::write_atomic(path, bytes) -> io::Result<()>`:
+- [x] `cache::atomic_helper::write_atomic(path, bytes) -> io::Result<()>`:
       write to `path.tmp`, `fsync`, `rename(2)` over `path`
-- [ ] `cache::lock`: `pub struct Lock { blocked_until: u64, error:
+- [x] `cache::lock`: `pub struct Lock { blocked_until: u64, error:
       LockError }` (where LockError = RateLimited|AuthFailed|Network).
       `pub fn read(path) -> Option<Lock>`, `write(path, lock)` via
       atomic helper. Treats invalid JSON as no lock.
-- [ ] `cache::backoff::next_lock_seconds(consecutive_failures: u32,
+- [x] `cache::backoff::next_lock_seconds(consecutive_failures: u32,
       err_kind: LockError) -> u64`: 401 → 3600; 429 with retry_after →
       that value (≥ 300); 5xx/timeout → exponential ladder
       60→120→240→480→960→1800
-- [ ] write tests for atomic_helper: write succeeds, partial-write
+- [x] write tests for atomic_helper: write succeeds, partial-write
       simulation never leaves a corrupt target
-- [ ] write tests for lock: read missing, read malformed, write+read
+- [x] write tests for lock: read missing, read malformed, write+read
       round-trip, expired vs active
-- [ ] write tests for backoff: each error kind, ladder progression,
+- [x] write tests for backoff: each error kind, ladder progression,
       cap at 1800 s, 401 always 3600 s
-- [ ] run `cargo test` — must pass before Task 9
+- [x] run `cargo test` — must pass before Task 9
 
 ### Task 9: Implement `cache/mod.rs` (orchestrator)
 
