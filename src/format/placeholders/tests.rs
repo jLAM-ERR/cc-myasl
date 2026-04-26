@@ -80,14 +80,24 @@ fn cwd_present_no_home_substitution() {
 
 #[test]
 fn cwd_substitutes_home() {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_owned());
-    let path = format!("{home}/projects/foo");
+    // Self-contained: set HOME to a known value, render, restore.  Joins
+    // `creds::HOME_MUTEX` so we don't race siblings that also mutate HOME.
+    // (creds tests `remove_var("HOME")` after their work, which would leave
+    // an inherited-HOME read in this test seeing nothing.)
+    let _guard = crate::creds::HOME_MUTEX.lock().unwrap();
+    let saved = std::env::var("HOME").ok();
+    std::env::set_var("HOME", "/tmp/test-home");
     let ctx = RenderCtx {
-        cwd: Some(PathBuf::from(&path)),
+        cwd: Some(PathBuf::from("/tmp/test-home/projects/foo")),
         ..Default::default()
     };
     let result = render_placeholder("cwd", &ctx).unwrap();
-    assert!(result.starts_with('~'), "expected ~ prefix, got {result:?}");
+    // Restore HOME before asserting so a panic doesn't leak state.
+    match saved {
+        Some(v) => std::env::set_var("HOME", v),
+        None => std::env::remove_var("HOME"),
+    }
+    assert_eq!(result, "~/projects/foo");
 }
 
 #[test]

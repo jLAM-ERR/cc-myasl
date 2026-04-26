@@ -165,14 +165,18 @@ pub fn fingerprint(token: &str) -> String {
 
 // ── tests ──────────────────────────────────────────────────────────────────
 
+/// Shared mutex serializing every test that reads or mutates the `HOME`
+/// env var.  Owned here in `creds` because the file-fallback path is the
+/// dominant HOME consumer, but exposed `pub(crate)` so other modules'
+/// tests (notably `format::placeholders::tests::cwd_substitutes_home`)
+/// can join the same lock and avoid cross-module env-var races.
+#[cfg(test)]
+pub(crate) static HOME_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
     use tempfile::tempdir;
-
-    // Serialise tests that mutate the HOME env var so they don't race.
-    static HOME_MUTEX: Mutex<()> = Mutex::new(());
 
     // ── fixture JSON ──────────────────────────────────────────────────────
 
