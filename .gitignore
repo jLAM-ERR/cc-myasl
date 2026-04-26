@@ -11,3 +11,8 @@ node_modules/
 
 # Local dev scratch
 scratch/
+
+# Rust build artifacts
+target/
+dist/
+*.profraw

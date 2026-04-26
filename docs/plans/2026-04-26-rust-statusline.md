@@ -229,38 +229,38 @@ After each agent reports done:
 - Create: `scripts/check-invariants.sh` (POSIX, ~15 LOC)
 - Modify: `.gitignore` (add `target/`, `dist/`, `*.profraw`)
 
-- [ ] `cargo init --bin` at repo root; set name `claude-statusline`,
+- [x] `cargo init --bin` at repo root; set name `claude-statusline`,
       edition `2021`, version `0.1.0`
-- [ ] add deps to `Cargo.toml`: `ureq` 2.x with `rustls` feature
+- [x] add deps to `Cargo.toml`: `ureq` 2.x with `rustls` feature
       (no `native-tls`); `serde` + `serde_json` with `derive`;
       `directories` 5.x; `anyhow` 1.x. Dev-dep: `mockito` 1.x,
       `tempfile` 3.x, `assert_cmd` 2.x, `predicates` 3.x.
-- [ ] add `[profile.release]`: `lto = "fat"`, `codegen-units = 1`,
+- [x] add `[profile.release]`: `lto = "fat"`, `codegen-units = 1`,
       `strip = true`, `panic = "abort"` to hit ≤ 1.5 MB target
-- [ ] create empty `src/main.rs` that prints a placeholder line and
+- [x] create empty `src/main.rs` that prints a placeholder line and
       exits 0
-- [ ] add `rust-toolchain.toml`: `channel = "1.83"`,
+- [x] add `rust-toolchain.toml`: `channel = "1.83"`,
       `components = ["clippy", "rustfmt"]` (pin tools so CI and dev align)
-- [ ] write `scripts/check-loc.sh`: `find src -name '*.rs' -exec
+- [x] write `scripts/check-loc.sh`: `find src -name '*.rs' -exec
       wc -l {} +` and exit 1 if any single-file count > 500
-- [ ] write `scripts/check-invariants.sh`: runs three greps,
+- [x] write `scripts/check-invariants.sh`: runs three greps,
       fails on any hit:
       `grep -r "dump-keychain" src/ scripts/`,
       `grep -iE "npx.*latest|@latest" src/ scripts/`,
       `grep -iE "cargo|rustc|rustup" scripts/install.sh` (the file
       may not exist yet — script must tolerate that and skip)
-- [ ] `chmod +x` both scripts; `shellcheck` clean
-- [ ] add `.github/workflows/ci.yml`: jobs run on
+- [x] `chmod +x` both scripts; `shellcheck` clean
+- [x] add `.github/workflows/ci.yml`: jobs run on
       `ubuntu-latest` and `macos-latest`:
       `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`,
       `cargo test`, `bash scripts/check-loc.sh`,
       `bash scripts/check-invariants.sh`,
       `shellcheck scripts/*.sh`
-- [ ] write a smoke test in `tests/smoke.rs` that spawns the binary,
+- [x] write a smoke test in `tests/smoke.rs` that spawns the binary,
       pipes empty stdin, and asserts non-empty stdout + exit code 0
-- [ ] write tests for `scripts/check-loc.sh`: stub fixture files
+- [x] write tests for `scripts/check-loc.sh`: stub fixture files
       sized 499 / 500 / 501 LOC; verify pass/fail behaviour
-- [ ] run `cargo test`, `cargo clippy`, both shell scripts —
+- [x] run `cargo test`, `cargo clippy`, both shell scripts —
       must pass before Task 2
 
 ### Task 2: Implement `payload.rs` (Claude Code stdin parser)
