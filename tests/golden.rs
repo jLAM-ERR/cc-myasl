@@ -22,8 +22,17 @@ fn bin() -> Command {
 }
 
 /// Return the cache dir the binary will use given `home`.
-/// On macOS: `<home>/Library/Caches/ai.claude-statusline.claude-statusline`
-/// On Linux: `<home>/.cache/ai.claude-statusline.claude-statusline`
+/// Compute the cache directory the binary will use, given a tempdir HOME.
+///
+/// The `directories` crate composes the project path differently per OS:
+///   macOS:   <qualifier>.<organization>.<application>
+///   Linux:   just <application>
+///   Windows: <organization>\<application>
+///
+/// We're macOS + Linux only. On macOS we expect
+/// `<home>/Library/Caches/ai.claude-statusline.claude-statusline`; on Linux,
+/// `<home>/.cache/claude-statusline` (the test sets XDG_CACHE_HOME to
+/// `<home>/.cache` so this lines up regardless of runner-set XDG values).
 fn cache_dir_for_home(home: &Path) -> PathBuf {
     #[cfg(target_os = "macos")]
     {
@@ -33,8 +42,7 @@ fn cache_dir_for_home(home: &Path) -> PathBuf {
     }
     #[cfg(not(target_os = "macos"))]
     {
-        home.join(".cache")
-            .join("ai.claude-statusline.claude-statusline")
+        home.join(".cache").join("claude-statusline")
     }
 }
 
