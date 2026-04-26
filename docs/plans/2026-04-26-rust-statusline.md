@@ -619,23 +619,26 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
 - Create: `src/check.rs`
 - Modify: `src/main.rs` (dispatch `--check` to `check::run`)
 
-- [ ] `pub fn run() -> ExitCode`: print a human-readable diagnostic
+- [x] `pub fn run() -> i32`: print a human-readable diagnostic
       to stdout in sections (Credentials, Network, Cache, Format).
       For each: ✓ on success, ✗ on failure with a one-line reason.
-      Exit non-zero if any section fails.
-- [ ] Credentials section: try Keychain (if macOS), then file. Report
+      Returns 0 (all-ok) or 1 (any failure). main.rs propagates via
+      `std::process::exit`. **Signature changed from ExitCode to i32**
+      for cleaner main.rs interop.
+- [x] Credentials section: try Keychain (if macOS), then file. Report
       which path succeeded and the token's fingerprint (NOT the token).
-- [ ] Network section: actual `fetch_usage` call against
-      `api.anthropic.com`. Report HTTP status and round-trip time.
-- [ ] Cache section: try to read existing cache file; report freshness
+- [x] Network section: actual `fetch_usage` call against
+      `api.anthropic.com` (or `STATUSLINE_OAUTH_BASE_URL` if set).
+      Report HTTP status and round-trip time.
+- [x] Cache section: try to read existing cache file; report freshness
       and whether the JSON is parseable.
-- [ ] Format section: render the built-in `default` template with a
+- [x] Format section: render the built-in `default` template with a
       stub `RenderCtx`; ensure no panic.
-- [ ] write tests covering: all-pass scenario (mocked subsystems),
+- [x] write tests covering: all-pass scenario (mocked subsystems),
       network-mocked-success, network-mocked-failure (401/429/500),
       creds-missing, cache-corrupt scenario. Assert exit code matches
       expectation per scenario.
-- [ ] run `cargo test` — must pass before Task 13
+- [x] run `cargo test` — must pass before Task 13
 
 ### Task 13: Author seed templates and wire `include_str!`
 

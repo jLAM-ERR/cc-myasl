@@ -11,6 +11,7 @@ use claude_statusline::cache::{
     lock::{Lock, LockError},
     ExtraUsageCache, UsageCache, UsageWindowCache,
 };
+use claude_statusline::check;
 use claude_statusline::creds;
 use claude_statusline::debug::Trace;
 use claude_statusline::format::{self, RenderCtx};
@@ -39,8 +40,9 @@ fn main() {
         println!("claude-statusline {}", env!("CARGO_PKG_VERSION"));
         std::process::exit(0);
     }
-    // --check: Task 12 inserts `if args.check { std::process::exit(check::run().into()); }`
-    // For now the flag is parsed but ignored — render mode proceeds.
+    if args.check {
+        std::process::exit(check::run());
+    }
 
     run_render(&args);
     std::process::exit(0); // render mode ALWAYS exits 0
