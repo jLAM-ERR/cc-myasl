@@ -433,26 +433,27 @@ URLs; plain `http://` URLs (which `mockito` serves) bypass TLS
 entirely and are accepted. The `base_url` parameter exists so tests
 swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
 
-- [ ] `pub fn fetch_usage(token: &str, base_url: &str) ->
+- [x] `pub fn fetch_usage(token: &str, base_url: &str) ->
       Result<FetchOutcome, Error>` where `FetchOutcome` is
       `Ok(UsageResponse) | RateLimited(Duration) | AuthFailed |
       ServerError | TimedOut`
-- [ ] Use `ureq::AgentBuilder` with `tls_config` set to rustls,
+- [x] Use `ureq::AgentBuilder` with `tls_config` set to rustls,
       `timeout(Duration::from_secs(5))`. Headers: `Authorization:
       Bearer <token>`, `anthropic-beta: oauth-2025-04-20`, a
       meaningful `User-Agent` (`claude-statusline/<env!CARGO_PKG_VERSION>`)
-- [ ] Status dispatch:
+- [x] Status dispatch:
       `200 → Ok`; `401 → AuthFailed`; `429 → RateLimited(parse_retry_after)`;
       `5xx → ServerError`; `timeout/io error → TimedOut`
-- [ ] write tests using `mockito`: 200 with body, 200 with empty body,
+- [x] write tests using `mockito`: 200 with body, 200 with empty body,
       401, 429 with `Retry-After: 60`, 429 with HTTP-date header (→
       defaults to 300 s), 429 with no Retry-After, 500, slow response
       (timeout)
-- [ ] write a test asserting that pointing `base_url` at a real
+- [x] write a test asserting that pointing `base_url` at a real
       `https://` URL still works (point at `https://example.com`,
       expect a non-200 outcome — the goal is to confirm rustls
-      is wired)
-- [ ] run `cargo test` — must pass before Task 8
+      is wired). Marked `#[ignore]`; run manually with
+      `cargo test -- --ignored`.
+- [x] run `cargo test` — must pass before Task 8
 
 ### Task 8: Implement `cache/lock.rs`, `cache/backoff.rs`, `cache/atomic_helper.rs`
 
@@ -486,31 +487,31 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
 **Files:**
 - Modify: `src/cache/mod.rs`
 
-- [ ] Define `CacheDir` resolver using `directories::ProjectDirs::from
+- [x] Define `CacheDir` resolver using `directories::ProjectDirs::from
       ("ai", "claude-statusline", "claude-statusline")` falling back
       to `~/.cache/claude-statusline/` on Linux
-- [ ] `pub struct UsageCache { fetched_at: u64, five_hour: …,
+- [x] `pub struct UsageCache { fetched_at: u64, five_hour: …,
       seven_day: …, extra_usage: … }` — **no token field, ever**
-- [ ] `pub fn read(dir: &Path) -> Option<UsageCache>` (returns None
+- [x] `pub fn read(dir: &Path) -> Option<UsageCache>` (returns None
       on parse error; never panics)
-- [ ] `pub fn write(dir: &Path, cache: &UsageCache)` via atomic_helper
-- [ ] `pub fn is_fresh(cache: &UsageCache, ttl_secs: u64, now: u64) ->
+- [x] `pub fn write(dir: &Path, cache: &UsageCache)` via atomic_helper
+- [x] `pub fn is_fresh(cache: &UsageCache, ttl_secs: u64, now: u64) ->
       bool` — TTL = 180
-- [ ] `pub fn read_stale(dir) -> Option<UsageCache>` — returns even
+- [x] `pub fn read_stale(dir) -> Option<UsageCache>` — returns even
       expired data, used as fallback when network fails
-- [ ] write tests using `tempfile::tempdir()`: write+read round-trip;
+- [x] write tests using `tempfile::tempdir()`: write+read round-trip;
       stale detection; corrupt cache file; missing cache dir.
-- [ ] write a concurrent-safety test with N=20 threads spawning
+- [x] write a concurrent-safety test with N=20 threads spawning
       writes; assert that **every** read during the storm returns
       either `None` or a parseable `UsageCache` (never a corrupt
       file). Loosened from "all writers succeed" — `rename(2)` last-
       writer-wins is acceptable; corrupt-file observation is not.
-- [ ] write a test asserting `UsageCache` never round-trips a token:
+- [x] write a test asserting `UsageCache` never round-trips a token:
       construct a `UsageCache`, serialize to JSON, assert the JSON
       string contains none of `"token"`, `"bearer"`, `"secret"`,
       `"auth"`, `"access"` (case-insensitive). Simple, no
       `cargo expand` or AST parsing required.
-- [ ] run `cargo test` — must pass before Task 10
+- [x] run `cargo test` — must pass before Task 10
 
 ### Task 10: Implement `error.rs` and `debug.rs`
 
@@ -519,23 +520,23 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
 - Create: `src/debug.rs`
 - Modify: `src/lib.rs` (export both)
 
-- [ ] `error::Error`: a single enum covering every error our binary
+- [x] `error::Error`: a single enum covering every error our binary
       can encounter (StdinParse, CredsRead, ApiTransport, ApiAuth,
       ApiRateLimited, CacheRead, CacheWrite, FormatRender). Implement
       `Display` and `From` for the common conversions
-- [ ] All variants are recoverable in render mode — `main.rs` will
+- [x] All variants are recoverable in render mode — `main.rs` will
       degrade rather than crash. `--check` is the only path that
       surfaces an error to the user
-- [ ] `debug::Trace`: struct collecting `path`, `cache`, `http`,
+- [x] `debug::Trace`: struct collecting `path`, `cache`, `http`,
       `took_ms`, `error`. `pub fn emit(self)` writes a single-line
       JSON object to stderr **only when** `--debug` flag or env
       `STATUSLINE_DEBUG=1` is set
-- [ ] Trace MUST never include the bearer token, only its fingerprint
-- [ ] write tests for `Error::Display` (each variant), for
+- [x] Trace MUST never include the bearer token, only its fingerprint
+- [x] write tests for `Error::Display` (each variant), for
       `Trace::emit` writing valid JSON, and for the redaction
       invariant (assert no input string equal to a fixture token ever
       appears in the emitted JSON)
-- [ ] run `cargo test` — must pass before Task 11a
+- [x] run `cargo test` — must pass before Task 11a
 
 ### Task 11a: Implement `time.rs`
 
@@ -543,14 +544,16 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
 - Create: `src/time.rs`
 - Modify: `src/lib.rs` (export `time`)
 
-- [ ] `time::now_unix() -> u64`, `time::iso_to_unix(&str) ->
+- [x] `time::now_unix() -> u64`, `time::iso_to_unix(&str) ->
       Option<u64>`, `time::format_clock_local(unix) -> String`,
       `time::format_countdown(target_unix, now_unix) -> String`. Use
-      stdlib `SystemTime` + tiny manual ISO-8601 parser (no `chrono`)
-- [ ] write tests: ISO parsing valid/invalid, clock across midnight
+      stdlib `SystemTime` + tiny manual ISO-8601 parser (no `chrono`).
+      Local TZ via one-time `date +%z` shellout cached in `OnceLock`,
+      with UTC fallback if shell-out fails.
+- [x] write tests: ISO parsing valid/invalid, clock across midnight
       in fixed timezone (use `TZ=UTC` env in tests), countdown for
       0/1m/1h/1d, invalid epoch input
-- [ ] run `cargo test` — must pass before Task 11b
+- [x] run `cargo test` — must pass before Task 11b
 
 ### Task 11b: Hand-roll arg parser
 
