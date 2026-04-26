@@ -11,6 +11,10 @@ pub use response::{ExtraUsage, UsageResponse, UsageWindow};
 
 use std::time::Duration;
 
+/// Default OAuth `usage` endpoint host.  Tests override via the
+/// `STATUSLINE_OAUTH_BASE_URL` env var (read in `main.rs` and `check.rs`).
+pub const DEFAULT_OAUTH_BASE_URL: &str = "https://api.anthropic.com";
+
 /// Outcome of a `fetch_usage` call.
 pub enum FetchOutcome {
     /// 200 OK with a successfully parsed body.

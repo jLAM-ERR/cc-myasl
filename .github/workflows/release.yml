@@ -54,6 +54,13 @@ jobs:
         with:
           bin: claude-statusline
           target: ${{ matrix.target }}
+          # `$target` here is the action's own placeholder (NOT a shell
+          # variable, NOT a `${{ matrix.target }}` expression). The action
+          # substitutes it to the matrix target at upload time. The leading
+          # `${{ steps.version.outputs.version }}` is GitHub Actions
+          # expression syntax, evaluated by the runner. End result:
+          #   claude-statusline-0.1.0-aarch64-apple-darwin.tar.gz
+          # which exactly matches install.sh's tarball pattern.
           archive: claude-statusline-${{ steps.version.outputs.version }}-$target
           include: templates,README.md
           tar: unix
@@ -62,6 +69,14 @@ jobs:
 
       # Dry-run on PRs touching this workflow: verify the build compiles
       # without uploading anything.
+      #
+      # We restrict the dry-run to natively-buildable targets (the macOS
+      # runners have everything they need; ubuntu-latest does NOT have a
+      # musl C linker installed by default, and the production job lets
+      # `taiki-e/upload-rust-binary-action` install `cross` internally —
+      # we can't easily reproduce that here). Skipping musl targets in
+      # the dry-run is acceptable: a workflow-syntax bug will still trip
+      # the macOS legs.
       - name: Dry-run build (PR only)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && !endsWith(matrix.target, '-linux-musl')
         run: cargo build --release --target ${{ matrix.target }} --locked

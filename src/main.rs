@@ -20,11 +20,10 @@ use claude_statusline::time;
 
 // ── constants ─────────────────────────────────────────────────────────────────
 
-const DEFAULT_TEMPLATE: &str =
-    "{model}{? · 5h: {five_left}%}{? · 7d: {seven_left}%}{? (resets {seven_reset_clock})}";
+use claude_statusline::api::DEFAULT_OAUTH_BASE_URL;
+use claude_statusline::format::DEFAULT_TEMPLATE;
 
 const CACHE_TTL_SECS: u64 = 180;
-const DEFAULT_OAUTH_BASE_URL: &str = "https://api.anthropic.com";
 
 // ── entry point ───────────────────────────────────────────────────────────────
 

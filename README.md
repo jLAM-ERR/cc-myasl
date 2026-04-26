@@ -38,7 +38,9 @@ The installer:
 
 1. Detects your platform (`uname -sm`).
 2. Downloads the matching tarball and `.sha256` from GitHub Releases.
-3. Verifies the SHA-256 checksum — aborts on mismatch.
+3. Verifies the SHA-256 checksum — aborts on mismatch. (If the
+   `.sha256` sidecar is missing from the release, the installer warns
+   and continues without verification.)
 4. Installs the binary to `~/.claude/bin/claude-statusline`.
 5. Copies templates to `~/.config/claude-statusline/templates/`.
 6. Prints the `settings.json` snippet (never edits the file itself).

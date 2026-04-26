@@ -8,6 +8,13 @@ pub mod values;
 use parser::Token;
 pub use placeholders::RenderCtx;
 
+/// Built-in fallback template used when neither `--format`, `STATUSLINE_FORMAT`,
+/// nor a `--template <NAME>` lookup resolves to anything.  Single source of
+/// truth — both `main::resolve_template` and `check::report_format` consume
+/// this constant; do not duplicate.
+pub const DEFAULT_TEMPLATE: &str =
+    "{model}{? · 5h: {five_left}%}{? · 7d: {seven_left}%}{? (resets {seven_reset_clock})}";
+
 /// Render `template` against `ctx`, returning the final status-line string.
 ///
 /// - `{name}` placeholders are substituted from `ctx`.

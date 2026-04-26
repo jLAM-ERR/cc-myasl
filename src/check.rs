@@ -12,12 +12,10 @@ use crate::cache;
 use crate::creds;
 use crate::format::{self, RenderCtx};
 
-// ── DEFAULT_TEMPLATE copy (not imported from main.rs) ─────────────────────────
+// ── shared constants from sibling modules ─────────────────────────────────────
 
-const DEFAULT_TEMPLATE: &str =
-    "{model}{? · 5h: {five_left}%}{? · 7d: {seven_left}%}{? (resets {seven_reset_clock})}";
-
-const DEFAULT_OAUTH_BASE_URL: &str = "https://api.anthropic.com";
+use crate::api::DEFAULT_OAUTH_BASE_URL;
+use crate::format::DEFAULT_TEMPLATE;
 
 // ── report ────────────────────────────────────────────────────────────────────
 

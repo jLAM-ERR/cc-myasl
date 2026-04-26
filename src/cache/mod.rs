@@ -72,7 +72,9 @@ pub struct UsageCache {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct UsageWindowCache {
-    /// Fractional utilization [0.0, 1.0] as reported by the API.
+    /// Utilization percentage `0..=100` as reported by the API
+    /// (NOT a fractional 0..=1 ratio — main.rs computes `100 - utilization`
+    /// to get the "% remaining" rendered by the format engine).
     pub utilization: Option<f64>,
     /// ISO-8601 reset timestamp from the API.
     pub resets_at: Option<String>,
@@ -88,7 +90,7 @@ pub struct ExtraUsageCache {
     pub monthly_limit: Option<f64>,
     /// Credits used this month in dollars.
     pub used_credits: Option<f64>,
-    /// Fractional utilization [0.0, 1.0].
+    /// Utilization percentage `0..=100` (same scale as `UsageWindowCache`).
     pub utilization: Option<f64>,
 }
 
@@ -140,22 +142,24 @@ mod tests {
     use tempfile::TempDir;
 
     /// Construct a fully-populated UsageCache for use in tests.
+    /// Utilization values are on the 0..=100 percentage scale, matching the
+    /// API contract (see `UsageWindowCache::utilization` doc comment).
     fn full_cache(fetched_at: u64) -> UsageCache {
         UsageCache {
             fetched_at,
             five_hour: Some(UsageWindowCache {
-                utilization: Some(0.42),
+                utilization: Some(42.0),
                 resets_at: Some("2026-04-26T18:00:00Z".to_string()),
             }),
             seven_day: Some(UsageWindowCache {
-                utilization: Some(0.75),
+                utilization: Some(75.0),
                 resets_at: Some("2026-04-30T00:00:00Z".to_string()),
             }),
             extra_usage: Some(ExtraUsageCache {
                 is_enabled: Some(true),
                 monthly_limit: Some(100.0),
                 used_credits: Some(37.5),
-                utilization: Some(0.375),
+                utilization: Some(37.5),
             }),
         }
     }
