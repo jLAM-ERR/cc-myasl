@@ -1,0 +1,13 @@
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+node_modules/
+
+# Local cache for any future statusline script
+.cache/
+*.log
+
+# Local dev scratch
+scratch/
