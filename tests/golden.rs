@@ -111,6 +111,13 @@ fn api_key_oauth_200_renders_quota() {
         .args(["--format", "{five_left}/{seven_left}"])
         .env("STATUSLINE_OAUTH_BASE_URL", server.url())
         .env("HOME", home.path())
+        // On Linux, `directories::ProjectDirs` honours `$XDG_CACHE_HOME`
+        // BEFORE falling back to `$HOME/.cache`. CI runners export
+        // XDG_CACHE_HOME (e.g. `/home/runner/.cache`) which would route the
+        // binary's cache writes outside our tempdir even when HOME is set.
+        // Pin XDG_CACHE_HOME to inside the tempdir so both code paths agree.
+        // (No-op on macOS where ProjectDirs uses Library/Caches regardless.)
+        .env("XDG_CACHE_HOME", home.path().join(".cache"))
         .write_stdin(fixture("api_key_no_rate_limits"))
         .assert()
         .success()
@@ -136,6 +143,13 @@ fn api_key_oauth_401_drops_quota_segment() {
         .args(["--format", "{model}{? · 5h:{five_left}%}"])
         .env("STATUSLINE_OAUTH_BASE_URL", server.url())
         .env("HOME", home.path())
+        // On Linux, `directories::ProjectDirs` honours `$XDG_CACHE_HOME`
+        // BEFORE falling back to `$HOME/.cache`. CI runners export
+        // XDG_CACHE_HOME (e.g. `/home/runner/.cache`) which would route the
+        // binary's cache writes outside our tempdir even when HOME is set.
+        // Pin XDG_CACHE_HOME to inside the tempdir so both code paths agree.
+        // (No-op on macOS where ProjectDirs uses Library/Caches regardless.)
+        .env("XDG_CACHE_HOME", home.path().join(".cache"))
         .write_stdin(fixture("api_key_no_rate_limits"))
         .assert()
         .success()
@@ -167,6 +181,13 @@ fn api_key_oauth_429_writes_lock() {
         .args(["--format", "{model}"])
         .env("STATUSLINE_OAUTH_BASE_URL", server.url())
         .env("HOME", home.path())
+        // On Linux, `directories::ProjectDirs` honours `$XDG_CACHE_HOME`
+        // BEFORE falling back to `$HOME/.cache`. CI runners export
+        // XDG_CACHE_HOME (e.g. `/home/runner/.cache`) which would route the
+        // binary's cache writes outside our tempdir even when HOME is set.
+        // Pin XDG_CACHE_HOME to inside the tempdir so both code paths agree.
+        // (No-op on macOS where ProjectDirs uses Library/Caches regardless.)
+        .env("XDG_CACHE_HOME", home.path().join(".cache"))
         .write_stdin(fixture("api_key_no_rate_limits"))
         .assert()
         .success()
@@ -214,6 +235,13 @@ fn extra_usage_renders_when_enabled() {
         .args(["--format", "{model}{? extra:{extra_left}}"])
         .env("STATUSLINE_OAUTH_BASE_URL", server.url())
         .env("HOME", home.path())
+        // On Linux, `directories::ProjectDirs` honours `$XDG_CACHE_HOME`
+        // BEFORE falling back to `$HOME/.cache`. CI runners export
+        // XDG_CACHE_HOME (e.g. `/home/runner/.cache`) which would route the
+        // binary's cache writes outside our tempdir even when HOME is set.
+        // Pin XDG_CACHE_HOME to inside the tempdir so both code paths agree.
+        // (No-op on macOS where ProjectDirs uses Library/Caches regardless.)
+        .env("XDG_CACHE_HOME", home.path().join(".cache"))
         .write_stdin(fixture("extra_usage_enabled"))
         .assert()
         .success()
