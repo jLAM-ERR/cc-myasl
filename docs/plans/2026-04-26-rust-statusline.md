@@ -579,15 +579,15 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
 **Files:**
 - Modify: `src/main.rs`
 
-- [ ] read env `STATUSLINE_OAUTH_BASE_URL` (default
+- [x] read env `STATUSLINE_OAUTH_BASE_URL` (default
       `"https://api.anthropic.com"`); thread it into the
       `api::fetch_usage(token, base_url)` call. This is the seam
       that lets `tests/golden.rs` (Task 14) point at `mockito`
       without code changes.
-- [ ] dispatch: if `args.help` → print usage, exit 0; if `args.version`
-      → print version, exit 0; if `args.check` → call `check::run()`,
-      exit with its code; else render flow.
-- [ ] Render flow:
+- [x] dispatch: if `args.help` → print usage, exit 0; if `args.version`
+      → print version, exit 0; **`args.check` ignored in 11c — Task 12
+      adds the dispatch line + creates `check.rs`**.
+- [x] Render flow:
       1. read stdin → `Payload`
       2. if `payload.rate_limits` populated → build `RenderCtx`
          directly (mapping happens here, not in `format/`), no HTTP
@@ -596,19 +596,22 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
          creds, call `api::fetch_usage`, write cache or lock based
          on outcome
       4. resolve template source (`--format` > `STATUSLINE_FORMAT` >
-         `--template` > built-in `default`)
+         `--template` > built-in `default`). **Note**: `--template`
+         currently falls through to built-in `DEFAULT_TEMPLATE`;
+         Task 13 wires `format::lookup_template`.
       5. `format::render(template, &ctx)` → stdout
       6. if `args.debug`, emit trace to stderr
       7. exit 0 (always — never non-zero in render mode)
-- [ ] every error path collapses to "render line without quota
+- [x] every error path collapses to "render line without quota
       segment + emit trace + exit 0"
-- [ ] write a test asserting that even when every subsystem returns
+- [x] write a test asserting that even when every subsystem returns
       an error (mock creds missing, network unreachable, cache dir
       read-only), `main` still exits 0 and stdout is non-empty
-- [ ] write a test that pipes a `pro_max_with_rate_limits` fixture
+- [x] write a test that pipes a `pro_max_with_rate_limits` fixture
       and confirms zero HTTP calls escape (assert via mockito's
-      `expect(0)` on any registered mock)
-- [ ] run `cargo test` — must pass before Task 12
+      `expect(0)` on any registered mock) — **deferred to Task 14
+      (golden tests). Task 11c covers the unit-level guarantees.**
+- [x] run `cargo test` — must pass before Task 12
 
 ### Task 12: Implement `check.rs` (`--check` setup verification)
 
