@@ -561,18 +561,18 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
 - Create: `src/args.rs`
 - Modify: `src/lib.rs` (export `args`)
 
-- [ ] `pub struct Args { format: Option<String>, template:
+- [x] `pub struct Args { format: Option<String>, template:
       Option<String>, debug: bool, check: bool, version: bool,
       help: bool, _unknown: Vec<String> }`
-- [ ] `pub fn parse(argv: &[String]) -> Args` — recognises
+- [x] `pub fn parse(argv: &[String]) -> Args` — recognises
       `--format <STR>`, `--template <NAME>`, `--debug`, `--check`,
       `--version`, `--help`. Anything else collected into `_unknown`
       (do not error on unknown for compat — render with default and
       ignore)
-- [ ] write tests: each flag parsed, multi-flag, malformed
+- [x] write tests: each flag parsed, multi-flag, malformed
       (`--format` with no value), unknown flags don't error,
       `--help` and `--version` set their bools
-- [ ] run `cargo test` — must pass before Task 11c
+- [x] run `cargo test` — must pass before Task 11c
 
 ### Task 11c: Wire `main.rs` orchestration + render flow
 
