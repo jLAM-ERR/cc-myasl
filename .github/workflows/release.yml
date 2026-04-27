@@ -61,8 +61,16 @@ jobs:
         include:
           - target: aarch64-apple-darwin
             os: macos-14
+          # `x86_64-apple-darwin` on macos-14 (Apple Silicon host).
+          # The Intel runner pool (macos-13) became extremely scarce in
+          # 2026 — jobs were queueing for hours and never picking up.
+          # Apple Silicon hosts cross-compile to x86_64 fine: Xcode
+          # ships both arches' SDKs, the Rust toolchain handles the
+          # cross-target, and `taiki-e/upload-rust-binary-action` is
+          # cross-target aware. We don't lose runtime test coverage
+          # because the release job doesn't run tests anyway.
           - target: x86_64-apple-darwin
-            os: macos-13
+            os: macos-14
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
           - target: aarch64-unknown-linux-musl
