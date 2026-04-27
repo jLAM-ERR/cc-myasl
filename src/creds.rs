@@ -121,10 +121,31 @@ pub fn read_token() -> Result<String, anyhow::Error> {
         .to_owned();
 
     let path = home.join(".claude").join(".credentials.json");
-    let content = std::fs::read_to_string(&path)
-        .with_context(|| format!("credentials file not found at {}", path.display()))?;
+    let content = std::fs::read_to_string(&path).with_context(|| {
+        format!(
+            "credentials file not found at {}",
+            redact_home(&path.display().to_string())
+        )
+    })?;
 
     parse_credentials_file(&content)
+}
+
+// ── home-path redaction helper ─────────────────────────────────────────────
+
+/// Replace occurrences of the user's home-directory path in `s` with `~`.
+///
+/// Used to strip `$HOME` from error messages and path displays before they
+/// reach user-visible output (stdout `--check`, stderr debug trace).
+/// If `HOME` is not set or the home prefix is empty, returns the original
+/// string unchanged.
+pub fn redact_home(s: &str) -> String {
+    if let Ok(h) = std::env::var("HOME") {
+        if !h.is_empty() {
+            return s.replace(&h, "~");
+        }
+    }
+    s.to_owned()
 }
 
 // ── fingerprint ────────────────────────────────────────────────────────────
@@ -405,6 +426,50 @@ mod tests {
             !fp.contains(token),
             "fingerprint must not contain the raw token"
         );
+    }
+
+    // ── fingerprint: short-token edge case (NIT 3) ───────────────────────
+    // Opaqueness degrades for tokens < 8 chars; acceptable since Claude Code
+    // tokens are ≥ 40 chars in practice. Output is still 16 hex chars.
+    #[test]
+    fn fingerprint_short_token_does_not_reveal_input() {
+        let token = "abc";
+        let fp = fingerprint(token);
+        assert_eq!(fp.len(), 16, "must be 16 hex chars for short token");
+        assert!(
+            fp.chars().all(|c| c.is_ascii_hexdigit()),
+            "must be hex: {fp}"
+        );
+        assert!(!fp.contains(token), "must not contain raw token: {fp}");
+    }
+
+    // ── redact_home ───────────────────────────────────────────────────────
+
+    #[test]
+    fn redact_home_behaviour() {
+        let _guard = HOME_MUTEX.lock().unwrap();
+        let original = std::env::var("HOME").ok();
+        std::env::set_var("HOME", "/home/testuser");
+        let in_msg = redact_home("not found at /home/testuser/.claude/.credentials.json");
+        let no_match = redact_home("/tmp/something");
+        let _restore = original.map(|v| std::env::set_var("HOME", v));
+        assert_eq!(in_msg, "not found at ~/.claude/.credentials.json");
+        assert_eq!(no_match, "/tmp/something");
+    }
+
+    /// read_token error must not contain the expanded HOME path.
+    #[test]
+    fn read_token_error_does_not_contain_home_path() {
+        let _guard = HOME_MUTEX.lock().unwrap();
+        use tempfile::tempdir;
+        let dir = tempdir().unwrap();
+        let fake_home = dir.path().to_str().unwrap().to_owned();
+        std::env::set_var("HOME", &fake_home);
+        let result = read_token();
+        std::env::remove_var("HOME");
+        let msg = format!("{:?}", result.expect_err("missing file should yield Err"));
+        assert!(!msg.contains(&fake_home), "expanded HOME in error: {msg}");
+        assert!(msg.contains("~/.claude"), "tilde path missing: {msg}");
     }
 
     // ── macOS keychain integration smoke test ─────────────────────────────

@@ -4,6 +4,7 @@
 //! Exits non-zero if any section fails.  This is the ONE place
 //! the binary may exit non-zero (Hard Invariant #3).
 
+use std::io::Write;
 use std::path::Path;
 use std::time::Instant;
 
@@ -50,10 +51,11 @@ pub fn run() -> i32 {
 /// Prints each section's result to stdout.
 pub fn run_inner() -> CheckReport {
     let mut report = CheckReport::default();
+    let mut out = std::io::stdout();
 
     // 1. Credentials
     let cred_result = creds::read_token();
-    let token = report_credentials(&mut report, cred_result);
+    let token = report_credentials(&mut report, cred_result, &mut out);
 
     // 2. Network (skip if no creds)
     let base_url = std::env::var("STATUSLINE_OAUTH_BASE_URL")
@@ -72,23 +74,30 @@ pub fn run_inner() -> CheckReport {
 
 // ── section helpers ───────────────────────────────────────────────────────────
 
-/// Report the credentials result; print result. Returns the token if successful.
+/// Report the credentials result; write result to `out`. Returns the token if successful.
+///
 /// The token read is injected (via `cred_result`) to keep this function testable
 /// without touching the HOME env var (which races with creds::tests on macOS Keychain).
+///
+/// Error messages have the home-directory path tilde-collapsed so that `--check`
+/// output shared in bug reports does not reveal the user's `$HOME`.
 fn report_credentials(
     report: &mut CheckReport,
     cred_result: Result<String, anyhow::Error>,
+    out: &mut dyn Write,
 ) -> Option<String> {
     match cred_result {
         Ok(token) => {
             let fp = creds::fingerprint(&token);
-            println!("Credentials: ✓ found (fingerprint: {fp})");
+            let _ = writeln!(out, "Credentials: ✓ found (fingerprint: {fp})");
             report.creds_ok = true;
             Some(token)
         }
         Err(e) => {
-            println!("Credentials: ✗ {e}");
-            println!(
+            let sanitized = creds::redact_home(&e.to_string());
+            let _ = writeln!(out, "Credentials: ✗ {sanitized}");
+            let _ = writeln!(
+                out,
                 "  → ensure you've signed in via Claude Code or that \
                  ~/.claude/.credentials.json exists"
             );
@@ -139,6 +148,14 @@ fn check_network(report: &mut CheckReport, token: Option<&str>, base_url: &str) 
     }
 }
 
+/// Collapse the home-directory prefix of `path` to `~` for display.
+///
+/// Returns the tilde-collapsed string if `$HOME` is set and the path starts
+/// with it; otherwise returns the full path string unchanged.
+fn display_tilde(path: &Path) -> String {
+    creds::redact_home(&path.display().to_string())
+}
+
 /// Check cache; print result.
 fn check_cache(report: &mut CheckReport, dir: &Path) {
     let path = dir.join("usage.json");
@@ -156,13 +173,13 @@ fn check_cache(report: &mut CheckReport, dir: &Path) {
             } else {
                 "stale"
             };
-            println!("Cache: ✓ {} ({freshness})", path.display());
+            println!("Cache: ✓ {} ({freshness})", display_tilde(&path));
             report.cache_ok = true;
         }
         None => {
             println!(
                 "Cache: ✗ {} exists but could not be parsed (corrupt?)",
-                path.display()
+                display_tilde(&path)
             );
             report.cache_ok = false;
         }
@@ -260,9 +277,11 @@ mod tests {
     #[test]
     fn creds_section_error_result_fails() {
         let mut report = CheckReport::default();
+        let mut buf: Vec<u8> = Vec::new();
         let token = report_credentials(
             &mut report,
             Err(anyhow::anyhow!("credentials file not found")),
+            &mut buf,
         );
         assert!(!report.creds_ok, "error result should set creds_ok=false");
         assert!(token.is_none(), "no token when creds missing");
@@ -271,7 +290,12 @@ mod tests {
     #[test]
     fn creds_section_ok_result_passes() {
         let mut report = CheckReport::default();
-        let token = report_credentials(&mut report, Ok("sk-ant-test-check-12345".to_string()));
+        let mut buf: Vec<u8> = Vec::new();
+        let token = report_credentials(
+            &mut report,
+            Ok("sk-ant-test-check-12345".to_string()),
+            &mut buf,
+        );
         assert!(report.creds_ok, "ok result should set creds_ok=true");
         assert_eq!(
             token.as_deref(),
@@ -280,35 +304,54 @@ mod tests {
         );
     }
 
+    /// Fingerprint (not raw token) goes to output; home path tilde-collapsed on error.
     #[test]
-    fn creds_section_token_not_printed() {
-        // The fingerprint (not the raw token) is what appears in output.
-        // We verify the fingerprint function is called and output is non-empty.
-        // (Full stdout capture would require subprocess; acceptable for unit test.)
+    fn creds_section_writer_output_invariants() {
+        // Success: raw token must not appear; fingerprint marker must appear.
         let token = "sk-ant-secret-token-9999";
-        let fp = creds::fingerprint(token);
-        assert_eq!(fp.len(), 16, "fingerprint should be 16 hex chars");
+        let mut report = CheckReport::default();
+        let mut buf: Vec<u8> = Vec::new();
+        report_credentials(&mut report, Ok(token.to_string()), &mut buf);
+        let out = std::str::from_utf8(&buf).unwrap();
+        assert!(!out.contains(token), "raw token must not appear: {out:?}");
         assert!(
-            fp.chars().all(|c| c.is_ascii_hexdigit()),
-            "fingerprint should be hex"
+            out.contains("fingerprint"),
+            "fingerprint must appear: {out:?}"
+        );
+
+        // Error: home path tilde-collapsed.
+        let _guard = creds::HOME_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
+        std::env::set_var("HOME", "/home/alice");
+        let mut report2 = CheckReport::default();
+        let mut buf2: Vec<u8> = Vec::new();
+        let raw_err = "credentials file not found at /home/alice/.claude/.credentials.json";
+        report_credentials(&mut report2, Err(anyhow::anyhow!("{}", raw_err)), &mut buf2);
+        std::env::remove_var("HOME");
+        let out2 = std::str::from_utf8(&buf2).unwrap();
+        assert!(
+            !out2.contains("/home/alice"),
+            "expanded HOME must not appear: {out2:?}"
         );
         assert!(
-            !fp.contains(token),
-            "fingerprint must not contain raw token"
+            out2.contains("~/.claude"),
+            "tilde path must appear: {out2:?}"
         );
     }
 
     // ── format section ────────────────────────────────────────────────────────
 
     #[test]
-    fn format_section_passes_with_default_template() {
-        let mut report = CheckReport::default();
-        check_format(&mut report, DEFAULT_TEMPLATE);
-        assert!(report.format_ok, "default template should render non-empty");
+    fn format_section_default_ok_empty_fails() {
+        let mut r1 = CheckReport::default();
+        check_format(&mut r1, DEFAULT_TEMPLATE);
+        assert!(r1.format_ok, "default template should render non-empty");
+        let mut r2 = CheckReport::default();
+        check_format(&mut r2, "");
+        assert!(!r2.format_ok, "empty template should fail");
     }
 
     #[test]
-    fn format_section_passes_with_stub_ctx() {
+    fn format_section_stub_ctx_renders_segments() {
         let ctx = RenderCtx {
             model: Some("claude-opus-4".to_string()),
             five_used: Some(30.0),
@@ -319,41 +362,20 @@ mod tests {
             ..Default::default()
         };
         let out = format::render(DEFAULT_TEMPLATE, &ctx);
-        assert!(!out.is_empty(), "render must produce non-empty output");
         assert!(out.contains("5h:"), "should contain 5h: segment");
-    }
-
-    #[test]
-    fn format_section_empty_template_fails() {
-        let mut report = CheckReport::default();
-        check_format(&mut report, "");
-        assert!(
-            !report.format_ok,
-            "empty template should set format_ok=false"
-        );
     }
 
     // ── cache section ─────────────────────────────────────────────────────────
 
     #[test]
-    fn cache_section_missing_dir_ok() {
+    fn cache_section_no_file_is_ok() {
         let dir = TempDir::new().unwrap();
-        let nonexistent = dir.path().join("subdir");
-        // subdir does not exist → usage.json does not exist → ok
-        let mut report = CheckReport::default();
-        check_cache(&mut report, &nonexistent);
-        assert!(
-            report.cache_ok,
-            "missing cache dir should be ok (no cache yet)"
-        );
-    }
-
-    #[test]
-    fn cache_section_missing_file_ok() {
-        let dir = TempDir::new().unwrap();
-        let mut report = CheckReport::default();
-        check_cache(&mut report, dir.path());
-        assert!(report.cache_ok, "missing usage.json should be ok");
+        let mut r1 = CheckReport::default();
+        check_cache(&mut r1, &dir.path().join("subdir")); // subdir absent
+        assert!(r1.cache_ok, "missing dir → ok");
+        let mut r2 = CheckReport::default();
+        check_cache(&mut r2, dir.path()); // dir exists, no usage.json
+        assert!(r2.cache_ok, "missing file → ok");
     }
 
     #[test]
@@ -439,49 +461,39 @@ mod tests {
     }
 
     #[test]
-    fn network_section_timeout_fails() {
-        // Port 1 refuses connections immediately (simulates network failure).
-        let mut report = CheckReport::default();
-        check_network(&mut report, Some("test-token"), "http://127.0.0.1:1");
-        assert!(
-            !report.network_ok,
-            "connection refused should set network_ok=false"
-        );
+    fn network_section_timeout_and_no_creds_fail() {
+        let mut r1 = CheckReport::default();
+        check_network(&mut r1, Some("test-token"), "http://127.0.0.1:1");
+        assert!(!r1.network_ok, "connection refused → network_ok=false");
+        let mut r2 = CheckReport::default();
+        check_network(&mut r2, None, DEFAULT_OAUTH_BASE_URL);
+        assert!(!r2.network_ok, "no creds → network_ok=false");
     }
+
+    // ── display_tilde / cache path redaction (CONCERN 3 regression guard) ───────
 
     #[test]
-    fn network_section_no_creds_fails() {
-        let mut report = CheckReport::default();
-        check_network(&mut report, None, DEFAULT_OAUTH_BASE_URL);
-        assert!(
-            !report.network_ok,
-            "missing creds should set network_ok=false"
-        );
+    fn display_tilde_redaction() {
+        let _guard = creds::HOME_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
+        std::env::set_var("HOME", "/home/alice");
+        let home_path = std::path::PathBuf::from("/home/alice/Library/Caches/cc-myasl/usage.json");
+        let other_path = std::path::PathBuf::from("/tmp/usage.json");
+        let home_result = display_tilde(&home_path);
+        let other_result = display_tilde(&other_path);
+        std::env::remove_var("HOME");
+        assert_eq!(home_result, "~/Library/Caches/cc-myasl/usage.json");
+        assert_eq!(other_result, "/tmp/usage.json");
     }
 
-    // ── integration: run_inner with no creds ─────────────────────────────────
-    //
-    // We cannot easily mock `creds::read_token()` without HOME mutation.
-    // On macOS, Keychain may return a real token even when HOME is overridden,
-    // so we only assert the format section (which uses a stub and always passes).
-    // The creds_ok assertion is conditional: it must be false when there is no
-    // real Keychain entry AND no credentials file.
+    // ── integration ───────────────────────────────────────────────────────────
 
     #[test]
     fn run_inner_format_always_passes() {
-        let _guard = ENV_MUTEX.lock().unwrap();
-        // Point STATUSLINE_OAUTH_BASE_URL at a refused port so network never
-        // blocks (returns quickly with TimedOut/connection refused).
+        let _guard = ENV_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
+        // Refused port → network fails fast; format check uses a stub ctx.
         std::env::set_var("STATUSLINE_OAUTH_BASE_URL", "http://127.0.0.1:1");
-
         let report = run_inner();
-
         std::env::remove_var("STATUSLINE_OAUTH_BASE_URL");
-
-        // Format check uses a stub ctx and should always succeed.
         assert!(report.format_ok, "format should always pass");
-        // Cache check — no assertion; depends on real env state.
-        // Creds check — no assertion; depends on macOS Keychain / real env.
-        // Network check — no assertion; depends on creds result.
     }
 }

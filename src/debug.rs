@@ -229,6 +229,61 @@ mod tests {
         );
     }
 
+    /// Verify that a realistic creds-failure error message (which would contain
+    /// the tilde-collapsed credential path after the fix) does not leak the
+    /// bearer token and does not contain an expanded home path (NIT 1 / CONCERN 2
+    /// regression guard).
+    ///
+    /// Production flow: `creds::read_token()` → Err → `creds::redact_home`
+    /// applied before storing in `trace.error`.  Here we simulate the already-
+    /// redacted string reaching the trace, as main.rs does after the fix.
+    #[test]
+    fn bearer_token_never_in_json_output_realistic_creds_error() {
+        let _guard = DEBUG_MUTEX.lock().unwrap();
+        let mock_fingerprint = "a1b2c3d4e5f60718";
+        // Simulate the already-redacted error string as stored by main.rs.
+        let fake_home = "/Users/alice";
+        // After redaction, this is what trace.error would contain.
+        let redacted_error = "credentials file not found at ~/.claude/.credentials.json";
+        // Make sure the raw home path is NOT in the redacted string.
+        assert!(
+            !redacted_error.contains(fake_home),
+            "test invariant: redacted string must not contain home"
+        );
+
+        let trace = Trace {
+            token_fp: Some(mock_fingerprint.into()),
+            error: Some(redacted_error.into()),
+            path: Some("degraded".into()),
+            cache: Some("miss".into()),
+            http: None,
+            took_ms: Some(3),
+        };
+
+        let raw = capture(&trace, true);
+        let json_str = std::str::from_utf8(&raw).expect("output must be UTF-8");
+
+        // Bearer token substrings must not appear.
+        assert!(
+            !json_str.contains("sk-ant"),
+            "json must not contain 'sk-ant': {json_str}"
+        );
+        // The expanded home path must not appear.
+        assert!(
+            !json_str.contains(fake_home),
+            "json must not contain expanded HOME: {json_str}"
+        );
+        // The tilde path and fingerprint SHOULD be present.
+        assert!(
+            json_str.contains("~/.claude"),
+            "json must contain tilde-collapsed path: {json_str}"
+        );
+        assert!(
+            json_str.contains(mock_fingerprint),
+            "json must contain fingerprint: {json_str}"
+        );
+    }
+
     // ── None fields are omitted from JSON output ──────────────────────────
 
     #[test]

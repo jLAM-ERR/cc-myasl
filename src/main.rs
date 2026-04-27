@@ -120,7 +120,7 @@ fn run_render(args: &Args) {
     let token = match creds::read_token() {
         Ok(t) => t,
         Err(e) => {
-            trace.error = Some(e.to_string());
+            trace.error = Some(creds::redact_home(&e.to_string()));
             render_and_emit(&mut trace, args, &ctx, started);
             return;
         }
