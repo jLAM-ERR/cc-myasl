@@ -42,7 +42,10 @@ fi
 # Strip leading "v" for the tarball name.
 VER_NUM="${VERSION#v}"
 TARBALL="cc-myasl-${VER_NUM}-${TARGET}.tar.gz"
-SHA="${TARBALL}.sha256"
+# `taiki-e/upload-rust-binary-action@v1` writes the checksum to
+# `<archive-name-without-.tar.gz>.sha256`, NOT `<tarball>.sha256`.
+# So the sidecar is `cc-myasl-${VER_NUM}-${TARGET}.sha256`.
+SHA="cc-myasl-${VER_NUM}-${TARGET}.sha256"
 URL_BASE="https://github.com/$OWNER/$REPO/releases/download/$VERSION"
 
 # ── download to tempdir ───────────────────────────────────────────────────
@@ -60,6 +63,8 @@ else
 fi
 
 if [ -f "$TMP/$SHA" ]; then
+    # The sha256 sidecar lists the tarball under its tarball name; verify
+    # against the tarball.
     ( cd "$TMP" && shasum -a 256 -c "$SHA" >/dev/null ) || {
         printf 'error: checksum mismatch for %s\n' "$TARBALL" >&2
         exit 1
@@ -67,16 +72,22 @@ if [ -f "$TMP/$SHA" ]; then
 fi
 
 # ── extract + install ─────────────────────────────────────────────────────
+# `taiki-e/upload-rust-binary-action@v1` produces a FLAT tarball:
+#   cc-myasl                  (the binary)
+#   templates/                (directory)
+#   README.md
+# So after `tar -xzf` into $TMP, the binary is at $TMP/cc-myasl and the
+# templates dir is at $TMP/templates. There is no nested
+# `cc-myasl-<ver>-<target>/` wrapper directory.
 tar -xzf "$TMP/$TARBALL" -C "$TMP"
-EXTRACTED="$TMP/cc-myasl-${VER_NUM}-${TARGET}"
-[ -d "$EXTRACTED" ] || {
-    printf 'error: tarball did not produce expected dir %s\n' "$EXTRACTED" >&2
+[ -x "$TMP/cc-myasl" ] || {
+    printf 'error: tarball did not contain expected cc-myasl binary at the root\n' >&2
     exit 1
 }
 
 mkdir -p "$DEST_BIN" "$DEST_TPL"
-install -m 0755 "$EXTRACTED/bin/cc-myasl" "$DEST_BIN/cc-myasl"
-cp "$EXTRACTED"/templates/*.txt "$DEST_TPL/"
+install -m 0755 "$TMP/cc-myasl" "$DEST_BIN/cc-myasl"
+cp "$TMP"/templates/*.txt "$DEST_TPL/"
 
 # ── settings snippet (NEVER edit ~/.claude/settings.json) ─────────────────
 printf '\n'
