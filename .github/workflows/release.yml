@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write   # required to create the GitHub Release + upload assets
+  statuses: write   # billyjbryant/create-status-check@v2 (final step per job)
 
 jobs:
   # Create the GitHub Release once, before any matrix job tries to upload to it.
@@ -33,6 +34,15 @@ jobs:
             gh release create "$TAG" --title "$TAG" \
               --notes "Automated release $TAG. See CHANGELOG.md for details."
           fi
+
+      - name: create-status-check
+        if: always()
+        uses: billyjbryant/create-status-check@v2
+        with:
+          authToken: ${{ secrets.GITHUB_TOKEN }}
+          state: ${{ job.status == 'success' && 'success' || (job.status == 'cancelled' && 'error' || 'failure') }}
+          context: Release / Create release
+          description: gh release create (${{ github.ref_name }})
 
   release:
     name: Build ${{ matrix.target }}
@@ -110,3 +120,13 @@ jobs:
       - name: Dry-run build (PR only)
         if: github.event_name == 'pull_request' && !endsWith(matrix.target, '-linux-musl')
         run: cargo build --release --target ${{ matrix.target }} --locked
+
+      # Per-target status check; see ci.yml for the same pattern.
+      - name: create-status-check
+        if: always()
+        uses: billyjbryant/create-status-check@v2
+        with:
+          authToken: ${{ secrets.GITHUB_TOKEN }}
+          state: ${{ job.status == 'success' && 'success' || (job.status == 'cancelled' && 'error' || 'failure') }}
+          context: Release (${{ matrix.target }})
+          description: ${{ github.event_name == 'push' && 'build + tar + sha256 + upload to GitHub Release' || 'PR dry-run build' }}
