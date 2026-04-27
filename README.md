@@ -549,49 +549,11 @@ local time when each window resets.
 
 ---
 
-## Development
+## Contributing
 
-### Build
-
-```sh
-cargo build --release
-```
-
-The release profile uses `lto = "fat"`, `codegen-units = 1`,
-`strip = true`, and `panic = "abort"` to produce a stripped binary of
-≤ 1.5 MB.
-
-### Test
-
-```sh
-cargo test
-```
-
-The test suite covers unit tests for every module, integration tests via
-`tests/golden.rs` (spawn the binary, pipe fixture JSON, assert output),
-and invariant assertions. The OAuth endpoint is mocked via `mockito` —
-no real network calls in CI.
-
-### LOC budget
-
-Each file in `src/**/*.rs` is capped at 500 lines. CI enforces this with
-`scripts/check-loc.sh`. If a file approaches 400 lines, split it before
-adding more.
-
-### Hard invariants (CI-gated)
-
-`scripts/check-invariants.sh` asserts:
-
-1. No `security dump-keychain` invocation in `src/` or `scripts/`.
-2. No `npx.*latest` or `@latest` in `src/` or `scripts/`.
-3. No `cargo`, `rustc`, or `rustup` references in `scripts/install.sh`.
-
-Run manually with:
-
-```sh
-bash scripts/check-invariants.sh
-bash scripts/check-loc.sh
-```
+Build, test, lint, and invariant-gate instructions live in
+[CONTRIBUTING.md](CONTRIBUTING.md). The `main` branch is protected;
+all changes go through pull requests.
 
 ---
 
