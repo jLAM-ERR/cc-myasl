@@ -115,19 +115,19 @@ jobs:
           checksum: sha256
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Dry-run on PRs touching this workflow: verify the build compiles
-      # without uploading anything.
-      #
-      # We restrict the dry-run to natively-buildable targets (the macOS
-      # runners have everything they need; ubuntu-latest does NOT have a
-      # musl C linker installed by default, and the production job lets
-      # `taiki-e/upload-rust-binary-action` install `cross` internally —
-      # we can't easily reproduce that here). Skipping musl targets in
-      # the dry-run is acceptable: a workflow-syntax bug will still trip
-      # the macOS legs.
+      # Dry-run on PRs touching this workflow: verify the build compiles.
+      # We build the runner's NATIVE arch only (no `--target`), because:
+      #   1. `dtolnay/rust-toolchain@stable` installs latest stable, but
+      #      `rust-toolchain.toml` pins 1.83 — `targets:` adds the cross-
+      #      target to the wrong channel, breaking dry-run cross-compile.
+      #   2. The production job uses `taiki-e/upload-rust-binary-action`,
+      #      which handles cross-target install correctly. That's the
+      #      real cross-compile gate; dry-run only needs to catch
+      #      workflow-syntax / dependency / lockfile issues.
+      # Skip musl on ubuntu-latest (no musl C linker installed by default).
       - name: Dry-run build (PR only)
         if: github.event_name == 'pull_request' && !endsWith(matrix.target, '-linux-musl')
-        run: cargo build --release --target ${{ matrix.target }} --locked
+        run: cargo build --release --locked
 
       # Per-target status check; see ci.yml for the same pattern.
       - name: create-status-check
