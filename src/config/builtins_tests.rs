@@ -197,37 +197,10 @@ fn segment_json_with_flex_key_is_flex_variant() {
 // Empty-ctx render output assertions
 // ---------------------------------------------------------------------------
 
-fn render_config_manually(cfg: &Config, ctx: &crate::format::placeholders::RenderCtx) -> String {
-    use crate::config::schema::Segment;
-    use crate::format;
-    let mut line_strs = Vec::new();
-    for line in cfg.lines.iter().take(crate::config::schema::MAX_LINES) {
-        let mut parts: Vec<String> = Vec::new();
-        for seg in &line.segments {
-            if let Segment::Template(t) = seg {
-                let rendered = format::render(&t.template, ctx);
-                if !rendered.is_empty() || !t.hide_when_absent {
-                    parts.push(rendered);
-                }
-            }
-        }
-        line_strs.push(parts.join(&line.separator));
-    }
-    line_strs.join("\n")
-}
-
 /// With empty ctx every built-in must produce output that:
 /// 1. Does not start or end with a separator literal (`·`, `⏰`, `⏳`, etc.).
 /// 2. Does not contain a lone `%` or `/` (would indicate a half-rendered slot).
-///
-/// FAILS because render_config_manually collapses hide_when_absent segments by
-/// checking rendered.is_empty(), but format::render always emits the literal text
-/// around missing placeholders (e.g. " · 5h: %"), so is_empty() is never true.
-/// The collapse logic in config::render (Task 4) must use a sentinel/None-aware
-/// render path rather than empty-string detection.
 #[test]
-#[ignore = "bug: hide_when_absent collapse uses is_empty() on format::render output — literal \
-text around absent placeholders prevents collapse, leaving dangling separators like ' · 5h: %'"]
 fn all_templates_empty_ctx_no_dangling_separator() {
     const ALL_NAMES: &[&str] = &[
         "default",
@@ -239,10 +212,11 @@ fn all_templates_empty_ctx_no_dangling_separator() {
         "emoji_verbose",
         "verbose",
     ];
+    use crate::config::render;
     use crate::format::placeholders::RenderCtx;
     let ctx = RenderCtx::default();
     for name in ALL_NAMES {
-        let out = render_config_manually(&lookup(name).unwrap(), &ctx);
+        let out = render::render(&lookup(name).unwrap(), &ctx);
         assert!(
             !out.starts_with(" · "),
             "{name} output starts with dangling separator: {out:?}"
@@ -263,30 +237,25 @@ fn all_templates_empty_ctx_no_dangling_separator() {
 }
 
 /// "default" with empty ctx must emit exactly "" — only {model} segment is
-/// non-optional and it resolves to empty when model is None.
-///
-/// FAILS for the same reason as all_templates_empty_ctx_no_dangling_separator.
+/// non-optional and it resolves to None when model is None.
 #[test]
-#[ignore = "bug: same hide_when_absent collapse bug — format::render(' · 5h: {five_left}%', empty_ctx) \
-returns ' · 5h: %' (non-empty), so is_empty() check never hides the segment"]
 fn default_template_empty_ctx_emits_empty_string() {
+    use crate::config::render;
     use crate::format::placeholders::RenderCtx;
     let ctx = RenderCtx::default();
-    let out = render_config_manually(&lookup("default").unwrap(), &ctx);
+    let out = render::render(&lookup("default").unwrap(), &ctx);
     assert_eq!(out, "", "default with no ctx must emit empty, got: {out:?}");
 }
 
 /// "emoji_verbose" with empty ctx must not emit bare emoji separators.
-///
-/// FAILS for the same reason as all_templates_empty_ctx_no_dangling_separator.
 #[test]
-#[ignore = "bug: same hide_when_absent collapse bug — '🤖  · ⚪  · ⏳ %/% · ⏰ ' is emitted \
-because literal text around absent placeholders prevents is_empty() collapse"]
 fn emoji_verbose_empty_ctx_emits_only_model_or_empty() {
+    use crate::config::render;
     use crate::format::placeholders::RenderCtx;
     let ctx = RenderCtx::default();
-    let out = render_config_manually(&lookup("emoji_verbose").unwrap(), &ctx);
-    // First segment is "🤖 {model}" — non-optional; with model=None renders "🤖 ".
+    let out = render::render(&lookup("emoji_verbose").unwrap(), &ctx);
+    // First segment is "🤖 {model}" — non-optional; with model=None, render_segment
+    // returns None and hide_when_absent=false → emits "🤖 " (padded empty).
     // All other segments are optional and must collapse.
     assert!(
         !out.contains("⏰"),

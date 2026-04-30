@@ -74,6 +74,39 @@ pub fn lookup_template(name: &str) -> Option<&'static str> {
     }
 }
 
+/// Render `template` against `ctx` for use as a single config segment.
+///
+/// Returns `None` if any top-level placeholder in the template resolves to
+/// `None` or empty — the caller (config::render) will then decide whether to
+/// hide the segment based on `hide_when_absent`.  Optional blocks (`{? … }`)
+/// inside a segment are handled normally: a collapsing inner block renders to
+/// empty but does NOT make the outer result `None`.
+///
+/// Differs from `render`: `render` always returns a `String` (unknown
+/// placeholders → empty string); `render_segment` is strict — any top-level
+/// placeholder that resolves to absent makes the whole segment `None`.
+pub fn render_segment(template: &str, ctx: &RenderCtx) -> Option<String> {
+    let tokens = parser::tokenize(template);
+    let mut out = String::new();
+    for t in &tokens {
+        match t {
+            Token::Text(s) => out.push_str(s),
+            Token::Placeholder(name) => match placeholders::render_placeholder(name, ctx) {
+                Some(v) if !v.is_empty() => out.push_str(&v),
+                _ => return None,
+            },
+            Token::Optional(inner) => {
+                // Optional blocks collapse internally but do not propagate None upward.
+                let mut scratch = String::new();
+                if render_optional(inner, ctx, &mut scratch) {
+                    out.push_str(&scratch);
+                }
+            }
+        }
+    }
+    Some(out)
+}
+
 fn render_optional(tokens: &[Token], ctx: &RenderCtx, out: &mut String) -> bool {
     let mut all_present = true;
     for t in tokens {

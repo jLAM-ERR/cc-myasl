@@ -1,4 +1,5 @@
 pub mod builtins;
+pub mod render;
 pub mod schema;
 
 pub use builtins::lookup;
