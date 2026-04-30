@@ -253,7 +253,7 @@ fn resolve_template(args: &Args) -> String {
             return s;
         }
     }
-    if let Some(name) = &args.template {
+    if let Some(name) = &args.template_name {
         return format::lookup_template(name)
             .map(|s| s.to_string())
             .unwrap_or_else(|| DEFAULT_TEMPLATE.to_string());

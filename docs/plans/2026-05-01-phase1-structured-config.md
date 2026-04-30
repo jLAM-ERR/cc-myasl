@@ -277,6 +277,8 @@ locked in, so a clean break is cheap now and expensive later.
 - [x] write invariant test: string-scan `src/config/*.rs` files; assert no `use crate::api` and no `use crate::cache` substring (mirrors `format::placeholders::tests` pattern)
 - [x] run `cargo test config`; all pass before next task
 
+⚠️ Followup commit (see below): addressed reviewer findings on Task 5 commit `cd04575` plus hardener-found bugs in `9dcebb0`: (Fix 1) path traversal in `user_template_path` — now validates name chars, returns `Option<PathBuf>`, rejects `/`, `\`, `..`, `.`; (Fix 2) `from_file` now rejects non-object JSON (array, string, number, null) with explicit `ConfigParse` error; (Fix 3) `resolve_user_template` records `trace.error` when existing file is corrupt; (Fix 4) `load_default_config_file` records `trace.error` when existing file is corrupt; (Fix 5) `ConfigSource` moved to `debug.rs`, `Trace::config_source` is now `Option<ConfigSource>` enum; (Fix 6) `args.template` renamed to `args.template_name`; (Fix 7) `resolve_layer2_unknown_template_falls_through` asserts `trace.error.is_some()` and contains the unknown name; (Fix 8) `user_template_path` is now `pub(crate)`.
+
 ### Task 6: Trim `format/mod.rs` — narrow surface
 
 **Files:**

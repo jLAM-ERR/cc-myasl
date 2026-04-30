@@ -4,7 +4,7 @@
 /// Split here because tests.rs was already close to the 500-LOC ceiling.
 use super::*;
 use crate::args::Args;
-use crate::debug::Trace;
+use crate::debug::{ConfigSource, Trace};
 use std::path::PathBuf;
 use tempfile::tempdir;
 
@@ -106,55 +106,76 @@ fn from_file_permission_denied_returns_config_parse_error() {
     );
 }
 
-// ── user_template_path: double extension ─────────────────────────────────
+// ── user_template_path: name with extension is rejected ──────────────────
 
 #[test]
-fn user_template_path_double_extension_when_name_has_json_suffix() {
-    // A user who passes "compact.json" gets "compact.json.json" appended.
-    // This is observable behavior worth pinning — it means the file is
-    // NOT found and falls through. The test documents the current behavior.
+fn user_template_path_name_with_dot_is_rejected() {
+    // "compact.json" contains a dot — rejected by the safe-name check.
+    // Users must pass "compact" not "compact.json".
     let config_dir = PathBuf::from("/home/user/.config/cc-myasl");
-    let p = user_template_path(&config_dir, "compact.json");
-    assert_eq!(
-        p,
-        PathBuf::from("/home/user/.config/cc-myasl/templates/compact.json.json"),
-        "name with .json suffix must produce double-extension path"
+    assert!(
+        user_template_path(&config_dir, "compact.json").is_none(),
+        "name containing dot must return None"
     );
 }
 
-// ── user_template_path: path traversal (documents current behavior) ──────
+// ── user_template_path: path traversal is rejected ───────────────────────
 
 #[test]
-fn user_template_path_with_dotdot_escapes_config_dir() {
-    // BUG DOCUMENTED: user_template_path does NOT sanitize ".." in name.
-    // This test pins the observable (unsafe) behavior so it is visible in the
-    // test suite and must be replaced by the implementer once sanitization
-    // is added to user_template_path / resolve_user_template.
-    //
-    // Current behavior: "../../../etc/passwd" produces a path that, after
-    // lexical normalization, resolves OUTSIDE config_dir.
+fn user_template_path_with_dotdot_is_rejected() {
     let config_dir = PathBuf::from("/home/user/.config/cc-myasl");
-    let p = user_template_path(&config_dir, "../../../etc/passwd");
-    let normalised: PathBuf = {
-        let mut stack: Vec<std::path::Component> = Vec::new();
-        for c in p.components() {
-            match c {
-                std::path::Component::ParentDir => {
-                    stack.pop();
-                }
-                std::path::Component::CurDir => {}
-                other => stack.push(other),
-            }
-        }
-        stack.iter().collect()
-    };
-    // Assert the CURRENT (broken) behavior so CI catches if the bug is
-    // accidentally papered over without a real fix.
+    // Names containing ".." must be rejected — user_template_path returns None.
     assert!(
-        !normalised.starts_with(&config_dir),
-        "expected path traversal to escape config_dir (known bug); \
-         if this assertion fails the bug has been fixed — remove this test \
-         and add a positive containment test instead"
+        user_template_path(&config_dir, "../../../etc/passwd").is_none(),
+        "dotdot traversal must return None"
+    );
+    assert!(
+        user_template_path(&config_dir, "..").is_none(),
+        "bare dotdot must return None"
+    );
+    assert!(
+        user_template_path(&config_dir, "foo/bar").is_none(),
+        "slash in name must return None"
+    );
+    assert!(
+        user_template_path(&config_dir, ".hidden").is_none(),
+        "leading dot must return None"
+    );
+    assert!(
+        user_template_path(&config_dir, r"foo\bar").is_none(),
+        "backslash in name must return None"
+    );
+}
+
+#[test]
+fn user_template_path_valid_names_return_some() {
+    let config_dir = PathBuf::from("/home/user/.config/cc-myasl");
+    assert_eq!(
+        user_template_path(&config_dir, "compact"),
+        Some(PathBuf::from(
+            "/home/user/.config/cc-myasl/templates/compact.json"
+        ))
+    );
+    assert_eq!(
+        user_template_path(&config_dir, "my-template"),
+        Some(PathBuf::from(
+            "/home/user/.config/cc-myasl/templates/my-template.json"
+        ))
+    );
+    assert_eq!(
+        user_template_path(&config_dir, "my_template_2"),
+        Some(PathBuf::from(
+            "/home/user/.config/cc-myasl/templates/my_template_2.json"
+        ))
+    );
+}
+
+#[test]
+fn user_template_path_empty_name_is_rejected() {
+    let config_dir = PathBuf::from("/home/user/.config/cc-myasl");
+    assert!(
+        user_template_path(&config_dir, "").is_none(),
+        "empty name must return None"
     );
 }
 
@@ -170,7 +191,7 @@ fn resolve_empty_template_name_falls_through_to_embedded() {
     std::env::remove_var("STATUSLINE_CONFIG");
 
     let mut args = empty_args();
-    args.template = Some("".to_owned());
+    args.template_name = Some("".to_owned());
     let mut trace = Trace::default();
     let cfg = resolve(&args, &mut trace);
 
@@ -237,8 +258,8 @@ fn resolve_whitespace_only_statusline_config_is_treated_as_path() {
     );
     // Must NOT be sourced from Env (the Env parse failed).
     assert_ne!(
-        trace.config_source.as_deref(),
-        Some("Env"),
+        trace.config_source,
+        Some(ConfigSource::Env),
         "whitespace STATUSLINE_CONFIG must not produce Env source"
     );
 }
@@ -279,8 +300,8 @@ fn resolve_env_nonexistent_path_records_error_and_falls_back() {
         "nonexistent env path must record error in trace"
     );
     assert_ne!(
-        trace.config_source.as_deref(),
-        Some("Env"),
+        trace.config_source,
+        Some(ConfigSource::Env),
         "nonexistent env path must not produce Env source"
     );
 }
@@ -311,8 +332,8 @@ fn resolve_xdg_nonexistent_dir_falls_back_to_embedded() {
 
     assert!(!cfg.lines.is_empty(), "must fall back to embedded default");
     assert_eq!(
-        trace.config_source.as_deref(),
-        Some("Embedded"),
+        trace.config_source,
+        Some(ConfigSource::Embedded),
         "nonexistent XDG dir must produce Embedded source"
     );
 }
@@ -331,8 +352,8 @@ fn resolve_layer1_failure_does_not_set_config_source() {
     let _ = resolve(&args, &mut trace);
 
     assert_ne!(
-        trace.config_source.as_deref(),
-        Some("CliPath"),
+        trace.config_source,
+        Some(ConfigSource::CliPath),
         "failed layer 1 must not record CliPath as config_source"
     );
     assert!(
@@ -395,35 +416,6 @@ fn print_config_round_trip_is_stable() {
         first, second,
         "print_config must be stable across a round-trip (first != second)"
     );
-}
-
-// ── ConfigSource: all variant strings match expected values ───────────────
-
-#[test]
-fn config_source_as_str_all_variants() {
-    assert_eq!(ConfigSource::CliPath.as_str(), "CliPath");
-    assert_eq!(ConfigSource::CliTemplate.as_str(), "CliTemplate");
-    assert_eq!(ConfigSource::Env.as_str(), "Env");
-    assert_eq!(ConfigSource::DefaultFile.as_str(), "DefaultFile");
-    assert_eq!(ConfigSource::Embedded.as_str(), "Embedded");
-}
-
-// ── ConfigSource: strings match what resolve writes to trace ──────────────
-
-#[test]
-fn config_source_trace_strings_match_enum_as_str() {
-    // The resolver stores `ConfigSource::X.as_str()` in trace.config_source.
-    // This test verifies the contract: the five possible trace values are
-    // exactly the five as_str() outputs, with no silent typos.
-    let expected = ["CliPath", "CliTemplate", "Env", "DefaultFile", "Embedded"];
-    let actual = [
-        ConfigSource::CliPath.as_str(),
-        ConfigSource::CliTemplate.as_str(),
-        ConfigSource::Env.as_str(),
-        ConfigSource::DefaultFile.as_str(),
-        ConfigSource::Embedded.as_str(),
-    ];
-    assert_eq!(expected, actual);
 }
 
 // ── invariant: tests_b does not import api or cache ───────────────────────

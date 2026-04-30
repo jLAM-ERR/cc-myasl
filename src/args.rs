@@ -14,7 +14,7 @@ pub struct Args {
     /// `--format <STR>` or `--format=<STR>`
     pub format: Option<String>,
     /// `--template <NAME>` or `--template=<NAME>`
-    pub template: Option<String>,
+    pub template_name: Option<String>,
     /// `--config <PATH>` — explicit config file path (Task 7 adds parsing).
     pub config_path: Option<std::path::PathBuf>,
     /// `--debug`
@@ -46,7 +46,7 @@ pub fn parse(args: &[String]) -> Args {
                 let val = &stripped[eq_pos + 1..];
                 match key {
                     "format" => out.format = Some(val.to_owned()),
-                    "template" => out.template = Some(val.to_owned()),
+                    "template" => out.template_name = Some(val.to_owned()),
                     "debug" => {
                         out.debug = true;
                         // `=VALUE` suffix on a boolean flag is unexpected; treat
@@ -94,7 +94,7 @@ pub fn parse(args: &[String]) -> Args {
                     }
                 }
                 "template" => match iter.next() {
-                    Some(val) => out.template = Some(val.clone()),
+                    Some(val) => out.template_name = Some(val.clone()),
                     None => {
                         out.unknown.push(arg.clone());
                     }
@@ -138,7 +138,7 @@ mod tests {
         assert!(!a.version);
         assert!(!a.help);
         assert!(a.format.is_none());
-        assert!(a.template.is_none());
+        assert!(a.template_name.is_none());
         assert!(a.unknown.is_empty());
     }
 
@@ -164,13 +164,13 @@ mod tests {
     #[test]
     fn template_space() {
         let a = parse(&s(&["--template", "default"]));
-        assert_eq!(a.template, Some("default".into()));
+        assert_eq!(a.template_name, Some("default".into()));
     }
 
     #[test]
     fn template_equals() {
         let a = parse(&s(&["--template=compact"]));
-        assert_eq!(a.template, Some("compact".into()));
+        assert_eq!(a.template_name, Some("compact".into()));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 use super::*;
 use crate::args::Args;
-use crate::debug::Trace;
+use crate::debug::{ConfigSource, Trace};
 use std::path::PathBuf;
 use tempfile::tempdir;
 
@@ -107,7 +107,9 @@ fn user_template_path_builds_correct_path() {
     let p = user_template_path(&dir, "compact");
     assert_eq!(
         p,
-        PathBuf::from("/home/user/.config/cc-myasl/templates/compact.json")
+        Some(PathBuf::from(
+            "/home/user/.config/cc-myasl/templates/compact.json"
+        ))
     );
 }
 
@@ -166,8 +168,8 @@ fn resolve_layer1_config_path() {
     let cfg = resolve(&args, &mut trace);
     assert_eq!(cfg.lines.len(), 1);
     assert_eq!(
-        trace.config_source.as_deref(),
-        Some("CliPath"),
+        trace.config_source,
+        Some(ConfigSource::CliPath),
         "trace must record CliPath"
     );
 }
@@ -192,7 +194,7 @@ fn resolve_layer1_corrupt_falls_back_to_embedded() {
 #[test]
 fn resolve_layer2_template_builtin() {
     let mut args = empty_args();
-    args.template = Some("compact".to_owned());
+    args.template_name = Some("compact".to_owned());
     let mut trace = Trace::default();
     let cfg = resolve(&args, &mut trace);
     assert!(
@@ -200,8 +202,8 @@ fn resolve_layer2_template_builtin() {
         "compact built-in must return a config with lines"
     );
     assert_eq!(
-        trace.config_source.as_deref(),
-        Some("CliTemplate"),
+        trace.config_source,
+        Some(ConfigSource::CliTemplate),
         "trace must record CliTemplate for built-in"
     );
 }
@@ -213,7 +215,7 @@ fn resolve_layer2_unknown_template_falls_through() {
     std::env::remove_var("STATUSLINE_CONFIG");
 
     let mut args = empty_args();
-    args.template = Some("nonexistent_template_xyz".to_owned());
+    args.template_name = Some("nonexistent_template_xyz".to_owned());
     let mut trace = Trace::default();
     let cfg = resolve(&args, &mut trace);
 
@@ -223,6 +225,19 @@ fn resolve_layer2_unknown_template_falls_through() {
     }
 
     assert!(!cfg.lines.is_empty());
+    assert!(
+        trace.error.is_some(),
+        "unknown template name must record error in trace"
+    );
+    assert!(
+        trace
+            .error
+            .as_deref()
+            .unwrap_or("")
+            .contains("nonexistent_template_xyz"),
+        "trace.error must mention the unknown name: {:?}",
+        trace.error
+    );
 }
 
 // ── resolve — layer 2: user template shadows built-in ────────────────────
@@ -246,7 +261,7 @@ fn resolve_layer2_user_template_shadows_builtin() {
     std::env::remove_var("STATUSLINE_CONFIG");
 
     let mut args = empty_args();
-    args.template = Some("default".to_owned());
+    args.template_name = Some("default".to_owned());
     let mut trace = Trace::default();
     let cfg = resolve(&args, &mut trace);
 
@@ -270,8 +285,8 @@ fn resolve_layer2_user_template_shadows_builtin() {
         panic!("expected Template segment");
     }
     assert_eq!(
-        trace.config_source.as_deref(),
-        Some("CliTemplate"),
+        trace.config_source,
+        Some(ConfigSource::CliTemplate),
         "trace must record CliTemplate"
     );
 }
@@ -298,8 +313,8 @@ fn resolve_layer3_env_var() {
 
     assert_eq!(cfg.lines.len(), 1);
     assert_eq!(
-        trace.config_source.as_deref(),
-        Some("Env"),
+        trace.config_source,
+        Some(ConfigSource::Env),
         "trace must record Env"
     );
 }
@@ -320,8 +335,8 @@ fn resolve_layer3_empty_env_var_skipped() {
     }
 
     assert_ne!(
-        trace.config_source.as_deref(),
-        Some("Env"),
+        trace.config_source,
+        Some(ConfigSource::Env),
         "empty STATUSLINE_CONFIG must be skipped"
     );
 }
@@ -385,8 +400,8 @@ fn resolve_layer4_default_file() {
 
     assert_eq!(cfg.lines.len(), 1);
     assert_eq!(
-        trace.config_source.as_deref(),
-        Some("DefaultFile"),
+        trace.config_source,
+        Some(ConfigSource::DefaultFile),
         "trace must record DefaultFile"
     );
 }
@@ -418,8 +433,8 @@ fn resolve_layer5_embedded_default() {
 
     assert!(!cfg.lines.is_empty(), "embedded default must have lines");
     assert_eq!(
-        trace.config_source.as_deref(),
-        Some("Embedded"),
+        trace.config_source,
+        Some(ConfigSource::Embedded),
         "trace must record Embedded"
     );
 }
@@ -433,12 +448,12 @@ fn resolve_layer1_wins_over_layer2() {
 
     let mut args = empty_args();
     args.config_path = Some(path);
-    args.template = Some("compact".to_owned());
+    args.template_name = Some("compact".to_owned());
     let mut trace = Trace::default();
     let cfg = resolve(&args, &mut trace);
 
     assert_eq!(cfg.lines.len(), 1, "layer1 config has 1 line");
-    assert_eq!(trace.config_source.as_deref(), Some("CliPath"));
+    assert_eq!(trace.config_source, Some(ConfigSource::CliPath));
 }
 
 // ── invariant: no api/cache imports in config/*.rs ───────────────────────

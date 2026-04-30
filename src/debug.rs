@@ -13,6 +13,33 @@
 use serde::Serialize;
 use std::io::{self, Write};
 
+/// Which config-resolution layer produced the active config.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub enum ConfigSource {
+    /// `--config <path>` flag.
+    CliPath,
+    /// `--template <name>` flag (user file or built-in).
+    CliTemplate,
+    /// `STATUSLINE_CONFIG` env var.
+    Env,
+    /// Default file at `<config_dir>/cc-myasl/config.json`.
+    DefaultFile,
+    /// Embedded built-in `default` template.
+    Embedded,
+}
+
+impl ConfigSource {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ConfigSource::CliPath => "CliPath",
+            ConfigSource::CliTemplate => "CliTemplate",
+            ConfigSource::Env => "Env",
+            ConfigSource::DefaultFile => "DefaultFile",
+            ConfigSource::Embedded => "Embedded",
+        }
+    }
+}
+
 /// Diagnostic trace collected during a single invocation.
 ///
 /// All fields are `Option` so that unset values are omitted from the JSON
@@ -36,10 +63,12 @@ pub struct Trace {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub took_ms: Option<u64>,
 
-    /// Which config-resolution layer won.  One of `"CliPath"`, `"CliTemplate"`,
-    /// `"Env"`, `"DefaultFile"`, or `"Embedded"`.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub config_source: Option<String>,
+    /// Which config-resolution layer won.
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_config_source"
+    )]
+    pub config_source: Option<ConfigSource>,
 
     /// `Display` representation of any `Error` that occurred, if any.
     /// MUST NOT contain the bearer token — use `token_fp` for token identity.
@@ -51,6 +80,19 @@ pub struct Trace {
     /// NEVER the token itself.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token_fp: Option<String>,
+}
+
+fn serialize_config_source<S>(
+    value: &Option<ConfigSource>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match value {
+        Some(cs) => serializer.serialize_str(cs.as_str()),
+        None => serializer.serialize_none(),
+    }
 }
 
 impl Trace {
@@ -167,7 +209,7 @@ mod tests {
             http: Some(200),
             took_ms: Some(42),
             error: None,
-            config_source: None,
+            config_source: Some(ConfigSource::CliPath),
             token_fp: Some("abcdef1234567890".into()),
         };
 
@@ -181,6 +223,7 @@ mod tests {
         assert_eq!(v["http"].as_u64(), Some(200));
         assert_eq!(v["took_ms"].as_u64(), Some(42));
         assert!(v.get("error").is_none(), "error should be absent");
+        assert_eq!(v["config_source"].as_str(), Some("CliPath"));
         assert_eq!(v["token_fp"].as_str(), Some("abcdef1234567890"));
     }
 
@@ -205,7 +248,7 @@ mod tests {
             cache: Some("miss".into()),
             http: Some(401),
             took_ms: Some(7),
-            config_source: None,
+            config_source: Some(ConfigSource::Embedded),
         };
 
         let raw = capture(&trace, true);

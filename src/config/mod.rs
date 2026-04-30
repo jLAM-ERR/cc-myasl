@@ -9,52 +9,34 @@ pub use schema::{
 };
 
 use crate::args::Args;
-use crate::debug::Trace;
+use crate::debug::{ConfigSource, Trace};
 use crate::error::Error;
 use std::path::{Path, PathBuf};
 
 const SCHEMA_URL: &str =
     "https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/cc-myasl.schema.json";
 
-/// Which config-resolution layer produced the active config.
-#[derive(Debug, Clone, PartialEq)]
-pub enum ConfigSource {
-    /// `--config <path>` flag.
-    CliPath,
-    /// `--template <name>` flag (user file or built-in).
-    CliTemplate,
-    /// `STATUSLINE_CONFIG` env var.
-    Env,
-    /// Default file at `<config_dir>/cc-myasl/config.json`.
-    DefaultFile,
-    /// Embedded built-in `default` template.
-    Embedded,
-}
-
-impl ConfigSource {
-    fn as_str(&self) -> &'static str {
-        match self {
-            ConfigSource::CliPath => "CliPath",
-            ConfigSource::CliTemplate => "CliTemplate",
-            ConfigSource::Env => "Env",
-            ConfigSource::DefaultFile => "DefaultFile",
-            ConfigSource::Embedded => "Embedded",
-        }
+/// Returns `Some(path)` where path is `<config_dir>/templates/<name>.json`,
+/// or `None` if `name` contains unsafe characters (`/`, `\`, `..`, or a
+/// leading `.`).  Names must be simple identifiers: alphanumeric, `-`, `_`.
+pub(crate) fn user_template_path(config_dir: &Path, name: &str) -> Option<PathBuf> {
+    if !is_safe_template_name(name) {
+        return None;
     }
+    Some(config_dir.join("templates").join(format!("{name}.json")))
 }
 
-/// Returns the path `<config_dir>/templates/<name>.json`.
-///
-/// `config_dir` is the project-specific directory from `ProjectDirs`
-/// (e.g. `~/.config/cc-myasl`), NOT its parent.
-pub fn user_template_path(config_dir: &Path, name: &str) -> PathBuf {
-    config_dir.join("templates").join(format!("{name}.json"))
+/// A safe template name contains only ASCII alphanumeric chars, `-`, or `_`,
+/// and must be non-empty.  No slashes, dots, backslashes, or other separators.
+fn is_safe_template_name(name: &str) -> bool {
+    if name.is_empty() {
+        return false;
+    }
+    name.chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
 /// Serialize `config` as pretty JSON with the canonical `$schema` field injected.
-///
-/// The `$schema` line is emitted first because `schema_url` is the first
-/// field in `Config` (Rust struct field insertion order).
 pub fn print_config(config: &Config) -> String {
     let mut c = config.clone();
     c.schema_url = Some(SCHEMA_URL.to_owned());
@@ -63,17 +45,41 @@ pub fn print_config(config: &Config) -> String {
 
 /// Load `path`, parse JSON, validate, and return a `Config`.
 ///
-/// Bubbles up errors so the caller (`resolve`) can record a trace event
-/// and fall back to the default config.
+/// Returns `Err` if the file cannot be read, is not a JSON object, or fails
+/// validation.  Bubbles up errors so the caller can record a trace event and
+/// fall back.
 pub fn from_file(path: &Path) -> Result<Config, Error> {
     let content = std::fs::read_to_string(path)
         .map_err(|e| Error::ConfigParse(format!("cannot read {}: {e}", path.display())))?;
-    let mut cfg: Config = serde_json::from_str(&content)
+    // Reject non-object JSON before attempting struct deserialization to avoid
+    // serde's #[serde(default)] silently filling an empty Config from an array
+    // or scalar document.
+    let raw: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| Error::ConfigParse(format!("JSON parse error in {}: {e}", path.display())))?;
+    if !raw.is_object() {
+        let kind = json_type_name(&raw);
+        return Err(Error::ConfigParse(format!(
+            "expected JSON object, got {kind} in {}",
+            path.display()
+        )));
+    }
+    let mut cfg: Config = serde_json::from_value(raw)
         .map_err(|e| Error::ConfigParse(format!("JSON parse error in {}: {e}", path.display())))?;
     cfg.validate_and_clamp().map_err(|errs| {
         Error::ConfigParse(format!("invalid config in {}: {errs:?}", path.display()))
     })?;
     Ok(cfg)
+}
+
+fn json_type_name(v: &serde_json::Value) -> &'static str {
+    match v {
+        serde_json::Value::Null => "null",
+        serde_json::Value::Bool(_) => "boolean",
+        serde_json::Value::Number(_) => "number",
+        serde_json::Value::String(_) => "string",
+        serde_json::Value::Array(_) => "array",
+        serde_json::Value::Object(_) => "object",
+    }
 }
 
 /// Resolve the active config using the precedence ladder:
@@ -84,10 +90,6 @@ pub fn from_file(path: &Path) -> Result<Config, Error> {
 /// 4. Default file at `<config_dir>/cc-myasl/config.json`
 /// 5. Embedded default (`builtins::lookup("default")`)
 ///
-/// When step 1 and step 2 are both set (`--config X --template Y`),
-/// `config_path` wins (step 1 comes first).  Task 7 populates both fields;
-/// this resolver is the single source of truth for precedence.
-///
 /// Never returns an error — every failure falls back to the next layer,
 /// emitting a trace event when `trace` is Some.
 pub fn resolve(args: &Args, trace: &mut Trace) -> Config {
@@ -95,7 +97,7 @@ pub fn resolve(args: &Args, trace: &mut Trace) -> Config {
     if let Some(ref path) = args.config_path {
         match from_file(path) {
             Ok(cfg) => {
-                trace.config_source = Some(ConfigSource::CliPath.as_str().to_owned());
+                trace.config_source = Some(ConfigSource::CliPath);
                 return cfg;
             }
             Err(e) => {
@@ -104,19 +106,19 @@ pub fn resolve(args: &Args, trace: &mut Trace) -> Config {
         }
     }
 
-    // Step 2: --template name (args.template; Task 7 may rename to template_name)
-    if let Some(ref name) = args.template {
+    // Step 2: --template name
+    if let Some(ref name) = args.template_name {
         // Check user templates dir first
-        if let Some(user_cfg) = resolve_user_template(name) {
-            trace.config_source = Some(ConfigSource::CliTemplate.as_str().to_owned());
+        if let Some(user_cfg) = resolve_user_template(name, trace) {
+            trace.config_source = Some(ConfigSource::CliTemplate);
             return user_cfg;
         }
         // Then built-ins
         if let Some(cfg) = builtins::lookup(name) {
-            trace.config_source = Some(ConfigSource::CliTemplate.as_str().to_owned());
+            trace.config_source = Some(ConfigSource::CliTemplate);
             return cfg;
         }
-        // Unknown name — fall through to next layer (record as non-fatal)
+        // Unknown name — record as non-fatal and fall through
         if trace.error.is_none() {
             trace.error = Some(format!("unknown template name: {name}"));
         }
@@ -127,7 +129,7 @@ pub fn resolve(args: &Args, trace: &mut Trace) -> Config {
         if !env_val.is_empty() {
             match from_file(Path::new(&env_val)) {
                 Ok(cfg) => {
-                    trace.config_source = Some(ConfigSource::Env.as_str().to_owned());
+                    trace.config_source = Some(ConfigSource::Env);
                     return cfg;
                 }
                 Err(e) => {
@@ -143,14 +145,26 @@ pub fn resolve(args: &Args, trace: &mut Trace) -> Config {
     }
 
     // Step 5: embedded default
-    trace.config_source = Some(ConfigSource::Embedded.as_str().to_owned());
+    trace.config_source = Some(ConfigSource::Embedded);
     Config::default()
 }
 
-fn resolve_user_template(name: &str) -> Option<Config> {
+/// Load user template by name from the config dir.  Returns `None` on any
+/// failure, recording parse errors in `trace.error`.
+fn resolve_user_template(name: &str, trace: &mut Trace) -> Option<Config> {
     let config_dir = project_config_dir()?;
-    let path = user_template_path(&config_dir, name);
-    from_file(&path).ok()
+    let path = user_template_path(&config_dir, name)?;
+    match from_file(&path) {
+        Ok(cfg) => Some(cfg),
+        Err(e) => {
+            // Only record parse errors (not "file not found") — a missing user
+            // template is expected; a corrupt one deserves a trace entry.
+            if path.exists() {
+                trace.error = Some(e.to_string());
+            }
+            None
+        }
+    }
 }
 
 fn load_default_config_file(trace: &mut Trace) -> Option<Config> {
@@ -158,17 +172,22 @@ fn load_default_config_file(trace: &mut Trace) -> Option<Config> {
     let path = config_dir.join("config.json");
     match from_file(&path) {
         Ok(cfg) => {
-            trace.config_source = Some(ConfigSource::DefaultFile.as_str().to_owned());
+            trace.config_source = Some(ConfigSource::DefaultFile);
             Some(cfg)
         }
-        Err(_) => None,
+        Err(e) => {
+            // File not found is silent (normal — user has no default file).
+            // Any other error (corrupt, permission denied) is recorded.
+            if path.exists() {
+                trace.error = Some(e.to_string());
+            }
+            None
+        }
     }
 }
 
 fn project_config_dir() -> Option<PathBuf> {
     // Honour XDG_CONFIG_HOME on all platforms for testability.
-    // On macOS, `directories` uses ~/Library/Application Support; this override
-    // lets integration tests pin the config dir via env var.
     if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
         if !xdg.is_empty() {
             return Some(PathBuf::from(xdg).join("cc-myasl"));
@@ -184,8 +203,7 @@ impl Default for Config {
 }
 
 /// Shared mutex serializing tests that read or mutate `STATUSLINE_CONFIG`
-/// or `XDG_CONFIG_HOME`.  Mirrors `creds::HOME_MUTEX`, `format::ENV_MUTEX`,
-/// and `config::render::COLS_MUTEX` — one mutex per logical env-var group.
+/// or `XDG_CONFIG_HOME`.
 #[cfg(test)]
 pub(crate) static CONFIG_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
@@ -196,3 +214,7 @@ mod config_tests;
 #[cfg(test)]
 #[path = "tests_b.rs"]
 mod config_tests_b;
+
+#[cfg(test)]
+#[path = "tests_c.rs"]
+mod config_tests_c;
