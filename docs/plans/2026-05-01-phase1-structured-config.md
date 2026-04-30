@@ -166,12 +166,12 @@ locked in, so a clean break is cheap now and expensive later.
 - Modify: `Cargo.toml`
 - Modify: `Cargo.lock` (auto)
 
-- [ ] add `terminal_size = "0.4"` (or latest stable) to `[dependencies]`
-- [ ] run `cargo build` to update `Cargo.lock`
-- [ ] verify no transitive deps added we don't expect (`cargo tree`)
-- [ ] update CLAUDE.md "locked dep set" section to include
+- [x] add `terminal_size = "0.4"` (or latest stable) to `[dependencies]`
+- [x] run `cargo build` to update `Cargo.lock`
+- [x] verify no transitive deps added we don't expect (`cargo tree`)
+- [x] update CLAUDE.md "locked dep set" section to include
       `terminal_size` with a one-line justification
-- [ ] no test required for dependency-only task — proceed when
+- [x] no test required for dependency-only task — proceed when
       `cargo build` succeeds
 
 ### Task 2: Create `config/schema.rs` — serde structs + validation
