@@ -192,3 +192,7 @@ pub(crate) static CONFIG_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(())
 #[cfg(test)]
 #[path = "tests.rs"]
 mod config_tests;
+
+#[cfg(test)]
+#[path = "tests_b.rs"]
+mod config_tests_b;
