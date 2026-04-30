@@ -129,6 +129,10 @@ pub fn lookup(name: &str) -> Option<Config> {
 }
 
 #[cfg(test)]
+#[path = "builtins_tests.rs"]
+mod builtins_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::config::schema::Segment;
