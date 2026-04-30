@@ -72,7 +72,8 @@ src/
 ├── args.rs           hand-rolled CLI parser (no clap)
 ├── api/{mod,response,retry}.rs       HTTP client + serde + Retry-After
 ├── cache/{mod,lock,backoff,atomic_helper}.rs   Disk cache + lock + backoff ladder
-└── format/{mod,parser,placeholders,values,thresholds}.rs   Template engine
+├── format/{mod,parser,placeholders,values,thresholds}.rs   Template engine
+└── config/{mod,schema}.rs            Structured JSON config serde + validation
 ```
 
 ### Three-stage render flow (`main.rs`)

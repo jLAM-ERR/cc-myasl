@@ -181,17 +181,17 @@ locked in, so a clean break is cheap now and expensive later.
 - Modify: `src/lib.rs` (add `pub mod config;`)
 - Create: `src/config/mod.rs` (stub: `pub mod schema;`)
 
-- [ ] define `pub struct Config { lines: Vec<Line> }` with `#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]`; tolerate unknown top-level fields (`#[serde(default)]`, no `deny_unknown_fields`); accept `$schema` field (capture as `Option<String>`, ignored at render time)
-- [ ] define `pub struct Line { separator: String, segments: Vec<Segment> }` with `#[serde(default)]` on `separator`
-- [ ] define `pub enum Segment { Template(TemplateSegment), Flex(FlexSegment) }` using `#[serde(untagged)]`; `TemplateSegment { template: String, padding: u8, hide_when_absent: bool }`; `FlexSegment { flex: bool }` (must be `true`)
-- [ ] add `pub const MAX_LINES: usize = 3;` and `pub const MAX_PADDING: u8 = 8;` constants
-- [ ] add `pub fn validate(&self) -> Result<(), Vec<ValidationError>>` on `Config`: rejects `lines.len() > MAX_LINES`; rejects more than one flex per line; clamps padding > MAX_PADDING with a warning rather than rejection (validation collects warnings + errors separately)
-- [ ] add `pub struct ValidationError { line_index, segment_index, kind }` with `kind` enum (`TooManyLines`, `MultipleFlex`, `EmptyTemplate`, etc.); does not derive Error — caller maps to `crate::error::Error` if needed
-- [ ] write unit tests for serde round-trip (full config, minimal config, with $schema, without)
-- [ ] write unit tests for validation rejections (`lines.len() = 4`, two flex on one line, segment with both `template` and `flex: true`, segment with neither)
-- [ ] write unit tests for padding clamp (padding=99 clamps to MAX_PADDING with warning)
-- [ ] write unit tests for unknown-field tolerance (extra fields in segment, line, top-level)
-- [ ] run `cargo test config::schema -- --nocapture`; all pass before next task
+- [x] define `pub struct Config { lines: Vec<Line> }` with `#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]`; tolerate unknown top-level fields (`#[serde(default)]`, no `deny_unknown_fields`); accept `$schema` field (capture as `Option<String>`, ignored at render time)
+- [x] define `pub struct Line { separator: String, segments: Vec<Segment> }` with `#[serde(default)]` on `separator`
+- [x] define `pub enum Segment { Template(TemplateSegment), Flex(FlexSegment) }` using `#[serde(untagged)]`; `TemplateSegment { template: String, padding: u8, hide_when_absent: bool }`; `FlexSegment { flex: bool }` (must be `true`)
+- [x] add `pub const MAX_LINES: usize = 3;` and `pub const MAX_PADDING: u8 = 8;` constants
+- [x] add `pub fn validate(&self) -> Result<(), Vec<ValidationError>>` on `Config`: rejects `lines.len() > MAX_LINES`; rejects more than one flex per line; clamps padding > MAX_PADDING with a warning rather than rejection (validation collects warnings + errors separately)
+- [x] add `pub struct ValidationError { line_index, segment_index, kind }` with `kind` enum (`TooManyLines`, `MultipleFlex`, `EmptyTemplate`, etc.); does not derive Error — caller maps to `crate::error::Error` if needed
+- [x] write unit tests for serde round-trip (full config, minimal config, with $schema, without)
+- [x] write unit tests for validation rejections (`lines.len() = 4`, two flex on one line, segment with both `template` and `flex: true`, segment with neither)
+- [x] write unit tests for padding clamp (padding=99 clamps to MAX_PADDING with warning)
+- [x] write unit tests for unknown-field tolerance (extra fields in segment, line, top-level)
+- [x] run `cargo test config::schema -- --nocapture`; all pass before next task
 
 ### Task 3: Create `config/builtins.rs` — 8 hardcoded templates + lookup
 
