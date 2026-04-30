@@ -122,6 +122,10 @@ pub fn visible_width(s: &str) -> usize {
 pub(crate) static COLS_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[cfg(test)]
+#[path = "render_tests.rs"]
+mod render_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::config::schema::{Config, FlexSegment, Line, Segment, TemplateSegment};
