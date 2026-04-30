@@ -138,6 +138,14 @@ impl Config {
 }
 
 #[cfg(test)]
+#[path = "schema_tests.rs"]
+mod schema_tests;
+
+#[cfg(test)]
+#[path = "schema_tests_b.rs"]
+mod schema_tests_b;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
