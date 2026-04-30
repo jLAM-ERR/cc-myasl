@@ -60,18 +60,41 @@ pub fn render(config: &Config, ctx: &RenderCtx) -> String {
 }
 
 /// Replace the flex marker with spaces to fill the terminal width.
+///
+/// Defense-in-depth: only the FIRST marker gets the real fill; any additional
+/// markers (which validation should have rejected) become a single space each.
 fn resolve_flex(line_str: String) -> String {
     let without_flex = line_str.replace(FLEX_MARKER, "");
     let natural = visible_width(&without_flex);
 
-    let term_width = std::env::var("STATUSLINE_TEST_COLS")
-        .ok()
-        .and_then(|s| s.parse::<usize>().ok())
+    let term_width = test_cols_override()
         .or_else(|| terminal_size::terminal_size().map(|(terminal_size::Width(w), _)| w as usize))
         .unwrap_or(80);
 
-    let fill = term_width.saturating_sub(natural).max(1);
-    line_str.replace(FLEX_MARKER, &" ".repeat(fill))
+    // Count extra markers beyond the first; each will become 1 space.
+    let extra_markers = line_str.matches(FLEX_MARKER).count().saturating_sub(1);
+    let fill = term_width
+        .saturating_sub(natural)
+        .saturating_sub(extra_markers)
+        .max(1);
+    // Replace only the first occurrence with the computed fill.
+    let after_first = line_str.replacen(FLEX_MARKER, &" ".repeat(fill), 1);
+    // Any remaining markers (validation bypass) become a single space.
+    after_first.replace(FLEX_MARKER, " ")
+}
+
+/// Returns the value of `STATUSLINE_TEST_COLS` when compiled in test mode.
+/// Always returns `None` in production builds.
+#[cfg(test)]
+fn test_cols_override() -> Option<usize> {
+    std::env::var("STATUSLINE_TEST_COLS")
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+}
+
+#[cfg(not(test))]
+fn test_cols_override() -> Option<usize> {
+    None
 }
 
 /// Apply symmetric padding around a string value (left + right by `n` spaces).

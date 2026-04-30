@@ -368,6 +368,34 @@ fn flex_test_cols_empty_string_falls_back_gracefully() {
     );
 }
 
+/// Two flex segments (validation bypassed): total visible width must NOT exceed
+/// term_width (20). First flex gets the real fill; second gets one space.
+#[test]
+fn flex_two_flex_segments_total_width_does_not_overshoot() {
+    let _guard = COLS_MUTEX.lock().unwrap();
+    let prior = std::env::var("STATUSLINE_TEST_COLS").ok();
+    std::env::set_var("STATUSLINE_TEST_COLS", "20");
+    // "ABCDE" = 5 visible chars; two flex markers; term_width = 20.
+    let config = one_line(
+        "",
+        vec![tmpl_seg("ABCDE", 0, false), flex_seg(), flex_seg()],
+    );
+    let out = render(&config, &RenderCtx::default());
+    match &prior {
+        Some(v) => std::env::set_var("STATUSLINE_TEST_COLS", v),
+        None => std::env::remove_var("STATUSLINE_TEST_COLS"),
+    }
+    let w = visible_width(&out);
+    assert!(
+        w <= 20,
+        "total visible width must not exceed term_width=20 with 2 flex segments; got {w}, out={out:?}"
+    );
+    assert!(
+        !out.contains('\x00'),
+        "no NUL bytes must remain; got {out:?}"
+    );
+}
+
 /// Two flex segments (validation bypassed) must not panic and must not leave
 /// NUL bytes (FLEX_MARKER remnants) in the output.
 #[test]

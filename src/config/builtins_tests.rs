@@ -255,7 +255,7 @@ fn emoji_verbose_empty_ctx_emits_only_model_or_empty() {
     let ctx = RenderCtx::default();
     let out = render::render(&lookup("emoji_verbose").unwrap(), &ctx);
     // First segment is "🤖 {model}" — non-optional; with model=None, render_segment
-    // returns None and hide_when_absent=false → emits "🤖 " (padded empty).
+    // returns None and hide_when_absent=false → emits "" (empty string, leading text dropped).
     // All other segments are optional and must collapse.
     assert!(
         !out.contains("⏰"),
