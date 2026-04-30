@@ -248,6 +248,8 @@ locked in, so a clean break is cheap now and expensive later.
 - [x] write unit tests for MAX_LINES truncation guard (config bypassing validation with 5 lines: render still doesn't panic and emits at most MAX_LINES lines)
 - [x] run `cargo test config::render`; all pass before next task
 
+⚠️ Followup commit `b921195`: defense-in-depth multi-flex handling (first FLEX_MARKER gets real fill, extras become single space, fill reduced by extra-marker count so total width never exceeds term_width); `#[cfg(test)]`-gated `test_cols_override()` so `STATUSLINE_TEST_COLS` is never read in production builds; corrected misleading comment in `builtins_tests.rs` about `render_segment` behavior when placeholder is absent.
+
 ### Task 5: Create `config/mod.rs` — load + precedence resolver
 
 **Files:**
