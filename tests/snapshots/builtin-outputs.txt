@@ -1,0 +1,8 @@
+default	claude-opus-4-7 · 5h: 76% · 7d: 59% (resets 00:00)
+minimal	claude-opus-4-7 76%/59%
+compact	claude-opus-4-7 76/59
+bars	claude-opus-4-7 5h:[████████░░] 7d:[██████░░░░]
+colored	claude-opus-4-7 · 5h: [32m76%[0m · 7d: [32m59%[0m
+emoji	claude-opus-4-7 · 🟢 5h 76% · 🟢 7d 59%
+emoji_verbose	🤖 claude-opus-4-7 · 🟢 proj · ⏳ 76%/59% · ⏰ 00:00
+verbose	claude-opus-4-7 · proj · 5h:[████████░░] 76% (in 0m) · 7d:[██████░░░░] 59% (in 0m)

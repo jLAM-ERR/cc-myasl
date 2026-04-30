@@ -141,24 +141,24 @@ locked in, so a clean break is cheap now and expensive later.
 **Files:**
 - Create: `tests/snapshots/builtin-outputs.txt` (temporary — deleted in Task 11)
 
-- [ ] run `cargo test` first — baseline must be green before capturing
-- [ ] checkout HEAD as-is; build release: `cargo build --release`
-- [ ] for each of `default`, `minimal`, `compact`, `bars`, `colored`,
+- [x] run `cargo test` first — baseline must be green before capturing
+- [x] checkout HEAD as-is; build release: `cargo build --release`
+- [x] for each of `default`, `minimal`, `compact`, `bars`, `colored`,
       `emoji`, `emoji_verbose`, `verbose`: capture output of
       `echo '<full-payload-fixture>' | target/release/cc-myasl --template <name>`
       against the same `RenderCtx`-equivalent stdin used by golden tests
-- [ ] write all 8 outputs into `tests/snapshots/builtin-outputs.txt`
+- [x] write all 8 outputs into `tests/snapshots/builtin-outputs.txt`
       (one per line, prefixed with template name + `\t`)
-- [ ] commit the snapshot — this is the byte-exact baseline that
+- [x] commit the snapshot — this is the byte-exact baseline that
       Task 11's `golden_output_unchanged` test will assert against
-- [ ] **Migration-delta policy:** if Task 3's struct-literal translation
+- [x] **Migration-delta policy:** if Task 3's struct-literal translation
       produces output that differs from the snapshot, STOP and inspect
       the delta. Either (a) fix the struct literal to match the .txt
       output exactly (preferred — the migration is meant to be
       bit-identical), or (b) document the delta as an intentional
       modernisation in this plan with ⚠️ prefix and update the
       snapshot. Never silently accept a delta or skip the test.
-- [ ] no code changes yet — task is pure baseline capture
+- [x] no code changes yet — task is pure baseline capture
 
 ### Task 1: Add `terminal_size` dependency
 
