@@ -231,22 +231,22 @@ locked in, so a clean break is cheap now and expensive later.
 - Modify: `src/config/mod.rs` (add `pub mod render;`)
 - Modify: `src/format/mod.rs` (add `pub fn render_segment(template: &str, ctx: &RenderCtx) -> Option<String>`)
 
-- [ ] in `format::mod`, add `pub fn render_segment(template: &str, ctx: &RenderCtx) -> Option<String>` that tokenises the template and returns `None` if any required (non-optional-block) placeholder resolves to None or empty, else `Some(rendered)`. This mirrors the existing `{? ... }` collapse semantics applied to the whole template string
-- [ ] in `config::render`, add `pub fn render(config: &Config, ctx: &RenderCtx) -> String`
-- [ ] for each line (capped at `MAX_LINES`): walk segments; for each segment, call `format::render_segment` if `Segment::Template`, push `Some(s)` or `None` based on `hide_when_absent` and the result; for `Segment::Flex`, push a placeholder marker `"\x00FLEX\x00"`
-- [ ] apply padding inside each Some(s) cell (left + right space repetition by `padding` count)
-- [ ] join visible segments (Some only) with `line.separator`; drop None — separator slot collapses with the hidden segment
-- [ ] resolve flex marker: compute `visible_width(line_str_minus_marker)` (ANSI-stripped — see helper); query `terminal_size::terminal_size()` returning `Option<(Width, Height)>`; replace marker with `' '.repeat(max(1, term_width.saturating_sub(natural_width)))`
-- [ ] add `fn visible_width(s: &str) -> usize` that strips CSI sequences (`\x1b[<args>m`) and counts grapheme columns. Phase 1 simplification: use byte length minus ANSI sequence bytes (no full grapheme-aware counting; OK for ASCII + ANSI escapes)
-- [ ] join all rendered lines with `\n`
-- [ ] declare `pub(crate) static COLS_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());` in `config::render` (mirroring `format::ENV_MUTEX`). Every test that reads or writes `STATUSLINE_TEST_COLS` MUST acquire this mutex; tests that mutate the env var MUST restore the original value before releasing. Cross-reference in CLAUDE.md (Task 12 will document this).
-- [ ] write unit tests for happy-path 2-line config rendering
-- [ ] write unit tests for flex with explicit terminal width via `STATUSLINE_TEST_COLS` (acquire `COLS_MUTEX`); flex without width → 1 space (env unset, `terminal_size` returns None in test env)
-- [ ] write unit tests for separator-drop-with-hidden-segment behaviour
-- [ ] write unit tests for padding inside cell (padding>0 with both sides; padding=0 omits both)
-- [ ] write unit tests for ANSI-stripped width counting (`{five_color}5h{reset}` should count as 2 cols, not the full byte length)
-- [ ] write unit tests for MAX_LINES truncation guard (config bypassing validation with 5 lines: render still doesn't panic and emits at most MAX_LINES lines)
-- [ ] run `cargo test config::render`; all pass before next task
+- [x] in `format::mod`, add `pub fn render_segment(template: &str, ctx: &RenderCtx) -> Option<String>` that tokenises the template and returns `None` if any required (non-optional-block) placeholder resolves to None or empty, else `Some(rendered)`. This mirrors the existing `{? ... }` collapse semantics applied to the whole template string
+- [x] in `config::render`, add `pub fn render(config: &Config, ctx: &RenderCtx) -> String`
+- [x] for each line (capped at `MAX_LINES`): walk segments; for each segment, call `format::render_segment` if `Segment::Template`, push `Some(s)` or `None` based on `hide_when_absent` and the result; for `Segment::Flex`, push a placeholder marker `"\x00FLEX\x00"`
+- [x] apply padding inside each Some(s) cell (left + right space repetition by `padding` count)
+- [x] join visible segments (Some only) with `line.separator`; drop None — separator slot collapses with the hidden segment
+- [x] resolve flex marker: compute `visible_width(line_str_minus_marker)` (ANSI-stripped — see helper); query `terminal_size::terminal_size()` returning `Option<(Width, Height)>`; replace marker with `' '.repeat(max(1, term_width.saturating_sub(natural_width)))`
+- [x] add `fn visible_width(s: &str) -> usize` that strips CSI sequences (`\x1b[<args>m`) and counts grapheme columns. Phase 1 simplification: use byte length minus ANSI sequence bytes (no full grapheme-aware counting; OK for ASCII + ANSI escapes)
+- [x] join all rendered lines with `\n`
+- [x] declare `pub(crate) static COLS_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());` in `config::render` (mirroring `format::ENV_MUTEX`). Every test that reads or writes `STATUSLINE_TEST_COLS` MUST acquire this mutex; tests that mutate the env var MUST restore the original value before releasing. Cross-reference in CLAUDE.md (Task 12 will document this).
+- [x] write unit tests for happy-path 2-line config rendering
+- [x] write unit tests for flex with explicit terminal width via `STATUSLINE_TEST_COLS` (acquire `COLS_MUTEX`); flex without width → 1 space (env unset, `terminal_size` returns None in test env)
+- [x] write unit tests for separator-drop-with-hidden-segment behaviour
+- [x] write unit tests for padding inside cell (padding>0 with both sides; padding=0 omits both)
+- [x] write unit tests for ANSI-stripped width counting (`{five_color}5h{reset}` should count as 2 cols, not the full byte length)
+- [x] write unit tests for MAX_LINES truncation guard (config bypassing validation with 5 lines: render still doesn't panic and emits at most MAX_LINES lines)
+- [x] run `cargo test config::render`; all pass before next task
 
 ### Task 5: Create `config/mod.rs` — load + precedence resolver
 
