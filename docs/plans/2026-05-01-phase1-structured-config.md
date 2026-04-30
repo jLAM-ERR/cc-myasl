@@ -201,27 +201,27 @@ locked in, so a clean break is cheap now and expensive later.
 - Create: `src/config/builtins.rs`
 - Modify: `src/config/mod.rs` (add `pub mod builtins;`)
 
-- [ ] add `pub fn lookup(name: &str) -> Option<Config>` matching all 8
+- [x] add `pub fn lookup(name: &str) -> Option<Config>` matching all 8
       names: `default`, `minimal`, `compact`, `bars`, `colored`,
       `emoji`, `emoji_verbose`, `verbose`
-- [ ] implement each template as a function returning `Config` with
+- [x] implement each template as a function returning `Config` with
       struct literal — bit-identical translation of the corresponding
       `templates/*.txt` content (separator: "" with explicit
       punctuation in each segment template; `hide_when_absent: true`
       on segments that were inside `{? ... }` in the .txt original)
-- [ ] add small builder helpers — keep them on `TemplateSegment` (NOT on the `Segment` enum) so the type system enforces "can only set `hide_when_absent` on a Template variant":
+- [x] add small builder helpers — keep them on `TemplateSegment` (NOT on the `Segment` enum) so the type system enforces "can only set `hide_when_absent` on a Template variant":
       - `TemplateSegment::new(s: &str) -> TemplateSegment` (constructor; padding=0, hide_when_absent=false)
       - `TemplateSegment::with_hide_when_absent(mut self) -> TemplateSegment` (consumes self, sets flag, returns TemplateSegment)
       - `TemplateSegment::with_padding(mut self, n: u8) -> TemplateSegment`
       - `impl From<TemplateSegment> for Segment` so the chain `TemplateSegment::new("x").with_hide_when_absent().into()` produces a `Segment::Template(...)`. Built-in declarations call `.into()` on each segment to upgrade to the enum variant. Avoids the "what does `with_hide_when_absent` mean on Flex?" ambiguity entirely — the method does not exist on `Segment` at all.
-- [ ] keep `lookup` and the 8 functions under the 500 LOC ceiling for
+- [x] keep `lookup` and the 8 functions under the 500 LOC ceiling for
       this file; if forced over, split into `builtins/mod.rs` +
       `builtins/templates.rs` (the helper file). Note as ⚠️ in plan if
       this happens
-- [ ] write unit tests for `lookup`: every name returns `Some(Config)`; unknown names return `None`
-- [ ] write unit tests asserting every returned Config validates without errors and has ≥ 1 segment on line 0
-- [ ] write unit tests for builder helpers: `TemplateSegment::new("x")` produces expected struct; `.with_hide_when_absent()` flips the flag and chains; `.with_padding(n)` sets padding and chains; `From<TemplateSegment> for Segment` produces `Segment::Template` variant
-- [ ] run `cargo test config::builtins`; all pass; LOC check
+- [x] write unit tests for `lookup`: every name returns `Some(Config)`; unknown names return `None`
+- [x] write unit tests asserting every returned Config validates without errors and has ≥ 1 segment on line 0
+- [x] write unit tests for builder helpers: `TemplateSegment::new("x")` produces expected struct; `.with_hide_when_absent()` flips the flag and chains; `.with_padding(n)` sets padding and chains; `From<TemplateSegment> for Segment` produces `Segment::Template` variant
+- [x] run `cargo test config::builtins`; all pass; LOC check
       `wc -l src/config/builtins.rs` < 500 — must pass before next task
 
 ### Task 4: Create `config/render.rs` — multi-line render with flex

@@ -38,6 +38,32 @@ pub struct TemplateSegment {
     pub hide_when_absent: bool,
 }
 
+impl TemplateSegment {
+    pub fn new(s: &str) -> TemplateSegment {
+        TemplateSegment {
+            template: s.to_owned(),
+            padding: 0,
+            hide_when_absent: false,
+        }
+    }
+
+    pub fn with_hide_when_absent(mut self) -> TemplateSegment {
+        self.hide_when_absent = true;
+        self
+    }
+
+    pub fn with_padding(mut self, n: u8) -> TemplateSegment {
+        self.padding = n;
+        self
+    }
+}
+
+impl From<TemplateSegment> for Segment {
+    fn from(t: TemplateSegment) -> Segment {
+        Segment::Template(t)
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct FlexSegment {
     pub flex: bool,
