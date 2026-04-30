@@ -256,26 +256,26 @@ locked in, so a clean break is cheap now and expensive later.
 - Modify: `src/config/mod.rs` (add load + resolver)
 - Create: `src/config/tests.rs` (alongside, for cross-module tests)
 
-- [ ] add `pub fn resolve(args: &Args) -> Config` returning resolved config. Reads `STATUSLINE_CONFIG` directly via `std::env::var` — no `EnvAccess` trait. Never errors — falls back to default on any failure, emitting trace events via the existing `Trace` if --debug.
-- [ ] declare `#[cfg(test)] pub(crate) static CONFIG_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());` in `src/config/mod.rs`. Tests that read or mutate `STATUSLINE_CONFIG` or `XDG_CONFIG_HOME` MUST acquire `CONFIG_MUTEX` and restore prior values before releasing. Mirrors `creds::HOME_MUTEX`, `format::ENV_MUTEX`, and `config::render::COLS_MUTEX` — one mutex per logical env-var group. Do NOT reuse `creds::HOME_MUTEX`; the env vars are unrelated and conflating them causes false serialization between unrelated tests.
-- [ ] precedence order:
+- [x] add `pub fn resolve(args: &Args) -> Config` returning resolved config. Reads `STATUSLINE_CONFIG` directly via `std::env::var` — no `EnvAccess` trait. Never errors — falls back to default on any failure, emitting trace events via the existing `Trace` if --debug.
+- [x] declare `#[cfg(test)] pub(crate) static CONFIG_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());` in `src/config/mod.rs`. Tests that read or mutate `STATUSLINE_CONFIG` or `XDG_CONFIG_HOME` MUST acquire `CONFIG_MUTEX` and restore prior values before releasing. Mirrors `creds::HOME_MUTEX`, `format::ENV_MUTEX`, and `config::render::COLS_MUTEX` — one mutex per logical env-var group. Do NOT reuse `creds::HOME_MUTEX`; the env vars are unrelated and conflating them causes false serialization between unrelated tests.
+- [x] precedence order:
       1. `args.config_path` (if Some) → `Config::from_file(path)`
       2. `args.template_name` (if Some) → check `<config_dir>/templates/<name>.json` first, then `builtins::lookup(name)`
       3. `std::env::var("STATUSLINE_CONFIG")` (if Some and non-empty) → same as step 1
       4. default config file at `<config_dir>/cc-myasl/config.json` (using `directories::ProjectDirs::from("", "", "cc-myasl").config_dir()`)
       5. `Config::default()` (= `builtins::lookup("default").unwrap()`)
-- [ ] add `Config::from_file(path: &Path) -> Result<Config, Error>`: read file, parse JSON, validate; bubble up errors to the resolver for trace + fallback
-- [ ] add `pub fn user_template_path(config_dir: &Path, name: &str) -> PathBuf` helper for step 2's first-check
-- [ ] add `Config::default()` returning `builtins::lookup("default").unwrap()`
-- [ ] add `pub fn print_config(config: &Config) -> String` — serialize as pretty JSON with `$schema` field set to the canonical raw.githubusercontent URL; output stable / sorted-keys
-- [ ] **Cross-reference Task 7:** Task 7's `--config`/`--template` conflict behaviour MUST match the precedence order above (config_path wins over template_name). Verify in code review of Task 7.
-- [ ] write unit tests for each precedence layer in isolation: use tempdir for filesystem, acquire `config::CONFIG_MUTEX` for env-var manipulation, restore prior `STATUSLINE_CONFIG` / `XDG_CONFIG_HOME` after each test
-- [ ] write unit test: fall-back-on-parse-error keeps render mode running and emits trace
-- [ ] write unit test: user template shadows built-in (write `default.json` in tempdir templates dir, assert it wins)
-- [ ] write unit test: `Config::default()` is valid
-- [ ] write unit test: `print_config` is deterministic and includes `$schema` field; round-trip through `from_file` is byte-stable (after pretty-print)
-- [ ] write invariant test: string-scan `src/config/*.rs` files; assert no `use crate::api` and no `use crate::cache` substring (mirrors `format::placeholders::tests` pattern)
-- [ ] run `cargo test config`; all pass before next task
+- [x] add `Config::from_file(path: &Path) -> Result<Config, Error>`: read file, parse JSON, validate; bubble up errors to the resolver for trace + fallback
+- [x] add `pub fn user_template_path(config_dir: &Path, name: &str) -> PathBuf` helper for step 2's first-check
+- [x] add `Config::default()` returning `builtins::lookup("default").unwrap()`
+- [x] add `pub fn print_config(config: &Config) -> String` — serialize as pretty JSON with `$schema` field set to the canonical raw.githubusercontent URL; output stable / sorted-keys
+- [x] **Cross-reference Task 7:** Task 7's `--config`/`--template` conflict behaviour MUST match the precedence order above (config_path wins over template_name). Verify in code review of Task 7.
+- [x] write unit tests for each precedence layer in isolation: use tempdir for filesystem, acquire `config::CONFIG_MUTEX` for env-var manipulation, restore prior `STATUSLINE_CONFIG` / `XDG_CONFIG_HOME` after each test
+- [x] write unit test: fall-back-on-parse-error keeps render mode running and emits trace
+- [x] write unit test: user template shadows built-in (write `default.json` in tempdir templates dir, assert it wins)
+- [x] write unit test: `Config::default()` is valid
+- [x] write unit test: `print_config` is deterministic and includes `$schema` field; round-trip through `from_file` is byte-stable (after pretty-print)
+- [x] write invariant test: string-scan `src/config/*.rs` files; assert no `use crate::api` and no `use crate::cache` substring (mirrors `format::placeholders::tests` pattern)
+- [x] run `cargo test config`; all pass before next task
 
 ### Task 6: Trim `format/mod.rs` — narrow surface
 

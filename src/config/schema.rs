@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 pub const MAX_LINES: usize = 3;
 pub const MAX_PADDING: u8 = 8;
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(default)]
 pub struct Config {
     #[serde(rename = "$schema", skip_serializing_if = "Option::is_none")]

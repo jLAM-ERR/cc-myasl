@@ -36,6 +36,11 @@ pub struct Trace {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub took_ms: Option<u64>,
 
+    /// Which config-resolution layer won.  One of `"CliPath"`, `"CliTemplate"`,
+    /// `"Env"`, `"DefaultFile"`, or `"Embedded"`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub config_source: Option<String>,
+
     /// `Display` representation of any `Error` that occurred, if any.
     /// MUST NOT contain the bearer token — use `token_fp` for token identity.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -162,6 +167,7 @@ mod tests {
             http: Some(200),
             took_ms: Some(42),
             error: None,
+            config_source: None,
             token_fp: Some("abcdef1234567890".into()),
         };
 
@@ -199,6 +205,7 @@ mod tests {
             cache: Some("miss".into()),
             http: Some(401),
             took_ms: Some(7),
+            config_source: None,
         };
 
         let raw = capture(&trace, true);
@@ -258,6 +265,7 @@ mod tests {
             cache: Some("miss".into()),
             http: None,
             took_ms: Some(3),
+            config_source: None,
         };
 
         let raw = capture(&trace, true);

@@ -15,6 +15,8 @@ pub struct Args {
     pub format: Option<String>,
     /// `--template <NAME>` or `--template=<NAME>`
     pub template: Option<String>,
+    /// `--config <PATH>` — explicit config file path (Task 7 adds parsing).
+    pub config_path: Option<std::path::PathBuf>,
     /// `--debug`
     pub debug: bool,
     /// `--check`

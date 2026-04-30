@@ -141,9 +141,13 @@ fn schema_url_is_preserved_through_serialize_deserialize() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn config_default_has_empty_lines_and_no_schema_url() {
+fn config_default_has_lines_and_no_schema_url() {
+    // Config::default() returns the built-in "default" template, which has ≥ 1 line.
     let cfg = Config::default();
-    assert!(cfg.lines.is_empty());
+    assert!(
+        !cfg.lines.is_empty(),
+        "default config must have at least one line"
+    );
     assert!(cfg.schema_url.is_none());
 }
 
