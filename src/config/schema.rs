@@ -15,9 +15,13 @@ pub struct Config {
 pub struct Line {
     #[serde(default)]
     pub separator: String,
+    #[serde(default)]
     pub segments: Vec<Segment>,
 }
 
+/// Variant order matters: `Template` is tried first by `#[serde(untagged)]`.
+/// JSON with both `template` and `flex` keys silently resolves to `Template`.
+/// JSON with only `flex` resolves to `Flex`. Reordering would flip behaviour.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(untagged)]
 pub enum Segment {
@@ -41,7 +45,8 @@ pub struct FlexSegment {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ValidationError {
-    pub line_index: usize,
+    /// `None` for config-level errors (e.g. TooManyLines); `Some(idx)` for line-scoped errors.
+    pub line_index: Option<usize>,
     pub segment_index: Option<usize>,
     pub kind: ValidationErrorKind,
 }
@@ -50,12 +55,6 @@ pub struct ValidationError {
 pub enum ValidationErrorKind {
     TooManyLines,
     MultipleFlex,
-    /// Segment has both `template` field and `flex: true` — untagged
-    /// deserialization resolves this to Template, so we detect it at
-    /// validation time via the raw JSON value path. In practice,
-    /// untagged serde picks Template first; this variant is kept for
-    /// the validate-and-clamp API completeness.
-    AmbiguousSegment,
     /// FlexSegment with `flex: false` — semantically invalid.
     FlexFalse,
 }
@@ -84,7 +83,7 @@ impl Config {
 
         if self.lines.len() > MAX_LINES {
             errors.push(ValidationError {
-                line_index: 0,
+                line_index: None,
                 segment_index: None,
                 kind: ValidationErrorKind::TooManyLines,
             });
@@ -111,7 +110,7 @@ impl Config {
                     Segment::Flex(f) => {
                         if !f.flex {
                             errors.push(ValidationError {
-                                line_index: li,
+                                line_index: Some(li),
                                 segment_index: Some(si),
                                 kind: ValidationErrorKind::FlexFalse,
                             });
@@ -119,7 +118,7 @@ impl Config {
                         flex_count += 1;
                         if flex_count > 1 {
                             errors.push(ValidationError {
-                                line_index: li,
+                                line_index: Some(li),
                                 segment_index: Some(si),
                                 kind: ValidationErrorKind::MultipleFlex,
                             });
@@ -355,11 +354,6 @@ mod tests {
             "expected FlexFalse error, got: {errors:?}"
         );
     }
-
-    // Note: untagged serde resolves ambiguous segment (both template + flex:true
-    // present in JSON) to Template because Template is listed first in the enum.
-    // The AmbiguousSegment variant is provided for callers that construct
-    // segments via raw JSON Value inspection. Serde itself will never produce it.
 
     // --- padding clamp ---
 

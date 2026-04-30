@@ -136,6 +136,18 @@ fn padding_warning_carries_correct_line_and_segment_index() {
 // ---------------------------------------------------------------------------
 
 #[test]
+fn line_with_no_segments_field_deserializes_to_empty_vec() {
+    let json = r#"{"lines":[{}]}"#;
+    let cfg: Config =
+        serde_json::from_str(json).expect("line with no segments key must deserialize");
+    assert_eq!(cfg.lines.len(), 1);
+    assert!(
+        cfg.lines[0].segments.is_empty(),
+        "missing segments key must produce empty vec"
+    );
+}
+
+#[test]
 fn empty_lines_array_is_valid() {
     let mut cfg = Config {
         schema_url: None,
