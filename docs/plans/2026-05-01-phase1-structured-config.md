@@ -193,6 +193,8 @@ locked in, so a clean break is cheap now and expensive later.
 - [x] write unit tests for unknown-field tolerance (extra fields in segment, line, top-level)
 - [x] run `cargo test config::schema -- --nocapture`; all pass before next task
 
+⚠️ Followup commit `28d581c`: addressed auto-reviewer findings — TooManyLines line_index → Option<usize>; Line::segments gets #[serde(default)]; removed dead-code variants AmbiguousSegment and EmptyTemplate; added Segment variant-order doc comment.
+
 ### Task 3: Create `config/builtins.rs` — 8 hardcoded templates + lookup
 
 **Files:**
