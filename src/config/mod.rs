@@ -196,6 +196,12 @@ fn project_config_dir() -> Option<PathBuf> {
     directories::ProjectDirs::from("", "", "cc-myasl").map(|pd| pd.config_dir().to_owned())
 }
 
+/// Returns the user templates directory (`<config_dir>/templates`), or `None`
+/// if the config dir cannot be determined.  The directory may not exist.
+pub(crate) fn user_templates_dir() -> Option<PathBuf> {
+    project_config_dir().map(|d| d.join("templates"))
+}
+
 impl Default for Config {
     fn default() -> Config {
         builtins::lookup("default").expect("built-in default must always exist")

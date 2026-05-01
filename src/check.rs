@@ -10,14 +10,25 @@ use std::time::Instant;
 
 use crate::api::{self, FetchOutcome};
 use crate::cache;
+use crate::config;
 use crate::creds;
-use crate::format::{self, RenderCtx};
-
-// ── shared constants from sibling modules ─────────────────────────────────────
+use crate::format::RenderCtx;
 
 use crate::api::DEFAULT_OAUTH_BASE_URL;
-#[allow(deprecated)]
-use crate::format::DEFAULT_TEMPLATE;
+
+const SCHEMA_URL: &str =
+    "https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/cc-myasl.schema.json";
+
+const BUILTIN_NAMES: &[&str] = &[
+    "default",
+    "minimal",
+    "compact",
+    "bars",
+    "colored",
+    "emoji",
+    "emoji_verbose",
+    "verbose",
+];
 
 // ── report ────────────────────────────────────────────────────────────────────
 
@@ -26,12 +37,12 @@ pub struct CheckReport {
     pub creds_ok: bool,
     pub network_ok: bool,
     pub cache_ok: bool,
-    pub format_ok: bool,
+    pub config_ok: bool,
 }
 
 impl CheckReport {
     pub fn all_ok(&self) -> bool {
-        self.creds_ok && self.network_ok && self.cache_ok && self.format_ok
+        self.creds_ok && self.network_ok && self.cache_ok && self.config_ok
     }
 }
 
@@ -50,7 +61,6 @@ pub fn run() -> i32 {
 
 /// Orchestrate the four section checks and return a `CheckReport`.
 /// Prints each section's result to stdout.
-#[allow(deprecated)]
 pub fn run_inner() -> CheckReport {
     let mut report = CheckReport::default();
     let mut out = std::io::stdout();
@@ -68,8 +78,8 @@ pub fn run_inner() -> CheckReport {
     let cache_dir = cache::cache_dir();
     check_cache(&mut report, &cache_dir);
 
-    // 4. Format
-    check_format(&mut report, DEFAULT_TEMPLATE);
+    // 4. Config
+    check_config(&mut report);
 
     report
 }
@@ -185,9 +195,79 @@ fn check_cache(report: &mut CheckReport, dir: &Path) {
     }
 }
 
-/// Check format; print result.
-#[allow(deprecated)]
-fn check_format(report: &mut CheckReport, template: &str) {
+/// Check config; print result.
+pub(crate) fn check_config(report: &mut CheckReport) {
+    check_config_to(report, &mut std::io::stdout());
+}
+
+/// Testable core of `check_config` — writes to `out`.
+pub(crate) fn check_config_to(report: &mut CheckReport, out: &mut dyn Write) {
+    // Resolve config and capture source.
+    let mut trace = crate::debug::Trace::default();
+    let args = crate::args::Args::default();
+    let cfg = config::resolve(&args, &mut trace);
+
+    let source_label = trace
+        .config_source
+        .as_ref()
+        .map(|s| s.as_str())
+        .unwrap_or("unknown");
+
+    // Print config source.
+    let _ = writeln!(out, "Config: ✓ source={source_label}");
+
+    // Print active config as pretty JSON.
+    let json = config::print_config(&cfg);
+    let _ = writeln!(out, "Config: active config:");
+    for line in json.lines() {
+        let _ = writeln!(out, "  {line}");
+    }
+
+    // List built-in names.
+    let _ = writeln!(
+        out,
+        "Config: built-in templates: {}",
+        BUILTIN_NAMES.join(", ")
+    );
+
+    // Print schema URL.
+    let _ = writeln!(out, "Config: schema URL: {SCHEMA_URL}");
+
+    // Print user templates dir.
+    match config::user_templates_dir() {
+        Some(dir) => {
+            let display = display_tilde(&dir);
+            if dir.exists() {
+                // List files present.
+                let entries: Vec<String> = std::fs::read_dir(&dir)
+                    .ok()
+                    .into_iter()
+                    .flatten()
+                    .flatten()
+                    .filter_map(|e| e.file_name().into_string().ok())
+                    .collect();
+                if entries.is_empty() {
+                    let _ = writeln!(out, "Config: user templates dir: {display} (empty)");
+                } else {
+                    let _ = writeln!(
+                        out,
+                        "Config: user templates dir: {display} ({})",
+                        entries.join(", ")
+                    );
+                }
+            } else {
+                let _ = writeln!(
+                    out,
+                    "Config: user templates dir: {display} (does not exist)"
+                );
+            }
+        }
+        None => {
+            let _ = writeln!(out, "Config: user templates dir: (cannot determine)");
+        }
+    }
+
+    // Verify the resolved config renders without panic.
     let ctx = RenderCtx {
         model: Some("claude-opus-4".to_string()),
         five_used: Some(30.0),
@@ -197,20 +277,19 @@ fn check_format(report: &mut CheckReport, template: &str) {
         now_unix: crate::time::now_unix(),
         ..Default::default()
     };
-
-    let result = std::panic::catch_unwind(|| format::render(template, &ctx));
-    match result {
-        Ok(out) if !out.is_empty() => {
-            println!("Format: ✓ default template renders");
-            report.format_ok = true;
+    let render_result = std::panic::catch_unwind(|| config::render::render(&cfg, &ctx));
+    match render_result {
+        Ok(s) if !s.is_empty() => {
+            let _ = writeln!(out, "Config: ✓ renders non-empty output");
+            report.config_ok = true;
         }
         Ok(_) => {
-            println!("Format: ✗ render returned empty string");
-            report.format_ok = false;
+            let _ = writeln!(out, "Config: ✗ renders empty output");
+            report.config_ok = false;
         }
         Err(_) => {
-            println!("Format: ✗ render panicked");
-            report.format_ok = false;
+            let _ = writeln!(out, "Config: ✗ render panicked");
+            report.config_ok = false;
         }
     }
 }
@@ -218,283 +297,5 @@ fn check_format(report: &mut CheckReport, template: &str) {
 // ── tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
-#[allow(deprecated)]
-mod tests {
-    use super::*;
-    use std::sync::Mutex;
-    use tempfile::TempDir;
-
-    // Serialise tests that mutate env vars so they don't race.
-    static ENV_MUTEX: Mutex<()> = Mutex::new(());
-
-    // ── CheckReport::all_ok ───────────────────────────────────────────────────
-
-    #[test]
-    fn all_ok_true_when_all_sections_pass() {
-        let r = CheckReport {
-            creds_ok: true,
-            network_ok: true,
-            cache_ok: true,
-            format_ok: true,
-        };
-        assert!(r.all_ok());
-    }
-
-    #[test]
-    fn all_ok_false_when_any_section_fails() {
-        let cases = [
-            CheckReport {
-                creds_ok: false,
-                network_ok: true,
-                cache_ok: true,
-                format_ok: true,
-            },
-            CheckReport {
-                creds_ok: true,
-                network_ok: false,
-                cache_ok: true,
-                format_ok: true,
-            },
-            CheckReport {
-                creds_ok: true,
-                network_ok: true,
-                cache_ok: false,
-                format_ok: true,
-            },
-            CheckReport {
-                creds_ok: true,
-                network_ok: true,
-                cache_ok: true,
-                format_ok: false,
-            },
-        ];
-        for r in &cases {
-            assert!(!r.all_ok(), "expected all_ok=false for {r:?}");
-        }
-    }
-
-    // ── credentials section (injected — no HOME mutation) ─────────────────────
-
-    #[test]
-    fn creds_section_error_result_fails() {
-        let mut report = CheckReport::default();
-        let mut buf: Vec<u8> = Vec::new();
-        let token = report_credentials(
-            &mut report,
-            Err(anyhow::anyhow!("credentials file not found")),
-            &mut buf,
-        );
-        assert!(!report.creds_ok, "error result should set creds_ok=false");
-        assert!(token.is_none(), "no token when creds missing");
-    }
-
-    #[test]
-    fn creds_section_ok_result_passes() {
-        let mut report = CheckReport::default();
-        let mut buf: Vec<u8> = Vec::new();
-        let token = report_credentials(
-            &mut report,
-            Ok("sk-ant-test-check-12345".to_string()),
-            &mut buf,
-        );
-        assert!(report.creds_ok, "ok result should set creds_ok=true");
-        assert_eq!(
-            token.as_deref(),
-            Some("sk-ant-test-check-12345"),
-            "token must be returned on success"
-        );
-    }
-
-    /// Fingerprint (not raw token) goes to output; home path tilde-collapsed on error.
-    #[test]
-    fn creds_section_writer_output_invariants() {
-        // Success: raw token must not appear; fingerprint marker must appear.
-        let token = "sk-ant-secret-token-9999";
-        let mut report = CheckReport::default();
-        let mut buf: Vec<u8> = Vec::new();
-        report_credentials(&mut report, Ok(token.to_string()), &mut buf);
-        let out = std::str::from_utf8(&buf).unwrap();
-        assert!(!out.contains(token), "raw token must not appear: {out:?}");
-        assert!(
-            out.contains("fingerprint"),
-            "fingerprint must appear: {out:?}"
-        );
-
-        // Error: home path tilde-collapsed.
-        let _guard = creds::HOME_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
-        std::env::set_var("HOME", "/home/alice");
-        let mut report2 = CheckReport::default();
-        let mut buf2: Vec<u8> = Vec::new();
-        let raw_err = "credentials file not found at /home/alice/.claude/.credentials.json";
-        report_credentials(&mut report2, Err(anyhow::anyhow!("{}", raw_err)), &mut buf2);
-        std::env::remove_var("HOME");
-        let out2 = std::str::from_utf8(&buf2).unwrap();
-        assert!(
-            !out2.contains("/home/alice"),
-            "expanded HOME must not appear: {out2:?}"
-        );
-        assert!(
-            out2.contains("~/.claude"),
-            "tilde path must appear: {out2:?}"
-        );
-    }
-
-    // ── format section ────────────────────────────────────────────────────────
-
-    #[test]
-    fn format_section_default_ok_empty_fails() {
-        let mut r1 = CheckReport::default();
-        check_format(&mut r1, DEFAULT_TEMPLATE);
-        assert!(r1.format_ok, "default template should render non-empty");
-        let mut r2 = CheckReport::default();
-        check_format(&mut r2, "");
-        assert!(!r2.format_ok, "empty template should fail");
-    }
-
-    #[test]
-    fn format_section_stub_ctx_renders_segments() {
-        let ctx = RenderCtx {
-            model: Some("claude-opus-4".to_string()),
-            five_used: Some(30.0),
-            five_reset_unix: Some(9_999_999_999),
-            seven_used: Some(60.0),
-            seven_reset_unix: Some(9_999_999_999),
-            now_unix: 0,
-            ..Default::default()
-        };
-        let out = format::render(DEFAULT_TEMPLATE, &ctx);
-        assert!(out.contains("5h:"), "should contain 5h: segment");
-    }
-
-    // ── cache section ─────────────────────────────────────────────────────────
-
-    #[test]
-    fn cache_section_no_file_is_ok() {
-        let dir = TempDir::new().unwrap();
-        let mut r1 = CheckReport::default();
-        check_cache(&mut r1, &dir.path().join("subdir")); // subdir absent
-        assert!(r1.cache_ok, "missing dir → ok");
-        let mut r2 = CheckReport::default();
-        check_cache(&mut r2, dir.path()); // dir exists, no usage.json
-        assert!(r2.cache_ok, "missing file → ok");
-    }
-
-    #[test]
-    fn cache_section_valid_file_ok() {
-        let dir = TempDir::new().unwrap();
-        let c = cache::UsageCache {
-            fetched_at: crate::time::now_unix(),
-            ..Default::default()
-        };
-        cache::write(dir.path(), &c).unwrap();
-        let mut report = CheckReport::default();
-        check_cache(&mut report, dir.path());
-        assert!(report.cache_ok, "valid cache file should be ok");
-    }
-
-    #[test]
-    fn cache_section_corrupt_file_fails() {
-        let dir = TempDir::new().unwrap();
-        std::fs::write(dir.path().join("usage.json"), b"{ not json }").unwrap();
-        let mut report = CheckReport::default();
-        check_cache(&mut report, dir.path());
-        assert!(!report.cache_ok, "corrupt cache file should fail");
-    }
-
-    // ── network section (mockito) ─────────────────────────────────────────────
-
-    #[test]
-    fn network_section_200_ok() {
-        let mut server = mockito::Server::new();
-        let _mock = server
-            .mock("GET", "/api/oauth/usage")
-            .with_status(200)
-            .with_header("Content-Type", "application/json")
-            .with_body(r#"{"five_hour":{"utilization":0.3},"seven_day":{"utilization":0.6}}"#)
-            .create();
-
-        let mut report = CheckReport::default();
-        check_network(&mut report, Some("test-token"), &server.url());
-        assert!(report.network_ok, "HTTP 200 should set network_ok=true");
-    }
-
-    #[test]
-    fn network_section_401_fails() {
-        let mut server = mockito::Server::new();
-        let _mock = server
-            .mock("GET", "/api/oauth/usage")
-            .with_status(401)
-            .with_body(r#"{"error":"unauthorized"}"#)
-            .create();
-
-        let mut report = CheckReport::default();
-        check_network(&mut report, Some("bad-token"), &server.url());
-        assert!(!report.network_ok, "HTTP 401 should set network_ok=false");
-    }
-
-    #[test]
-    fn network_section_429_fails() {
-        let mut server = mockito::Server::new();
-        let _mock = server
-            .mock("GET", "/api/oauth/usage")
-            .with_status(429)
-            .with_header("Retry-After", "60")
-            .with_body(r#"{"error":"rate limited"}"#)
-            .create();
-
-        let mut report = CheckReport::default();
-        check_network(&mut report, Some("test-token"), &server.url());
-        assert!(!report.network_ok, "HTTP 429 should set network_ok=false");
-    }
-
-    #[test]
-    fn network_section_500_fails() {
-        let mut server = mockito::Server::new();
-        let _mock = server
-            .mock("GET", "/api/oauth/usage")
-            .with_status(500)
-            .with_body(r#"{"error":"internal server error"}"#)
-            .create();
-
-        let mut report = CheckReport::default();
-        check_network(&mut report, Some("test-token"), &server.url());
-        assert!(!report.network_ok, "HTTP 500 should set network_ok=false");
-    }
-
-    #[test]
-    fn network_section_timeout_and_no_creds_fail() {
-        let mut r1 = CheckReport::default();
-        check_network(&mut r1, Some("test-token"), "http://127.0.0.1:1");
-        assert!(!r1.network_ok, "connection refused → network_ok=false");
-        let mut r2 = CheckReport::default();
-        check_network(&mut r2, None, DEFAULT_OAUTH_BASE_URL);
-        assert!(!r2.network_ok, "no creds → network_ok=false");
-    }
-
-    // ── display_tilde / cache path redaction (CONCERN 3 regression guard) ───────
-
-    #[test]
-    fn display_tilde_redaction() {
-        let _guard = creds::HOME_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
-        std::env::set_var("HOME", "/home/alice");
-        let home_path = std::path::PathBuf::from("/home/alice/Library/Caches/cc-myasl/usage.json");
-        let other_path = std::path::PathBuf::from("/tmp/usage.json");
-        let home_result = display_tilde(&home_path);
-        let other_result = display_tilde(&other_path);
-        std::env::remove_var("HOME");
-        assert_eq!(home_result, "~/Library/Caches/cc-myasl/usage.json");
-        assert_eq!(other_result, "/tmp/usage.json");
-    }
-
-    // ── integration ───────────────────────────────────────────────────────────
-
-    #[test]
-    fn run_inner_format_always_passes() {
-        let _guard = ENV_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
-        // Refused port → network fails fast; format check uses a stub ctx.
-        std::env::set_var("STATUSLINE_OAUTH_BASE_URL", "http://127.0.0.1:1");
-        let report = run_inner();
-        std::env::remove_var("STATUSLINE_OAUTH_BASE_URL");
-        assert!(report.format_ok, "format should always pass");
-    }
-}
+#[path = "check_tests.rs"]
+mod tests;
