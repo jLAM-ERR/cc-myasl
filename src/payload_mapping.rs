@@ -3,7 +3,7 @@
 //! Pure data transformation only — no I/O, no HTTP, no cache.
 //! Hot-path control flow (OAuth fallback, cache decisions) stays in `main.rs`.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::format::RenderCtx;
 use crate::payload::Payload;
@@ -150,6 +150,33 @@ pub fn build_render_ctx(payload: &Payload, now_unix: u64) -> RenderCtx {
     }
 }
 
+/// Populate the git-related fields of `ctx` by discovering the git repo at `cwd`.
+///
+/// Always pass the current working directory as `cwd`. Never pass `worktree.path` —
+/// gix discovery walks parent directories, so `cwd` is correct in both worktree
+/// and non-worktree cases.
+///
+/// Note: a false-positive trigger can occur when a config template contains `{{git_`
+/// (escaped braces that render as the literal text `{git_`). This causes a wasted
+/// ~5ms gix discovery call. Accepted for Phase 2 — no over-engineering.
+pub fn populate_git_ctx(ctx: &mut RenderCtx, cwd: &Path) {
+    let Some(repo) = crate::git::discover(cwd) else {
+        return;
+    };
+    ctx.git_branch = repo.branch();
+    ctx.git_root = repo.root();
+    if let Some(sc) = crate::git::counts(&repo) {
+        ctx.git_changes_count = Some(sc.changes);
+        ctx.git_staged_count = Some(sc.staged);
+        ctx.git_unstaged_count = Some(sc.unstaged);
+        ctx.git_untracked_count = Some(sc.untracked);
+    }
+}
+
 #[cfg(test)]
 #[path = "payload_mapping_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "payload_mapping_git_tests.rs"]
+mod git_tests;

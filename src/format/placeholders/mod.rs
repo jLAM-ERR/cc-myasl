@@ -269,6 +269,26 @@ pub fn render_placeholder(name: &str, ctx: &RenderCtx) -> Option<String> {
         "worktree_original_cwd" => ctx.worktree_original_cwd.as_deref().and_then(compress_home),
         "worktree_original_branch" => ctx.worktree_original_branch.clone(),
 
+        // ── git placeholders ─────────────────────────────────────────────────
+        "git_branch" => ctx.git_branch.clone(),
+        "git_root" => ctx.git_root.as_deref().and_then(compress_home),
+        "git_changes" => ctx.git_changes_count.map(|n| n.to_string()),
+        "git_staged" => ctx.git_staged_count.map(|n| n.to_string()),
+        "git_unstaged" => ctx.git_unstaged_count.map(|n| n.to_string()),
+        "git_untracked" => ctx.git_untracked_count.map(|n| n.to_string()),
+        // Returns "clean" when all four counts are Some(0); None otherwise.
+        "git_status_clean" => {
+            match (
+                ctx.git_changes_count,
+                ctx.git_staged_count,
+                ctx.git_unstaged_count,
+                ctx.git_untracked_count,
+            ) {
+                (Some(0), Some(0), Some(0), Some(0)) => Some("clean".to_owned()),
+                _ => None,
+            }
+        }
+
         // ── ANSI reset ────────────────────────────────────────────────────────
         "reset" => Some("\x1b[0m".to_owned()),
 
@@ -300,6 +320,10 @@ mod context_tests;
 #[cfg(test)]
 #[path = "workspace_tests.rs"]
 mod workspace_tests;
+
+#[cfg(test)]
+#[path = "git_tests.rs"]
+mod git_tests;
 
 #[cfg(test)]
 mod phase2_struct_tests {

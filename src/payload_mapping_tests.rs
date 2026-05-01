@@ -492,3 +492,4 @@ fn build_render_ctx_git_fields_always_none() {
     assert!(ctx.git_changes_count.is_none() && ctx.git_staged_count.is_none());
     assert!(ctx.git_unstaged_count.is_none() && ctx.git_untracked_count.is_none());
 }
+

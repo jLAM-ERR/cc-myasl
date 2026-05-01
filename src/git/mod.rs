@@ -2,6 +2,9 @@ use std::path::{Path, PathBuf};
 
 use gix::bstr::ByteSlice;
 
+pub mod status;
+pub use status::{counts, StatusCounts};
+
 /// Owns a gix repository handle.
 pub struct Repo {
     inner: gix::Repository,

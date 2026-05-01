@@ -65,11 +65,11 @@ fn run_render(args: &Args) {
         Ok(p) => p,
         Err(e) => {
             trace.error = Some(e.to_string());
-            let ctx = RenderCtx {
+            let mut ctx = RenderCtx {
                 now_unix,
                 ..Default::default()
             };
-            render_and_emit(&mut trace, args, &ctx, started);
+            render_and_emit(&mut trace, args, &mut ctx, started);
             return;
         }
     };
@@ -87,7 +87,7 @@ fn run_render(args: &Args) {
             ctx.seven_reset_unix = sd.resets_at;
         }
         trace.path = Some("stdin-rate-limits".into());
-        render_and_emit(&mut trace, args, &ctx, started);
+        render_and_emit(&mut trace, args, &mut ctx, started);
         return;
     }
 
@@ -101,7 +101,7 @@ fn run_render(args: &Args) {
         if cache::is_fresh(&c, CACHE_TTL_SECS, ctx.now_unix) {
             apply_cache_to_ctx(&c, &mut ctx);
             trace.cache = Some("hit".into());
-            render_and_emit(&mut trace, args, &ctx, started);
+            render_and_emit(&mut trace, args, &mut ctx, started);
             return;
         }
     }
@@ -115,7 +115,7 @@ fn run_render(args: &Args) {
                 apply_cache_to_ctx(&c, &mut ctx);
                 trace.cache = Some("stale".into());
             }
-            render_and_emit(&mut trace, args, &ctx, started);
+            render_and_emit(&mut trace, args, &mut ctx, started);
             return;
         }
     }
@@ -125,7 +125,7 @@ fn run_render(args: &Args) {
         Ok(t) => t,
         Err(e) => {
             trace.error = Some(creds::redact_home(&e.to_string()));
-            render_and_emit(&mut trace, args, &ctx, started);
+            render_and_emit(&mut trace, args, &mut ctx, started);
             return;
         }
     };
@@ -205,7 +205,7 @@ fn run_render(args: &Args) {
         }
     }
 
-    render_and_emit(&mut trace, args, &ctx, started);
+    render_and_emit(&mut trace, args, &mut ctx, started);
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -247,8 +247,31 @@ fn build_cache_from_response(r: &api::UsageResponse, now: u64) -> UsageCache {
     }
 }
 
-fn render_and_emit(trace: &mut Trace, args: &Args, ctx: &RenderCtx, started: SystemTime) {
+/// Returns `true` when any segment template in `config` references a `{git_` placeholder.
+///
+/// The plain-substring scan will also match `{{git_` (escaped brace, renders as
+/// literal `{git_`), causing a false-positive that wastes ~5ms on gix discovery.
+/// This is accepted for Phase 2 rather than over-engineering the scan.
+fn config_uses_git(config: &cc_myasl::config::Config) -> bool {
+    for line in &config.lines {
+        for seg in &line.segments {
+            if let cc_myasl::config::Segment::Template(t) = seg {
+                if t.template.contains("{git_") {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+fn render_and_emit(trace: &mut Trace, args: &Args, ctx: &mut RenderCtx, started: SystemTime) {
     let config = cc_myasl::config::resolve(args, trace);
+    if config_uses_git(&config) {
+        if let Some(cwd) = ctx.cwd.clone() {
+            cc_myasl::payload_mapping::populate_git_ctx(ctx, &cwd);
+        }
+    }
     let line = cc_myasl::config::render::render(&config, ctx);
     println!("{}", line);
     trace.took_ms = SystemTime::now()

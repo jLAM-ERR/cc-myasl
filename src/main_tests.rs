@@ -208,3 +208,53 @@ fn render_and_emit_all_none_ctx_does_not_panic() {
     let config = cc_myasl::config::resolve(&a, &mut trace);
     let _ = cc_myasl::config::render::render(&config, &ctx);
 }
+
+// ── config_uses_git ───────────────────────────────────────────────────────
+
+fn make_config_with_template(template: &str) -> cc_myasl::config::Config {
+    use cc_myasl::config::{Config, Line, Segment, TemplateSegment};
+    Config {
+        schema_url: None,
+        lines: vec![Line {
+            separator: " ".to_owned(),
+            segments: vec![Segment::Template(TemplateSegment::new(template))],
+        }],
+    }
+}
+
+#[test]
+fn config_uses_git_returns_true_with_git_placeholder() {
+    let cfg = make_config_with_template("{git_branch}");
+    assert!(config_uses_git(&cfg));
+}
+
+#[test]
+fn config_uses_git_returns_true_for_any_git_placeholder() {
+    for tmpl in &[
+        "{git_root}",
+        "{git_changes}",
+        "{git_staged}",
+        "{git_unstaged}",
+        "{git_untracked}",
+        "{git_status_clean}",
+    ] {
+        let cfg = make_config_with_template(tmpl);
+        assert!(config_uses_git(&cfg), "should return true for {tmpl}");
+    }
+}
+
+#[test]
+fn config_uses_git_returns_false_without_git_placeholder() {
+    let cfg = make_config_with_template("{model} {five_used}");
+    assert!(!config_uses_git(&cfg));
+}
+
+#[test]
+fn config_uses_git_empty_config_returns_false() {
+    use cc_myasl::config::Config;
+    let cfg = Config {
+        schema_url: None,
+        lines: vec![],
+    };
+    assert!(!config_uses_git(&cfg));
+}
