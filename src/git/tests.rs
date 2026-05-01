@@ -98,9 +98,9 @@ fn discover_returns_none_outside_repo() {
     let _guard = super::GIT_ENV_MUTEX.lock().unwrap();
     let dir = tempfile::tempdir().expect("tempdir");
     // Prevent gix from walking past the tempdir even if a parent is a git repo.
-    std::env::set_var("GIT_CEILING_DIRECTORIES", dir.path());
+    unsafe { std::env::set_var("GIT_CEILING_DIRECTORIES", dir.path()) };
     let result = super::discover(dir.path());
-    std::env::remove_var("GIT_CEILING_DIRECTORIES");
+    unsafe { std::env::remove_var("GIT_CEILING_DIRECTORIES") };
     assert!(result.is_none());
 }
 

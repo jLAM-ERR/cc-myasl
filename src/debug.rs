@@ -160,7 +160,7 @@ mod tests {
     fn no_output_when_debug_off_and_force_false() {
         let _guard = DEBUG_MUTEX.lock().unwrap();
         // Ensure the env var is absent.
-        std::env::remove_var("STATUSLINE_DEBUG");
+        unsafe { std::env::remove_var("STATUSLINE_DEBUG") };
         let trace = Trace::default();
         let raw = capture(&trace, false);
         assert!(raw.is_empty(), "must produce no output when debug is off");
@@ -171,10 +171,10 @@ mod tests {
     #[test]
     fn no_output_when_debug_set_to_zero_and_force_false() {
         let _guard = DEBUG_MUTEX.lock().unwrap();
-        std::env::set_var("STATUSLINE_DEBUG", "0");
+        unsafe { std::env::set_var("STATUSLINE_DEBUG", "0") };
         let trace = Trace::default();
         let raw = capture(&trace, false);
-        std::env::remove_var("STATUSLINE_DEBUG");
+        unsafe { std::env::remove_var("STATUSLINE_DEBUG") };
         assert!(
             raw.is_empty(),
             "STATUSLINE_DEBUG=0 with force=false must produce no output"
@@ -186,13 +186,13 @@ mod tests {
     #[test]
     fn output_when_debug_env_is_one() {
         let _guard = DEBUG_MUTEX.lock().unwrap();
-        std::env::set_var("STATUSLINE_DEBUG", "1");
+        unsafe { std::env::set_var("STATUSLINE_DEBUG", "1") };
         let trace = Trace {
             path: Some("cache-hit".into()),
             ..Default::default()
         };
         let raw = capture(&trace, false);
-        std::env::remove_var("STATUSLINE_DEBUG");
+        unsafe { std::env::remove_var("STATUSLINE_DEBUG") };
         assert!(
             !raw.is_empty(),
             "STATUSLINE_DEBUG=1 must produce output even with force=false"

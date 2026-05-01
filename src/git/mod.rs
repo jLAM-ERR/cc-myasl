@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use gix::bstr::ByteSlice;
 
 pub mod status;
-pub use status::{counts, StatusCounts};
+pub use status::{StatusCounts, counts};
 
 /// Owns a gix repository handle.
 pub struct Repo {
@@ -27,7 +27,7 @@ impl Repo {
 
     /// Worktree root directory; None for bare repositories.
     pub fn root(&self) -> Option<PathBuf> {
-        self.inner.work_dir().map(PathBuf::from)
+        self.inner.workdir().map(PathBuf::from)
     }
 }
 

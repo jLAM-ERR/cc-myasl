@@ -212,7 +212,7 @@ fn resolve_layer2_template_builtin() {
 fn resolve_layer2_unknown_template_falls_through() {
     let _guard = lock_config();
     let prior = std::env::var("STATUSLINE_CONFIG").ok();
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
 
     let mut args = empty_args();
     args.template_name = Some("nonexistent_template_xyz".to_owned());
@@ -220,8 +220,8 @@ fn resolve_layer2_unknown_template_falls_through() {
     let cfg = resolve(&args, &mut trace);
 
     match prior {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
 
     assert!(!cfg.lines.is_empty());
@@ -256,9 +256,9 @@ fn resolve_layer2_user_template_shadows_builtin() {
     std::fs::write(templates_dir.join("default.json"), sentinel_json).unwrap();
 
     let prior_xdg = std::env::var("XDG_CONFIG_HOME").ok();
-    std::env::set_var("XDG_CONFIG_HOME", dir.path());
+    unsafe { std::env::set_var("XDG_CONFIG_HOME", dir.path()) };
     let prior_sc = std::env::var("STATUSLINE_CONFIG").ok();
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
 
     let mut args = empty_args();
     args.template_name = Some("default".to_owned());
@@ -266,12 +266,12 @@ fn resolve_layer2_user_template_shadows_builtin() {
     let cfg = resolve(&args, &mut trace);
 
     match prior_xdg {
-        Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
-        None => std::env::remove_var("XDG_CONFIG_HOME"),
+        Some(v) => unsafe { std::env::set_var("XDG_CONFIG_HOME", v) },
+        None => unsafe { std::env::remove_var("XDG_CONFIG_HOME") },
     }
     match prior_sc {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
 
     assert_eq!(cfg.lines.len(), 1);
@@ -300,15 +300,15 @@ fn resolve_layer3_env_var() {
     let path = write_config(dir.path(), "env.json", MINIMAL_CONFIG_JSON);
 
     let prior = std::env::var("STATUSLINE_CONFIG").ok();
-    std::env::set_var("STATUSLINE_CONFIG", path.to_str().unwrap());
+    unsafe { std::env::set_var("STATUSLINE_CONFIG", path.to_str().unwrap()) };
 
     let args = empty_args();
     let mut trace = Trace::default();
     let cfg = resolve(&args, &mut trace);
 
     match prior {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
 
     assert_eq!(cfg.lines.len(), 1);
@@ -323,15 +323,15 @@ fn resolve_layer3_env_var() {
 fn resolve_layer3_empty_env_var_skipped() {
     let _guard = lock_config();
     let prior = std::env::var("STATUSLINE_CONFIG").ok();
-    std::env::set_var("STATUSLINE_CONFIG", "");
+    unsafe { std::env::set_var("STATUSLINE_CONFIG", "") };
 
     let args = empty_args();
     let mut trace = Trace::default();
     let _ = resolve(&args, &mut trace);
 
     match prior {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
 
     assert_ne!(
@@ -348,15 +348,15 @@ fn resolve_layer3_env_corrupt_falls_back() {
     let path = write_config(dir.path(), "corrupt.json", CORRUPT_JSON);
 
     let prior = std::env::var("STATUSLINE_CONFIG").ok();
-    std::env::set_var("STATUSLINE_CONFIG", path.to_str().unwrap());
+    unsafe { std::env::set_var("STATUSLINE_CONFIG", path.to_str().unwrap()) };
 
     let args = empty_args();
     let mut trace = Trace::default();
     let cfg = resolve(&args, &mut trace);
 
     match prior {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
 
     assert!(
@@ -381,21 +381,21 @@ fn resolve_layer4_default_file() {
     std::fs::write(cc_dir.join("config.json"), MINIMAL_CONFIG_JSON).unwrap();
 
     let prior_xdg = std::env::var("XDG_CONFIG_HOME").ok();
-    std::env::set_var("XDG_CONFIG_HOME", dir.path());
+    unsafe { std::env::set_var("XDG_CONFIG_HOME", dir.path()) };
     let prior_sc = std::env::var("STATUSLINE_CONFIG").ok();
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
 
     let args = empty_args();
     let mut trace = Trace::default();
     let cfg = resolve(&args, &mut trace);
 
     match prior_xdg {
-        Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
-        None => std::env::remove_var("XDG_CONFIG_HOME"),
+        Some(v) => unsafe { std::env::set_var("XDG_CONFIG_HOME", v) },
+        None => unsafe { std::env::remove_var("XDG_CONFIG_HOME") },
     }
     match prior_sc {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
 
     assert_eq!(cfg.lines.len(), 1);
@@ -414,21 +414,21 @@ fn resolve_layer5_embedded_default() {
     let dir = tempdir().unwrap();
 
     let prior_xdg = std::env::var("XDG_CONFIG_HOME").ok();
-    std::env::set_var("XDG_CONFIG_HOME", dir.path());
+    unsafe { std::env::set_var("XDG_CONFIG_HOME", dir.path()) };
     let prior_sc = std::env::var("STATUSLINE_CONFIG").ok();
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
 
     let args = empty_args();
     let mut trace = Trace::default();
     let cfg = resolve(&args, &mut trace);
 
     match prior_xdg {
-        Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
-        None => std::env::remove_var("XDG_CONFIG_HOME"),
+        Some(v) => unsafe { std::env::set_var("XDG_CONFIG_HOME", v) },
+        None => unsafe { std::env::remove_var("XDG_CONFIG_HOME") },
     }
     match prior_sc {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
 
     assert!(!cfg.lines.is_empty(), "embedded default must have lines");

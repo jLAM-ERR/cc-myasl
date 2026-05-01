@@ -102,12 +102,12 @@ fn creds_section_writer_output_invariants() {
 
     // Error: home path tilde-collapsed.
     let _guard = creds::HOME_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
-    std::env::set_var("HOME", "/home/alice");
+    unsafe { std::env::set_var("HOME", "/home/alice") };
     let mut report2 = CheckReport::default();
     let mut buf2: Vec<u8> = Vec::new();
     let raw_err = "credentials file not found at /home/alice/.claude/.credentials.json";
     report_credentials(&mut report2, Err(anyhow::anyhow!("{}", raw_err)), &mut buf2);
-    std::env::remove_var("HOME");
+    unsafe { std::env::remove_var("HOME") };
     let out2 = std::str::from_utf8(&buf2).unwrap();
     assert!(
         !out2.contains("/home/alice"),
@@ -127,7 +127,7 @@ fn config_section_embedded_default_passes() {
         .lock()
         .unwrap_or_else(|e| e.into_inner());
     // No config file, no env var → falls through to embedded default.
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
     let mut report = CheckReport::default();
     let mut buf: Vec<u8> = Vec::new();
     check_config_to(&mut report, &mut buf);
@@ -162,8 +162,8 @@ fn config_section_valid_config_file_passes() {
 
     // Pin XDG_CONFIG_HOME so the default-file path resolves to our tempdir.
     let prior = std::env::var("XDG_CONFIG_HOME").ok();
-    std::env::set_var("XDG_CONFIG_HOME", dir.path().to_str().unwrap());
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::set_var("XDG_CONFIG_HOME", dir.path().to_str().unwrap()) };
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
 
     let mut report = CheckReport::default();
     let mut buf: Vec<u8> = Vec::new();
@@ -171,8 +171,8 @@ fn config_section_valid_config_file_passes() {
 
     // Restore.
     match prior {
-        Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
-        None => std::env::remove_var("XDG_CONFIG_HOME"),
+        Some(v) => unsafe { std::env::set_var("XDG_CONFIG_HOME", v) },
+        None => unsafe { std::env::remove_var("XDG_CONFIG_HOME") },
     }
 
     let out = std::str::from_utf8(&buf).unwrap();
@@ -197,16 +197,16 @@ fn config_section_malformed_config_falls_back_and_passes() {
     std::fs::write(&config_file, b"{ not valid json }").unwrap();
 
     let prior = std::env::var("XDG_CONFIG_HOME").ok();
-    std::env::set_var("XDG_CONFIG_HOME", dir.path().to_str().unwrap());
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::set_var("XDG_CONFIG_HOME", dir.path().to_str().unwrap()) };
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
 
     let mut report = CheckReport::default();
     let mut buf: Vec<u8> = Vec::new();
     check_config_to(&mut report, &mut buf);
 
     match prior {
-        Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
-        None => std::env::remove_var("XDG_CONFIG_HOME"),
+        Some(v) => unsafe { std::env::set_var("XDG_CONFIG_HOME", v) },
+        None => unsafe { std::env::remove_var("XDG_CONFIG_HOME") },
     }
 
     let out = std::str::from_utf8(&buf).unwrap();
@@ -226,7 +226,7 @@ fn config_section_output_contains_builtin_names() {
     let _guard = crate::config::CONFIG_MUTEX
         .lock()
         .unwrap_or_else(|e| e.into_inner());
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
     let mut report = CheckReport::default();
     let mut buf: Vec<u8> = Vec::new();
     check_config_to(&mut report, &mut buf);
@@ -244,7 +244,7 @@ fn config_section_output_contains_json_schema_field() {
     let _guard = crate::config::CONFIG_MUTEX
         .lock()
         .unwrap_or_else(|e| e.into_inner());
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
     let mut report = CheckReport::default();
     let mut buf: Vec<u8> = Vec::new();
     check_config_to(&mut report, &mut buf);
@@ -365,12 +365,12 @@ fn network_section_timeout_and_no_creds_fail() {
 #[test]
 fn display_tilde_redaction() {
     let _guard = creds::HOME_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
-    std::env::set_var("HOME", "/home/alice");
+    unsafe { std::env::set_var("HOME", "/home/alice") };
     let home_path = std::path::PathBuf::from("/home/alice/Library/Caches/cc-myasl/usage.json");
     let other_path = std::path::PathBuf::from("/tmp/usage.json");
     let home_result = display_tilde(&home_path);
     let other_result = display_tilde(&other_path);
-    std::env::remove_var("HOME");
+    unsafe { std::env::remove_var("HOME") };
     assert_eq!(home_result, "~/Library/Caches/cc-myasl/usage.json");
     assert_eq!(other_result, "/tmp/usage.json");
 }
@@ -384,9 +384,9 @@ fn run_inner_config_always_passes() {
         .lock()
         .unwrap_or_else(|e| e.into_inner());
     // Refused port → network fails fast; config check uses resolved default.
-    std::env::set_var("STATUSLINE_OAUTH_BASE_URL", "http://127.0.0.1:1");
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::set_var("STATUSLINE_OAUTH_BASE_URL", "http://127.0.0.1:1") };
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
     let report = run_inner();
-    std::env::remove_var("STATUSLINE_OAUTH_BASE_URL");
+    unsafe { std::env::remove_var("STATUSLINE_OAUTH_BASE_URL") };
     assert!(report.config_ok, "config should always pass");
 }

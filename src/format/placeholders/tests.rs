@@ -102,7 +102,7 @@ fn cwd_substitutes_home() {
     // an inherited-HOME read in this test seeing nothing.)
     let _guard = crate::creds::HOME_MUTEX.lock().unwrap();
     let saved = std::env::var("HOME").ok();
-    std::env::set_var("HOME", "/tmp/test-home");
+    unsafe { std::env::set_var("HOME", "/tmp/test-home") };
     let ctx = RenderCtx {
         cwd: Some(PathBuf::from("/tmp/test-home/projects/foo")),
         ..Default::default()
@@ -110,8 +110,8 @@ fn cwd_substitutes_home() {
     let result = render_placeholder("cwd", &ctx).unwrap();
     // Restore HOME before asserting so a panic doesn't leak state.
     match saved {
-        Some(v) => std::env::set_var("HOME", v),
-        None => std::env::remove_var("HOME"),
+        Some(v) => unsafe { std::env::set_var("HOME", v) },
+        None => unsafe { std::env::remove_var("HOME") },
     }
     assert_eq!(result, "~/projects/foo");
 }

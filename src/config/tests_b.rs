@@ -186,9 +186,9 @@ fn resolve_empty_template_name_falls_through_to_embedded() {
     let _guard = lock_config();
     let dir = tempdir().unwrap();
     let prior_xdg = std::env::var("XDG_CONFIG_HOME").ok();
-    std::env::set_var("XDG_CONFIG_HOME", dir.path());
+    unsafe { std::env::set_var("XDG_CONFIG_HOME", dir.path()) };
     let prior_sc = std::env::var("STATUSLINE_CONFIG").ok();
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
 
     let mut args = empty_args();
     args.template_name = Some("".to_owned());
@@ -196,12 +196,12 @@ fn resolve_empty_template_name_falls_through_to_embedded() {
     let cfg = resolve(&args, &mut trace);
 
     match prior_xdg {
-        Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
-        None => std::env::remove_var("XDG_CONFIG_HOME"),
+        Some(v) => unsafe { std::env::set_var("XDG_CONFIG_HOME", v) },
+        None => unsafe { std::env::remove_var("XDG_CONFIG_HOME") },
     }
     match prior_sc {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
 
     // An empty template name matches no built-in and no user file.
@@ -229,21 +229,21 @@ fn resolve_whitespace_only_statusline_config_is_treated_as_path() {
     let _guard = lock_config();
     let dir = tempdir().unwrap();
     let prior_xdg = std::env::var("XDG_CONFIG_HOME").ok();
-    std::env::set_var("XDG_CONFIG_HOME", dir.path());
+    unsafe { std::env::set_var("XDG_CONFIG_HOME", dir.path()) };
     let prior_sc = std::env::var("STATUSLINE_CONFIG").ok();
-    std::env::set_var("STATUSLINE_CONFIG", " ");
+    unsafe { std::env::set_var("STATUSLINE_CONFIG", " ") };
 
     let args = empty_args();
     let mut trace = Trace::default();
     let cfg = resolve(&args, &mut trace);
 
     match prior_xdg {
-        Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
-        None => std::env::remove_var("XDG_CONFIG_HOME"),
+        Some(v) => unsafe { std::env::set_var("XDG_CONFIG_HOME", v) },
+        None => unsafe { std::env::remove_var("XDG_CONFIG_HOME") },
     }
     match prior_sc {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
 
     // Whitespace-only value fails as a path → falls back, config is non-empty.
@@ -271,24 +271,26 @@ fn resolve_env_nonexistent_path_records_error_and_falls_back() {
     let _guard = lock_config();
     let dir = tempdir().unwrap();
     let prior_xdg = std::env::var("XDG_CONFIG_HOME").ok();
-    std::env::set_var("XDG_CONFIG_HOME", dir.path());
+    unsafe { std::env::set_var("XDG_CONFIG_HOME", dir.path()) };
     let prior_sc = std::env::var("STATUSLINE_CONFIG").ok();
-    std::env::set_var(
-        "STATUSLINE_CONFIG",
-        "/tmp/cc-myasl-definitely-does-not-exist-99887766.json",
-    );
+    unsafe {
+        std::env::set_var(
+            "STATUSLINE_CONFIG",
+            "/tmp/cc-myasl-definitely-does-not-exist-99887766.json",
+        )
+    };
 
     let args = empty_args();
     let mut trace = Trace::default();
     let cfg = resolve(&args, &mut trace);
 
     match prior_xdg {
-        Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
-        None => std::env::remove_var("XDG_CONFIG_HOME"),
+        Some(v) => unsafe { std::env::set_var("XDG_CONFIG_HOME", v) },
+        None => unsafe { std::env::remove_var("XDG_CONFIG_HOME") },
     }
     match prior_sc {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
 
     assert!(
@@ -313,21 +315,21 @@ fn resolve_xdg_nonexistent_dir_falls_back_to_embedded() {
     let _guard = lock_config();
     let prior_xdg = std::env::var("XDG_CONFIG_HOME").ok();
     // Point at a directory that will never exist.
-    std::env::set_var("XDG_CONFIG_HOME", "/tmp/cc-myasl-no-such-xdg-home-112233");
+    unsafe { std::env::set_var("XDG_CONFIG_HOME", "/tmp/cc-myasl-no-such-xdg-home-112233") };
     let prior_sc = std::env::var("STATUSLINE_CONFIG").ok();
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
 
     let args = empty_args();
     let mut trace = Trace::default();
     let cfg = resolve(&args, &mut trace);
 
     match prior_xdg {
-        Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
-        None => std::env::remove_var("XDG_CONFIG_HOME"),
+        Some(v) => unsafe { std::env::set_var("XDG_CONFIG_HOME", v) },
+        None => unsafe { std::env::remove_var("XDG_CONFIG_HOME") },
     }
     match prior_sc {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
 
     assert!(!cfg.lines.is_empty(), "must fall back to embedded default");

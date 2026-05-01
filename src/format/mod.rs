@@ -230,15 +230,15 @@ mod tests {
         let _guard = ENV_MUTEX.lock().unwrap();
 
         // five_used=30 → left=70; with red=80, yellow=90 → Red
-        std::env::set_var("STATUSLINE_RED", "80");
-        std::env::set_var("STATUSLINE_YELLOW", "90");
+        unsafe { std::env::set_var("STATUSLINE_RED", "80") };
+        unsafe { std::env::set_var("STATUSLINE_YELLOW", "90") };
 
         let ctx = full_ctx();
         let out = render("{five_color}", &ctx);
         assert_eq!(out, "\x1b[31m"); // Red
 
-        std::env::remove_var("STATUSLINE_RED");
-        std::env::remove_var("STATUSLINE_YELLOW");
+        unsafe { std::env::remove_var("STATUSLINE_RED") };
+        unsafe { std::env::remove_var("STATUSLINE_YELLOW") };
     }
 
     // ── one-way-import invariant ─────────────────────────────────────────────
@@ -266,7 +266,7 @@ mod tests {
                 let p = entry.path();
                 if p.is_dir() {
                     out.extend(walkdir_rs(&p));
-                } else if p.extension().map_or(false, |e| e == "rs") {
+                } else if p.extension().is_some_and(|e| e == "rs") {
                     out.push(p);
                 }
             }
@@ -279,13 +279,13 @@ mod tests {
         let _guard = ENV_MUTEX.lock().unwrap();
 
         // five_used=30 → left=70; with yellow=80 → Yellow
-        std::env::remove_var("STATUSLINE_RED");
-        std::env::set_var("STATUSLINE_YELLOW", "80");
+        unsafe { std::env::remove_var("STATUSLINE_RED") };
+        unsafe { std::env::set_var("STATUSLINE_YELLOW", "80") };
 
         let ctx = full_ctx();
         let out = render("{five_state}", &ctx);
         assert_eq!(out, "🟡");
 
-        std::env::remove_var("STATUSLINE_YELLOW");
+        unsafe { std::env::remove_var("STATUSLINE_YELLOW") };
     }
 }

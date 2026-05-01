@@ -42,9 +42,9 @@ fn print_config_unknown_template_falls_back_records_error() {
     let prior_cfg = std::env::var("STATUSLINE_CONFIG").ok();
     let prior_xdg = std::env::var("XDG_CONFIG_HOME").ok();
     let iso_dir = tempfile::tempdir().unwrap();
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
     // Pin XDG_CONFIG_HOME to an empty tempdir — no default config.json there.
-    std::env::set_var("XDG_CONFIG_HOME", iso_dir.path());
+    unsafe { std::env::set_var("XDG_CONFIG_HOME", iso_dir.path()) };
 
     let a = args::Args {
         template_name: Some("totally_nonexistent_xyz".to_owned()),
@@ -56,12 +56,12 @@ fn print_config_unknown_template_falls_back_records_error() {
     let output = cc_myasl::config::print_config(&config);
 
     match prior_cfg {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
     match prior_xdg {
-        Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
-        None => std::env::remove_var("XDG_CONFIG_HOME"),
+        Some(v) => unsafe { std::env::set_var("XDG_CONFIG_HOME", v) },
+        None => unsafe { std::env::remove_var("XDG_CONFIG_HOME") },
     }
 
     let v: serde_json::Value =

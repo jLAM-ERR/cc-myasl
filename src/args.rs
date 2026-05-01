@@ -111,7 +111,7 @@ pub fn parse(args: &[String]) -> Args {
                     if iter
                         .as_slice()
                         .first()
-                        .map_or(false, |v| !v.starts_with("--"))
+                        .is_some_and(|v| !v.starts_with("--"))
                     {
                         out.config_path = Some(std::path::PathBuf::from(iter.next().unwrap()));
                     } else {
@@ -122,7 +122,7 @@ pub fn parse(args: &[String]) -> Args {
                     if iter
                         .as_slice()
                         .first()
-                        .map_or(false, |v| !v.starts_with("--"))
+                        .is_some_and(|v| !v.starts_with("--"))
                     {
                         out.template_name = Some(iter.next().unwrap().clone());
                     } else {

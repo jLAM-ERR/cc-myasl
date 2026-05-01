@@ -41,15 +41,15 @@ fn git_root_present_no_home() {
 fn git_root_with_home_tilde() {
     let _guard = crate::creds::HOME_MUTEX.lock().unwrap();
     let saved = std::env::var("HOME").ok();
-    std::env::set_var("HOME", "/home/dev");
+    unsafe { std::env::set_var("HOME", "/home/dev") };
     let ctx = RenderCtx {
         git_root: Some(PathBuf::from("/home/dev/projects/myrepo")),
         ..Default::default()
     };
     let result = render_placeholder("git_root", &ctx);
     match saved {
-        Some(v) => std::env::set_var("HOME", v),
-        None => std::env::remove_var("HOME"),
+        Some(v) => unsafe { std::env::set_var("HOME", v) },
+        None => unsafe { std::env::remove_var("HOME") },
     }
     assert_eq!(result, Some("~/projects/myrepo".to_owned()));
 }
@@ -226,15 +226,15 @@ fn git_status_clean_missing_one_count_returns_none() {
 fn git_root_exact_home_path_compresses_to_tilde() {
     let _guard = crate::creds::HOME_MUTEX.lock().unwrap();
     let saved = std::env::var("HOME").ok();
-    std::env::set_var("HOME", "/home/dev");
+    unsafe { std::env::set_var("HOME", "/home/dev") };
     let ctx = RenderCtx {
         git_root: Some(std::path::PathBuf::from("/home/dev")),
         ..Default::default()
     };
     let result = render_placeholder("git_root", &ctx);
     match saved {
-        Some(v) => std::env::set_var("HOME", v),
-        None => std::env::remove_var("HOME"),
+        Some(v) => unsafe { std::env::set_var("HOME", v) },
+        None => unsafe { std::env::remove_var("HOME") },
     }
     // /home/dev itself → "~" (tilde with empty suffix).
     assert_eq!(result, Some("~".to_owned()));
@@ -244,15 +244,15 @@ fn git_root_exact_home_path_compresses_to_tilde() {
 fn git_root_path_not_under_home_is_unchanged() {
     let _guard = crate::creds::HOME_MUTEX.lock().unwrap();
     let saved = std::env::var("HOME").ok();
-    std::env::set_var("HOME", "/home/dev");
+    unsafe { std::env::set_var("HOME", "/home/dev") };
     let ctx = RenderCtx {
         git_root: Some(std::path::PathBuf::from("/opt/other/project")),
         ..Default::default()
     };
     let result = render_placeholder("git_root", &ctx);
     match saved {
-        Some(v) => std::env::set_var("HOME", v),
-        None => std::env::remove_var("HOME"),
+        Some(v) => unsafe { std::env::set_var("HOME", v) },
+        None => unsafe { std::env::remove_var("HOME") },
     }
     assert_eq!(result, Some("/opt/other/project".to_owned()));
 }

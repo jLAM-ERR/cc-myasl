@@ -100,9 +100,9 @@ fn resolve_user_template_corrupt_file_records_error() {
     std::fs::write(templates_dir.join("mytemplate.json"), b"{ not valid").unwrap();
 
     let prior_xdg = std::env::var("XDG_CONFIG_HOME").ok();
-    std::env::set_var("XDG_CONFIG_HOME", dir.path());
+    unsafe { std::env::set_var("XDG_CONFIG_HOME", dir.path()) };
     let prior_sc = std::env::var("STATUSLINE_CONFIG").ok();
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
 
     let mut args = empty_args();
     args.template_name = Some("mytemplate".to_owned());
@@ -110,12 +110,12 @@ fn resolve_user_template_corrupt_file_records_error() {
     let cfg = resolve(&args, &mut trace);
 
     match prior_xdg {
-        Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
-        None => std::env::remove_var("XDG_CONFIG_HOME"),
+        Some(v) => unsafe { std::env::set_var("XDG_CONFIG_HOME", v) },
+        None => unsafe { std::env::remove_var("XDG_CONFIG_HOME") },
     }
     match prior_sc {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
 
     assert!(
@@ -141,21 +141,21 @@ fn resolve_layer4_corrupt_default_file_records_error() {
     std::fs::write(cc_dir.join("config.json"), b"{ not valid").unwrap();
 
     let prior_xdg = std::env::var("XDG_CONFIG_HOME").ok();
-    std::env::set_var("XDG_CONFIG_HOME", dir.path());
+    unsafe { std::env::set_var("XDG_CONFIG_HOME", dir.path()) };
     let prior_sc = std::env::var("STATUSLINE_CONFIG").ok();
-    std::env::remove_var("STATUSLINE_CONFIG");
+    unsafe { std::env::remove_var("STATUSLINE_CONFIG") };
 
     let args = empty_args();
     let mut trace = Trace::default();
     let cfg = resolve(&args, &mut trace);
 
     match prior_xdg {
-        Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
-        None => std::env::remove_var("XDG_CONFIG_HOME"),
+        Some(v) => unsafe { std::env::set_var("XDG_CONFIG_HOME", v) },
+        None => unsafe { std::env::remove_var("XDG_CONFIG_HOME") },
     }
     match prior_sc {
-        Some(v) => std::env::set_var("STATUSLINE_CONFIG", v),
-        None => std::env::remove_var("STATUSLINE_CONFIG"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_CONFIG", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_CONFIG") },
     }
 
     assert!(

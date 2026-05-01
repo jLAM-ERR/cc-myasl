@@ -293,9 +293,11 @@ fn flex_false_deserializes_to_flex_false_then_validate_rejects() {
     let errors = cfg
         .validate_and_clamp()
         .expect_err("flex:false must fail validation");
-    assert!(errors
-        .iter()
-        .any(|e| e.kind == ValidationErrorKind::FlexFalse));
+    assert!(
+        errors
+            .iter()
+            .any(|e| e.kind == ValidationErrorKind::FlexFalse)
+    );
 }
 
 #[test]

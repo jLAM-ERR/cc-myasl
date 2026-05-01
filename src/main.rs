@@ -6,9 +6,8 @@ use std::time::SystemTime;
 use cc_myasl::api::{self, FetchOutcome};
 use cc_myasl::args::Args;
 use cc_myasl::cache::{
-    self,
+    self, ExtraUsageCache, UsageCache, UsageWindowCache,
     lock::{Lock, LockError},
-    ExtraUsageCache, UsageCache, UsageWindowCache,
 };
 use cc_myasl::check;
 use cc_myasl::creds;

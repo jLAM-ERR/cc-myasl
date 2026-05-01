@@ -11,11 +11,11 @@ fn ctx_empty() -> RenderCtx {
 fn compress_home_replaces_prefix() {
     let _guard = crate::creds::HOME_MUTEX.lock().unwrap();
     let saved = std::env::var("HOME").ok();
-    std::env::set_var("HOME", "/home/alice");
+    unsafe { std::env::set_var("HOME", "/home/alice") };
     let result = compress_home(std::path::Path::new("/home/alice/projects/foo"));
     match saved {
-        Some(v) => std::env::set_var("HOME", v),
-        None => std::env::remove_var("HOME"),
+        Some(v) => unsafe { std::env::set_var("HOME", v) },
+        None => unsafe { std::env::remove_var("HOME") },
     }
     assert_eq!(result, Some("~/projects/foo".to_owned()));
 }
@@ -24,11 +24,11 @@ fn compress_home_replaces_prefix() {
 fn compress_home_path_not_under_home_unchanged() {
     let _guard = crate::creds::HOME_MUTEX.lock().unwrap();
     let saved = std::env::var("HOME").ok();
-    std::env::set_var("HOME", "/home/alice");
+    unsafe { std::env::set_var("HOME", "/home/alice") };
     let result = compress_home(std::path::Path::new("/var/data/project"));
     match saved {
-        Some(v) => std::env::set_var("HOME", v),
-        None => std::env::remove_var("HOME"),
+        Some(v) => unsafe { std::env::set_var("HOME", v) },
+        None => unsafe { std::env::remove_var("HOME") },
     }
     assert_eq!(result, Some("/var/data/project".to_owned()));
 }
@@ -37,11 +37,11 @@ fn compress_home_path_not_under_home_unchanged() {
 fn compress_home_empty_home_var_no_substitution() {
     let _guard = crate::creds::HOME_MUTEX.lock().unwrap();
     let saved = std::env::var("HOME").ok();
-    std::env::set_var("HOME", "");
+    unsafe { std::env::set_var("HOME", "") };
     let result = compress_home(std::path::Path::new("/home/alice/foo"));
     match saved {
-        Some(v) => std::env::set_var("HOME", v),
-        None => std::env::remove_var("HOME"),
+        Some(v) => unsafe { std::env::set_var("HOME", v) },
+        None => unsafe { std::env::remove_var("HOME") },
     }
     assert_eq!(result, Some("/home/alice/foo".to_owned()));
 }
@@ -50,11 +50,11 @@ fn compress_home_empty_home_var_no_substitution() {
 fn compress_home_home_unset_no_substitution() {
     let _guard = crate::creds::HOME_MUTEX.lock().unwrap();
     let saved = std::env::var("HOME").ok();
-    std::env::remove_var("HOME");
+    unsafe { std::env::remove_var("HOME") };
     let result = compress_home(std::path::Path::new("/home/alice/foo"));
     match saved {
-        Some(v) => std::env::set_var("HOME", v),
-        None => std::env::remove_var("HOME"),
+        Some(v) => unsafe { std::env::set_var("HOME", v) },
+        None => unsafe { std::env::remove_var("HOME") },
     }
     assert_eq!(result, Some("/home/alice/foo".to_owned()));
 }
@@ -82,15 +82,15 @@ fn project_dir_present_no_tilde() {
 fn project_dir_with_home_tilde() {
     let _guard = crate::creds::HOME_MUTEX.lock().unwrap();
     let saved = std::env::var("HOME").ok();
-    std::env::set_var("HOME", "/home/dev");
+    unsafe { std::env::set_var("HOME", "/home/dev") };
     let ctx = RenderCtx {
         project_dir: Some(PathBuf::from("/home/dev/work/myproject")),
         ..Default::default()
     };
     let result = render_placeholder("project_dir", &ctx);
     match saved {
-        Some(v) => std::env::set_var("HOME", v),
-        None => std::env::remove_var("HOME"),
+        Some(v) => unsafe { std::env::set_var("HOME", v) },
+        None => unsafe { std::env::remove_var("HOME") },
     }
     assert_eq!(result, Some("~/work/myproject".to_owned()));
 }
@@ -189,15 +189,15 @@ fn worktree_name_absent() {
 fn worktree_path_with_home_tilde() {
     let _guard = crate::creds::HOME_MUTEX.lock().unwrap();
     let saved = std::env::var("HOME").ok();
-    std::env::set_var("HOME", "/home/dev");
+    unsafe { std::env::set_var("HOME", "/home/dev") };
     let ctx = RenderCtx {
         worktree_path: Some(PathBuf::from("/home/dev/trees/feature")),
         ..Default::default()
     };
     let result = render_placeholder("worktree_path", &ctx);
     match saved {
-        Some(v) => std::env::set_var("HOME", v),
-        None => std::env::remove_var("HOME"),
+        Some(v) => unsafe { std::env::set_var("HOME", v) },
+        None => unsafe { std::env::remove_var("HOME") },
     }
     assert_eq!(result, Some("~/trees/feature".to_owned()));
 }
@@ -241,15 +241,15 @@ fn worktree_branch_absent() {
 fn worktree_original_cwd_with_home_tilde() {
     let _guard = crate::creds::HOME_MUTEX.lock().unwrap();
     let saved = std::env::var("HOME").ok();
-    std::env::set_var("HOME", "/home/dev");
+    unsafe { std::env::set_var("HOME", "/home/dev") };
     let ctx = RenderCtx {
         worktree_original_cwd: Some(PathBuf::from("/home/dev/main-project")),
         ..Default::default()
     };
     let result = render_placeholder("worktree_original_cwd", &ctx);
     match saved {
-        Some(v) => std::env::set_var("HOME", v),
-        None => std::env::remove_var("HOME"),
+        Some(v) => unsafe { std::env::set_var("HOME", v) },
+        None => unsafe { std::env::remove_var("HOME") },
     }
     assert_eq!(result, Some("~/main-project".to_owned()));
 }
