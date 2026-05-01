@@ -101,7 +101,7 @@ stored credentials.
 
 ## Template Gallery
 
-Eight built-in templates are available. Select one with `--template <NAME>`.
+Nine built-in templates are available. Select one with `--template <NAME>`.
 
 | Name | Sample output |
 |---|---|
@@ -113,6 +113,10 @@ Eight built-in templates are available. Select one with `--template <NAME>`.
 | `emoji` | `claude-opus-4-7 · 🟢 5h 76% · 🟢 7d 59%` |
 | `emoji_verbose` | `🤖 claude-opus-4-7 · 🟢 myproject · ⏳ 76%/59% · ⏰ 18:00` |
 | `verbose` | `claude-opus-4-7 · myproject · 5h:███████░░░ 76% (in 1h24m) · …` |
+| `rich` | 3-line: model + vim mode + context bar / git branch + cwd / cost + clock + tokens |
+
+The `rich` template uses Phase 2 placeholders and renders as three compact lines.
+It collapses gracefully when git or session data is absent.
 
 ---
 
@@ -177,6 +181,40 @@ inline validation:
 Save it to `~/.config/cc-myasl/templates/myfmt.json` and activate with
 `--template myfmt`, or point directly with `--config ~/.config/cc-myasl/templates/myfmt.json`.
 
+### Example: Phase 2 rich config (tokens + context + git)
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/cc-myasl.schema.json",
+  "lines": [
+    {
+      "segments": [
+        { "template": "{model}" },
+        { "template": " · {vim_mode}", "hide_when_absent": true },
+        { "template": " · ctx:{context_bar} {context_used_pct_int}%", "hide_when_absent": true }
+      ]
+    },
+    {
+      "segments": [
+        { "template": "⎇ {git_branch}", "hide_when_absent": true },
+        { "template": " ({git_changes})", "hide_when_absent": true },
+        { "template": " · {cwd}", "hide_when_absent": true }
+      ]
+    },
+    {
+      "segments": [
+        { "template": "{cost_usd}$", "hide_when_absent": true },
+        { "template": " · {session_clock}", "hide_when_absent": true },
+        { "template": " · {tokens_total}tok", "hide_when_absent": true }
+      ]
+    }
+  ]
+}
+```
+
+This is equivalent to the built-in `rich` template. All three lines collapse
+to empty if the corresponding data is absent (e.g. first session, no git repo).
+
 Run `cc-myasl --print-config` to dump the currently resolved config as
 pretty JSON (useful as a starting point for customisation).
 
@@ -188,11 +226,82 @@ All placeholders collapse the surrounding `{? … }` optional block when
 the underlying data is absent. Placeholders outside optional blocks emit
 an empty string when data is missing.
 
-| Placeholder | Renders | Falsy (collapses optional) when |
+### Claude Code stdin — session / model
+
+| Placeholder | Renders | Source field |
 |---|---|---|
-| `{model}` | Model display name | `display_name` absent in stdin |
-| `{cwd}` | Full working directory (`~`-abbreviated) | `workspace.current_dir` absent |
-| `{cwd_basename}` | Last path component of cwd | `workspace.current_dir` absent |
+| `{model}` | Model display name | `model.display_name` |
+| `{model_id}` | Model API ID (e.g. `claude-opus-4-7-20251101`) | `model.id` |
+| `{version}` | Claude Code CLI version | `version` |
+| `{session_id}` | Session UUID | `session_id` |
+| `{session_name}` | Session display name | `session_name` |
+| `{output_style}` | Output style name (e.g. `default`) | `output_style.name` |
+| `{effort}` | Thinking effort level (e.g. `low`, `high`) | `effort.level` |
+| `{thinking_enabled}` | `"thinking"` when thinking on, else absent | `thinking.enabled` |
+| `{vim_mode}` | Vim mode string (e.g. `NORMAL`) | `vim.mode` |
+| `{agent_name}` | Agent name when in an agent session | `agent.name` |
+
+### Claude Code stdin — workspace / worktree
+
+| Placeholder | Renders | Source field |
+|---|---|---|
+| `{cwd}` | Full working directory (`~`-abbreviated) | `workspace.current_dir` |
+| `{cwd_basename}` | Last component of cwd | `workspace.current_dir` |
+| `{project_dir}` | Project root (`~`-abbreviated) | `workspace.project_dir` |
+| `{added_dirs_count}` | Number of additional open directories | `workspace.added_dirs` (count) |
+| `{workspace_git_worktree}` | Worktree name from workspace metadata | `workspace.git_worktree` |
+| `{worktree_name}` | Managed-worktree name (from `--worktree` sessions) | `worktree.name` |
+| `{worktree_path}` | Managed-worktree path (`~`-abbreviated) | `worktree.path` |
+| `{worktree_branch}` | Managed-worktree branch | `worktree.branch` |
+| `{worktree_original_cwd}` | Original cwd before worktree switch | `worktree.original_cwd` |
+| `{worktree_original_branch}` | Original branch before worktree switch | `worktree.original_branch` |
+
+Note: `{workspace_git_worktree}` and `{worktree_name}` have different sources.
+`workspace_git_worktree` is populated for any git worktree Claude Code detects;
+`worktree_name` is only populated during `--worktree`-managed sessions.
+
+### Claude Code stdin — cost / session clock
+
+| Placeholder | Renders | Source field |
+|---|---|---|
+| `{cost_usd}` | Session cost in USD (2 decimal places) | `cost.total_cost_usd` |
+| `{session_clock}` | Elapsed session time (e.g. `1h23m`) | `cost.total_duration_ms` |
+| `{api_duration}` | Total API time (e.g. `45s`) | `cost.total_api_duration_ms` |
+| `{lines_added}` | Lines added this session | `cost.total_lines_added` |
+| `{lines_removed}` | Lines removed this session | `cost.total_lines_removed` |
+| `{lines_changed}` | Lines added + removed | computed |
+
+### Claude Code stdin — token counters
+
+| Placeholder | Renders | Source |
+|---|---|---|
+| `{tokens_input}` | Input tokens (current turn, compact) | `context_window.current_usage.input_tokens` |
+| `{tokens_output}` | Output tokens (current turn, compact) | `context_window.current_usage.output_tokens` |
+| `{tokens_cached_creation}` | Cache-creation tokens (current turn) | `context_window.current_usage.cache_creation_input_tokens` |
+| `{tokens_cached_read}` | Cache-read tokens (current turn) | `context_window.current_usage.cache_read_input_tokens` |
+| `{tokens_cached_total}` | Creation + read cached tokens | computed |
+| `{tokens_total}` | All four token types summed | computed |
+| `{tokens_input_total}` | Total input tokens (session) | `context_window.total_input_tokens` |
+| `{tokens_output_total}` | Total output tokens (session) | `context_window.total_output_tokens` |
+
+Compact notation: `1234` → `"1.2k"`, `1234567` → `"1.2M"`.
+
+### Claude Code stdin — context window
+
+| Placeholder | Renders | Source field |
+|---|---|---|
+| `{context_size}` | Context window size in tokens | `context_window.context_window_size` |
+| `{context_used_pct}` | Context used % (decimal, e.g. `8.3`) | `context_window.used_percentage` |
+| `{context_used_pct_int}` | Context used % (integer, floor) | `context_window.used_percentage` |
+| `{context_remaining_pct}` | Context remaining % (decimal) | `context_window.remaining_percentage` |
+| `{context_bar}` | 10-char block-fill bar of context used | `context_window.used_percentage` |
+| `{context_bar_long}` | 20-char block-fill bar of context used | `context_window.used_percentage` |
+| `{exceeds_200k}` | `"!"` when over 200k tokens, else absent | `exceeds_200k_tokens` |
+
+### Rate limits / API
+
+| Placeholder | Renders | Falsy when |
+|---|---|---|
 | `{five_used}` | 5-hour usage % (decimal, e.g. `23.5`) | `rate_limits.five_hour` absent |
 | `{five_left}` | 5-hour remaining % (integer, e.g. `76`) | `rate_limits.five_hour` absent |
 | `{five_bar}` | 10-char block-fill bar of remaining | `rate_limits.five_hour` absent |
@@ -214,6 +323,22 @@ an empty string when data is missing.
 | `{extra_pct}` | Extra-usage utilisation % (decimal) | `extra_usage.is_enabled` not true |
 | `{state_icon}` | Emoji icon for the worse of 5h/7d state | both windows absent |
 | `{reset}` | ANSI reset escape (`\x1b[0m`) | never (always emits) |
+
+### Git (gix-based, reads the repo containing cwd)
+
+| Placeholder | Renders | Falsy when |
+|---|---|---|
+| `{git_branch}` | Current branch name | not in a git repo / detached HEAD |
+| `{git_root}` | Repo worktree root (`~`-abbreviated) | not in a git repo |
+| `{git_changes}` | Distinct changed-file count | not in a git repo |
+| `{git_staged}` | Staged file count | not in a git repo |
+| `{git_unstaged}` | Unstaged file count | not in a git repo |
+| `{git_untracked}` | Untracked file count | not in a git repo |
+| `{git_status_clean}` | `"clean"` when all counts are 0, else absent | any changes or not in repo |
+
+Git placeholders collapse cleanly when the session's cwd is not inside a
+git repository. Discovery is lazy — git is only probed when the active
+config references a `{git_*}` placeholder.
 
 ### Optional segments
 

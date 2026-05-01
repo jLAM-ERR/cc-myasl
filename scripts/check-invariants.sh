@@ -50,6 +50,13 @@ if grep -r "use crate::format\|use crate::config\|use crate::api\|use crate::cac
     FAILED=1
 fi
 
+# Invariant 10: format/*.rs and format/placeholders/*.rs must NOT import crate::git.
+# (Rendering engine must not reach into the git module; git data flows via RenderCtx primitives.)
+if grep -r "use crate::git" src/format/ 2>/dev/null | grep -v "^\s*//" ; then
+    echo "FAIL: 'use crate::git' found in src/format/ (including placeholders/)" >&2
+    FAILED=1
+fi
+
 if [ "$FAILED" -eq 1 ]; then
     exit 1
 fi

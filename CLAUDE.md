@@ -66,14 +66,16 @@ src/
 ├── check.rs          --check command (only path that may exit non-zero)
 ├── debug.rs          Trace struct + emit_to_stderr
 ├── error.rs          single Error enum + From impls
-├── payload.rs        serde for Claude Code stdin JSON
+├── payload.rs        serde for Claude Code stdin JSON (extended in Phase 2)
+├── payload_mapping.rs  Payload → RenderCtx mapping (extracted from main.rs in Phase 2)
 ├── creds.rs          Keychain (macOS) + ~/.claude/.credentials.json fallback
 ├── time.rs           utc→local clock, ms→"2h13m" countdown, ISO-8601 parser
 ├── args.rs           hand-rolled CLI parser (no clap)
 ├── api/{mod,response,retry}.rs       HTTP client + serde + Retry-After
 ├── cache/{mod,lock,backoff,atomic_helper}.rs   Disk cache + lock + backoff ladder
 ├── format/{mod,parser,placeholders,values,thresholds}.rs   Template engine (segment rendering)
-└── config/{mod,schema,builtins,render}.rs      Structured JSON config + 8 built-ins + multi-line renderer
+├── config/{mod,schema,builtins,render}.rs      Structured JSON config + 9 built-ins + multi-line renderer
+└── git/{mod,status}.rs               gix-based git discovery + branch/root + status counters
 ```
 
 ### Three-stage render flow (`main.rs`)
@@ -111,6 +113,11 @@ exit non-zero.
 9. **`git/*.rs` must NOT import `crate::format`, `crate::config`, `crate::api`,
    or `crate::cache`** — low-level module; verified by string-scan test in
    `git::tests` and by `scripts/check-invariants.sh`.
+10. **`format/*.rs` (including `format/placeholders/*.rs`) must NOT import
+    `crate::git`** — git data flows into `RenderCtx` as primitives via
+    `payload_mapping::populate_git_ctx`; the render engine never reaches the
+    git module directly. Verified by string-scan test in
+    `format::placeholders::tests` and by `scripts/check-invariants.sh`.
 
 ### Format engine decoupling invariant
 
@@ -126,7 +133,7 @@ by string-scanning the source files.
 
 ### Cross-test env-var serialization
 
-Tests that read or mutate process-global env vars share four mutexes
+Tests that read or mutate process-global env vars share five mutexes
 (`pub(crate)` from their respective modules):
 
 - `creds::HOME_MUTEX` — for tests touching `HOME`. Tests that mutate it
@@ -139,6 +146,9 @@ Tests that read or mutate process-global env vars share four mutexes
   `config::render` for deterministic flex-spacer width in unit tests.
   It is never set by production code and must NOT appear in README or
   user-facing docs. Declared in `src/config/render.rs` (test-gated).
+- `git::GIT_ENV_MUTEX` — for tests touching `GIT_CEILING_DIRECTORIES` (used
+  to prevent gix discovery from walking outside the test tempdir). Declared
+  in `src/git/mod.rs` (test-gated).
 
 Without these, parallel `cargo test` interleaves env writes and tests
 flap. If you add a new test that reads or writes any of these vars,
@@ -169,6 +179,10 @@ acquire the appropriate mutex and restore prior values before releasing.
   with `rustls` only enforces TLS for `https://`), assert structural
   output. The 8 fixtures cover hot-path, OAuth-fallback, 401/429/500,
   malformed-payload, and fixture-hygiene paths.
+- **Phase 2 golden tests** (`tests/golden_phase2.rs`) use
+  `tests/fixtures/full-payload.json` as the standard fixture — a
+  comprehensive stdin payload populating every Phase 2 field. Use this
+  fixture as the base for any new placeholder tests.
 - **No real-network tests** in CI. The one `#[ignore]`-marked test in
   `api::tests` exercises a real `https://example.com` request only when
   invoked manually via `cargo test -- --ignored`.
@@ -209,6 +223,10 @@ acquire the appropriate mutex and restore prior values before releasing.
   dependency invariants enforced by string-scan unit tests.
 - Do NOT edit `~/.claude/settings.json` from `install.sh`. Print the
   snippet; let the user merge.
+- Do NOT implement `{skills}` or `{git_pr}` in Phase 2 or without a
+  separate plan. `{skills}` requires hook data not in stdin;
+  `{git_pr}` requires a `gh`/`glab` shell-out plus authenticated API call.
+  Both are explicitly deferred to a future plan.
 
 ## Reference docs
 
@@ -221,3 +239,6 @@ acquire the appropriate mutex and restore prior values before releasing.
   authoritative implementation plan, all tasks `[x]`.
 - `docs/plans/completed/2026-05-01-phase1-structured-config.md` —
   Phase 1 structured-config rewrite. Implementation complete.
+- `docs/plans/2026-05-01-phase2-placeholder-expansion.md` —
+  Phase 2 placeholder expansion (stdin extension + gix-based git module).
+  Implementation complete; will be moved to `completed/` in Task 14.
