@@ -1,6 +1,6 @@
 //! Multi-line config renderer with flex-spacer support.
 
-use crate::config::schema::{Config, Segment, MAX_LINES};
+use crate::config::schema::{Config, MAX_LINES, Segment};
 use crate::format::{self, placeholders::RenderCtx};
 
 const FLEX_MARKER: &str = "\x00FLEX\x00";
@@ -301,7 +301,7 @@ mod tests {
     fn flex_with_test_cols_80_fills_to_width() {
         let _guard = COLS_MUTEX.lock().unwrap();
         let prior = std::env::var("STATUSLINE_TEST_COLS").ok();
-        std::env::set_var("STATUSLINE_TEST_COLS", "80");
+        unsafe { std::env::set_var("STATUSLINE_TEST_COLS", "80") };
 
         let config = Config {
             schema_url: None,
@@ -319,8 +319,8 @@ mod tests {
 
         // Restore before assert (guard released after)
         match prior {
-            Some(v) => std::env::set_var("STATUSLINE_TEST_COLS", v),
-            None => std::env::remove_var("STATUSLINE_TEST_COLS"),
+            Some(v) => unsafe { std::env::set_var("STATUSLINE_TEST_COLS", v) },
+            None => unsafe { std::env::remove_var("STATUSLINE_TEST_COLS") },
         }
 
         let w = visible_width(&out);
@@ -331,7 +331,7 @@ mod tests {
     fn flex_with_test_cols_10_content_5_filler_5() {
         let _guard = COLS_MUTEX.lock().unwrap();
         let prior = std::env::var("STATUSLINE_TEST_COLS").ok();
-        std::env::set_var("STATUSLINE_TEST_COLS", "10");
+        unsafe { std::env::set_var("STATUSLINE_TEST_COLS", "10") };
 
         let config = Config {
             schema_url: None,
@@ -347,8 +347,8 @@ mod tests {
         let out = render(&config, &ctx);
 
         match prior {
-            Some(v) => std::env::set_var("STATUSLINE_TEST_COLS", v),
-            None => std::env::remove_var("STATUSLINE_TEST_COLS"),
+            Some(v) => unsafe { std::env::set_var("STATUSLINE_TEST_COLS", v) },
+            None => unsafe { std::env::remove_var("STATUSLINE_TEST_COLS") },
         }
 
         let trailing_spaces = out.len() - out.trim_end().len();
@@ -359,7 +359,7 @@ mod tests {
     fn flex_without_width_set_degrades_to_one_space() {
         let _guard = COLS_MUTEX.lock().unwrap();
         let prior = std::env::var("STATUSLINE_TEST_COLS").ok();
-        std::env::remove_var("STATUSLINE_TEST_COLS");
+        unsafe { std::env::remove_var("STATUSLINE_TEST_COLS") };
 
         // Build a line whose content alone is wider than any terminal we'd see
         // (to guarantee fallback-to-80 triggers if terminal_size returns None).
@@ -375,8 +375,8 @@ mod tests {
         let out = render(&config, &ctx);
 
         match prior {
-            Some(v) => std::env::set_var("STATUSLINE_TEST_COLS", v),
-            None => std::env::remove_var("STATUSLINE_TEST_COLS"),
+            Some(v) => unsafe { std::env::set_var("STATUSLINE_TEST_COLS", v) },
+            None => unsafe { std::env::remove_var("STATUSLINE_TEST_COLS") },
         }
 
         // The flex region must be at least 1 space.

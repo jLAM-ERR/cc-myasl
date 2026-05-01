@@ -48,10 +48,10 @@ fn populate_git_ctx_inside_repo_sets_branch() {
 fn populate_git_ctx_outside_repo_all_none() {
     let _guard = crate::git::GIT_ENV_MUTEX.lock().unwrap();
     let dir = tempfile::tempdir().expect("tempdir");
-    std::env::set_var("GIT_CEILING_DIRECTORIES", dir.path());
+    unsafe { std::env::set_var("GIT_CEILING_DIRECTORIES", dir.path()) };
     let mut ctx = crate::format::RenderCtx::default();
     populate_git_ctx(&mut ctx, dir.path());
-    std::env::remove_var("GIT_CEILING_DIRECTORIES");
+    unsafe { std::env::remove_var("GIT_CEILING_DIRECTORIES") };
     assert!(ctx.git_branch.is_none());
     assert!(ctx.git_root.is_none());
     assert!(ctx.git_changes_count.is_none());
@@ -65,10 +65,10 @@ fn populate_git_ctx_nonexistent_cwd_returns_all_none() {
     let _guard = crate::git::GIT_ENV_MUTEX.lock().unwrap();
     let dir = tempfile::tempdir().expect("tempdir");
     let gone = dir.path().join("does_not_exist_xyz");
-    std::env::set_var("GIT_CEILING_DIRECTORIES", dir.path());
+    unsafe { std::env::set_var("GIT_CEILING_DIRECTORIES", dir.path()) };
     let mut ctx = crate::format::RenderCtx::default();
     populate_git_ctx(&mut ctx, &gone);
-    std::env::remove_var("GIT_CEILING_DIRECTORIES");
+    unsafe { std::env::remove_var("GIT_CEILING_DIRECTORIES") };
     assert!(
         ctx.git_branch.is_none(),
         "nonexistent cwd must yield None branch"

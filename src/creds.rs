@@ -7,7 +7,7 @@
 //! This seam lets unit tests exercise all JSON-parsing branches without
 //! spawning the `security` binary.
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
@@ -319,9 +319,9 @@ mod tests {
 
         // Override HOME so `directories::BaseDirs` resolves to our tempdir.
         // SAFETY: single-threaded section serialised by HOME_MUTEX.
-        std::env::set_var("HOME", dir.path());
+        unsafe { std::env::set_var("HOME", dir.path()) };
         let result = read_token();
-        std::env::remove_var("HOME");
+        unsafe { std::env::remove_var("HOME") };
 
         assert_eq!(result.unwrap(), FIXTURE_TOKEN);
     }
@@ -334,9 +334,9 @@ mod tests {
         std::fs::create_dir_all(&claude_dir).unwrap();
         std::fs::write(claude_dir.join(".credentials.json"), MALFORMED_JSON).unwrap();
 
-        std::env::set_var("HOME", dir.path());
+        unsafe { std::env::set_var("HOME", dir.path()) };
         let result = read_token();
-        std::env::remove_var("HOME");
+        unsafe { std::env::remove_var("HOME") };
 
         assert!(result.is_err(), "malformed file should yield Err");
         // Token must not appear in the error.
@@ -349,9 +349,9 @@ mod tests {
         let dir = tempdir().unwrap();
         // Don't create .claude dir at all.
 
-        std::env::set_var("HOME", dir.path());
+        unsafe { std::env::set_var("HOME", dir.path()) };
         let result = read_token();
-        std::env::remove_var("HOME");
+        unsafe { std::env::remove_var("HOME") };
 
         assert!(result.is_err(), "missing file should yield Err");
     }
@@ -449,10 +449,10 @@ mod tests {
     fn redact_home_behaviour() {
         let _guard = HOME_MUTEX.lock().unwrap();
         let original = std::env::var("HOME").ok();
-        std::env::set_var("HOME", "/home/testuser");
+        unsafe { std::env::set_var("HOME", "/home/testuser") };
         let in_msg = redact_home("not found at /home/testuser/.claude/.credentials.json");
         let no_match = redact_home("/tmp/something");
-        let _restore = original.map(|v| std::env::set_var("HOME", v));
+        let _restore = original.map(|v| unsafe { std::env::set_var("HOME", v) });
         assert_eq!(in_msg, "not found at ~/.claude/.credentials.json");
         assert_eq!(no_match, "/tmp/something");
     }
@@ -464,9 +464,9 @@ mod tests {
         use tempfile::tempdir;
         let dir = tempdir().unwrap();
         let fake_home = dir.path().to_str().unwrap().to_owned();
-        std::env::set_var("HOME", &fake_home);
+        unsafe { std::env::set_var("HOME", &fake_home) };
         let result = read_token();
-        std::env::remove_var("HOME");
+        unsafe { std::env::remove_var("HOME") };
         let msg = format!("{:?}", result.expect_err("missing file should yield Err"));
         assert!(!msg.contains(&fake_home), "expanded HOME in error: {msg}");
         assert!(msg.contains("~/.claude"), "tilde path missing: {msg}");

@@ -89,8 +89,8 @@ mod tests {
     fn classify_default_thresholds() {
         // default red=20, yellow=50
         let _guard = ENV_LOCK.lock().unwrap();
-        std::env::remove_var("STATUSLINE_RED");
-        std::env::remove_var("STATUSLINE_YELLOW");
+        unsafe { std::env::remove_var("STATUSLINE_RED") };
+        unsafe { std::env::remove_var("STATUSLINE_YELLOW") };
 
         assert_eq!(classify(Some(10.0)), State::Red);
         assert_eq!(classify(Some(30.0)), State::Yellow);
@@ -100,8 +100,8 @@ mod tests {
     #[test]
     fn classify_boundary_at_default_red() {
         let _guard = ENV_LOCK.lock().unwrap();
-        std::env::remove_var("STATUSLINE_RED");
-        std::env::remove_var("STATUSLINE_YELLOW");
+        unsafe { std::env::remove_var("STATUSLINE_RED") };
+        unsafe { std::env::remove_var("STATUSLINE_YELLOW") };
 
         // exactly at red threshold → still Yellow (not < red)
         assert_eq!(classify(Some(20.0)), State::Yellow);
@@ -113,30 +113,30 @@ mod tests {
     fn classify_env_override() {
         let _guard = ENV_LOCK.lock().unwrap();
         // Override: red=30, yellow=60
-        std::env::set_var("STATUSLINE_RED", "30");
-        std::env::set_var("STATUSLINE_YELLOW", "60");
+        unsafe { std::env::set_var("STATUSLINE_RED", "30") };
+        unsafe { std::env::set_var("STATUSLINE_YELLOW", "60") };
 
         assert_eq!(classify(Some(25.0)), State::Red); // 25 < 30
         assert_eq!(classify(Some(45.0)), State::Yellow); // 30 <= 45 < 60
         assert_eq!(classify(Some(75.0)), State::Green); // >= 60
 
-        std::env::remove_var("STATUSLINE_RED");
-        std::env::remove_var("STATUSLINE_YELLOW");
+        unsafe { std::env::remove_var("STATUSLINE_RED") };
+        unsafe { std::env::remove_var("STATUSLINE_YELLOW") };
     }
 
     #[test]
     fn classify_invalid_env_falls_back_to_default() {
         let _guard = ENV_LOCK.lock().unwrap();
-        std::env::set_var("STATUSLINE_RED", "not_a_number");
-        std::env::set_var("STATUSLINE_YELLOW", "also_bad");
+        unsafe { std::env::set_var("STATUSLINE_RED", "not_a_number") };
+        unsafe { std::env::set_var("STATUSLINE_YELLOW", "also_bad") };
 
         // Should fall back to default red=20, yellow=50
         assert_eq!(classify(Some(10.0)), State::Red);
         assert_eq!(classify(Some(30.0)), State::Yellow);
         assert_eq!(classify(Some(70.0)), State::Green);
 
-        std::env::remove_var("STATUSLINE_RED");
-        std::env::remove_var("STATUSLINE_YELLOW");
+        unsafe { std::env::remove_var("STATUSLINE_RED") };
+        unsafe { std::env::remove_var("STATUSLINE_YELLOW") };
     }
 
     #[test]

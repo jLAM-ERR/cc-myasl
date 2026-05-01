@@ -1,5 +1,5 @@
 use super::*;
-use crate::config::schema::{Segment, TemplateSegment, MAX_PADDING};
+use crate::config::schema::{MAX_PADDING, Segment, TemplateSegment};
 
 // ---------------------------------------------------------------------------
 // lookup: boundary and edge-case names

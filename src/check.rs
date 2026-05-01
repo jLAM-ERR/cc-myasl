@@ -52,11 +52,7 @@ impl CheckReport {
 /// Returns 0 if every section passed; 1 otherwise.
 pub fn run() -> i32 {
     let report = run_inner();
-    if report.all_ok() {
-        0
-    } else {
-        1
-    }
+    if report.all_ok() { 0 } else { 1 }
 }
 
 /// Orchestrate the four section checks and return a `CheckReport`.

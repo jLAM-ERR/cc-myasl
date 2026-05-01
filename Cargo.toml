@@ -1,7 +1,7 @@
 [package]
 name = "cc-myasl"
 version = "0.1.1"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 description = "cc-myasl — My Yet Another Status Line for Claude Code (remaining 5h/7d Claude.ai token quota)"
 repository = "https://github.com/jLAM-ERR/cc-myasl"

@@ -284,11 +284,11 @@ fn visible_width_ansi_then_plain() {
 fn flex_only_segment_fills_entire_width() {
     let _guard = COLS_MUTEX.lock().unwrap();
     let prior = std::env::var("STATUSLINE_TEST_COLS").ok();
-    std::env::set_var("STATUSLINE_TEST_COLS", "20");
+    unsafe { std::env::set_var("STATUSLINE_TEST_COLS", "20") };
     let out = render(&one_line("", vec![flex_seg()]), &RenderCtx::default());
     match &prior {
-        Some(v) => std::env::set_var("STATUSLINE_TEST_COLS", v),
-        None => std::env::remove_var("STATUSLINE_TEST_COLS"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_TEST_COLS", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_TEST_COLS") },
     }
     assert_eq!(out.len(), 20, "flex-only must be 20 spaces; got {out:?}");
     assert!(out.chars().all(|c| c == ' '));
@@ -299,12 +299,12 @@ fn flex_only_segment_fills_entire_width() {
 fn flex_natural_width_exceeds_terminal_width_produces_one_space() {
     let _guard = COLS_MUTEX.lock().unwrap();
     let prior = std::env::var("STATUSLINE_TEST_COLS").ok();
-    std::env::set_var("STATUSLINE_TEST_COLS", "5");
+    unsafe { std::env::set_var("STATUSLINE_TEST_COLS", "5") };
     let config = one_line("", vec![tmpl_seg("hello", 0, false), flex_seg()]);
     let out = render(&config, &RenderCtx::default());
     match &prior {
-        Some(v) => std::env::set_var("STATUSLINE_TEST_COLS", v),
-        None => std::env::remove_var("STATUSLINE_TEST_COLS"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_TEST_COLS", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_TEST_COLS") },
     }
     assert_eq!(
         out.len() - out.trim_end().len(),
@@ -318,12 +318,12 @@ fn flex_natural_width_exceeds_terminal_width_produces_one_space() {
 fn flex_test_cols_zero_produces_one_space() {
     let _guard = COLS_MUTEX.lock().unwrap();
     let prior = std::env::var("STATUSLINE_TEST_COLS").ok();
-    std::env::set_var("STATUSLINE_TEST_COLS", "0");
+    unsafe { std::env::set_var("STATUSLINE_TEST_COLS", "0") };
     let config = one_line("", vec![tmpl_seg("A", 0, false), flex_seg()]);
     let out = render(&config, &RenderCtx::default());
     match &prior {
-        Some(v) => std::env::set_var("STATUSLINE_TEST_COLS", v),
-        None => std::env::remove_var("STATUSLINE_TEST_COLS"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_TEST_COLS", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_TEST_COLS") },
     }
     assert_eq!(
         out.len() - out.trim_end_matches(' ').len(),
@@ -337,12 +337,12 @@ fn flex_test_cols_zero_produces_one_space() {
 fn flex_test_cols_non_numeric_falls_back_gracefully() {
     let _guard = COLS_MUTEX.lock().unwrap();
     let prior = std::env::var("STATUSLINE_TEST_COLS").ok();
-    std::env::set_var("STATUSLINE_TEST_COLS", "abc");
+    unsafe { std::env::set_var("STATUSLINE_TEST_COLS", "abc") };
     let config = one_line("", vec![tmpl_seg("A", 0, false), flex_seg()]);
     let out = render(&config, &RenderCtx::default());
     match &prior {
-        Some(v) => std::env::set_var("STATUSLINE_TEST_COLS", v),
-        None => std::env::remove_var("STATUSLINE_TEST_COLS"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_TEST_COLS", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_TEST_COLS") },
     }
     assert!(
         out.starts_with('A') && out.len() > 1,
@@ -355,12 +355,12 @@ fn flex_test_cols_non_numeric_falls_back_gracefully() {
 fn flex_test_cols_empty_string_falls_back_gracefully() {
     let _guard = COLS_MUTEX.lock().unwrap();
     let prior = std::env::var("STATUSLINE_TEST_COLS").ok();
-    std::env::set_var("STATUSLINE_TEST_COLS", "");
+    unsafe { std::env::set_var("STATUSLINE_TEST_COLS", "") };
     let config = one_line("", vec![tmpl_seg("B", 0, false), flex_seg()]);
     let out = render(&config, &RenderCtx::default());
     match &prior {
-        Some(v) => std::env::set_var("STATUSLINE_TEST_COLS", v),
-        None => std::env::remove_var("STATUSLINE_TEST_COLS"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_TEST_COLS", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_TEST_COLS") },
     }
     assert!(
         out.starts_with('B') && out.len() > 1,
@@ -374,7 +374,7 @@ fn flex_test_cols_empty_string_falls_back_gracefully() {
 fn flex_two_flex_segments_total_width_does_not_overshoot() {
     let _guard = COLS_MUTEX.lock().unwrap();
     let prior = std::env::var("STATUSLINE_TEST_COLS").ok();
-    std::env::set_var("STATUSLINE_TEST_COLS", "20");
+    unsafe { std::env::set_var("STATUSLINE_TEST_COLS", "20") };
     // "ABCDE" = 5 visible chars; two flex markers; term_width = 20.
     let config = one_line(
         "",
@@ -382,8 +382,8 @@ fn flex_two_flex_segments_total_width_does_not_overshoot() {
     );
     let out = render(&config, &RenderCtx::default());
     match &prior {
-        Some(v) => std::env::set_var("STATUSLINE_TEST_COLS", v),
-        None => std::env::remove_var("STATUSLINE_TEST_COLS"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_TEST_COLS", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_TEST_COLS") },
     }
     let w = visible_width(&out);
     assert!(
@@ -402,7 +402,7 @@ fn flex_two_flex_segments_total_width_does_not_overshoot() {
 fn flex_two_flex_segments_bypass_validation_safe() {
     let _guard = COLS_MUTEX.lock().unwrap();
     let prior = std::env::var("STATUSLINE_TEST_COLS").ok();
-    std::env::set_var("STATUSLINE_TEST_COLS", "20");
+    unsafe { std::env::set_var("STATUSLINE_TEST_COLS", "20") };
     let config = one_line(
         "",
         vec![
@@ -414,8 +414,8 @@ fn flex_two_flex_segments_bypass_validation_safe() {
     );
     let out = render(&config, &RenderCtx::default());
     match &prior {
-        Some(v) => std::env::set_var("STATUSLINE_TEST_COLS", v),
-        None => std::env::remove_var("STATUSLINE_TEST_COLS"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_TEST_COLS", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_TEST_COLS") },
     }
     assert!(
         out.contains('A') && out.contains('B'),
@@ -433,7 +433,7 @@ fn flex_two_flex_segments_bypass_validation_safe() {
 fn flex_with_ansi_colored_segments_correct_fill() {
     let _guard = COLS_MUTEX.lock().unwrap();
     let prior = std::env::var("STATUSLINE_TEST_COLS").ok();
-    std::env::set_var("STATUSLINE_TEST_COLS", "10");
+    unsafe { std::env::set_var("STATUSLINE_TEST_COLS", "10") };
     // "\x1b[32mAB\x1b[0m" → 2 visible chars; flex fills remaining 8
     let config = one_line(
         "",
@@ -441,8 +441,8 @@ fn flex_with_ansi_colored_segments_correct_fill() {
     );
     let out = render(&config, &RenderCtx::default());
     match &prior {
-        Some(v) => std::env::set_var("STATUSLINE_TEST_COLS", v),
-        None => std::env::remove_var("STATUSLINE_TEST_COLS"),
+        Some(v) => unsafe { std::env::set_var("STATUSLINE_TEST_COLS", v) },
+        None => unsafe { std::env::remove_var("STATUSLINE_TEST_COLS") },
     }
     let w = visible_width(&out);
     assert_eq!(w, 10, "visible width must be 10; got {w}, out={out:?}");
