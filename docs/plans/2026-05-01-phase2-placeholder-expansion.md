@@ -457,7 +457,7 @@ standard Rust prompt — uses `gix` for repository discovery.
 - Modify: `src/lib.rs` (add `pub mod git;`)
 - Modify: `CLAUDE.md` (locked-dep set)
 
-- [ ] add `gix = { version = "0.70", default-features = false,
+- [x] add `gix = { version = "0.70", default-features = false,
       features = [] }` to `Cargo.toml`. **Start with `features =
       []`** and add only what is needed for the API calls we
       actually use (discovery, branch reading, status counters).
@@ -467,10 +467,10 @@ standard Rust prompt — uses `gix` for repository discovery.
       candidates: `revision`, `status`, `index`, `parallel`. Skip
       `blocking-http-transport-curl`, `async-network-client`,
       `gpgme`, anything similarly heavy.
-- [ ] document the chosen feature set in a comment above the
+- [x] document the chosen feature set in a comment above the
       dep declaration (e.g., `# features: revision, status —
       minimal for branch + status counters; no network`)
-- [ ] **Cross-target verification:** the CI release matrix builds
+- [x] **Cross-target verification:** the CI release matrix builds
       `x86_64-unknown-linux-musl` and
       `aarch64-unknown-linux-musl`. Verify gix slim build compiles
       on musl: run `cargo build --target x86_64-unknown-linux-musl`
@@ -478,7 +478,9 @@ standard Rust prompt — uses `gix` for repository discovery.
       throwaway branch to trigger CI early. If musl fails, document
       the failure in the plan as `⚠️` and switch to shell-out for
       git (the deferred plan B).
-- [ ] in `src/git/mod.rs`, add:
+      ⚠️ MUSL VERIFICATION DEFERRED — no musl target installed locally;
+      deferred to PR CI matrix.
+- [x] in `src/git/mod.rs`, add:
       - `pub fn discover(start: &Path) -> Option<Repo>` — wraps
         `gix::discover` and returns a small `Repo` newtype that
         owns the gix repository handle
@@ -486,20 +488,20 @@ standard Rust prompt — uses `gix` for repository discovery.
         short branch name; None for detached HEAD
       - `pub fn root(&Repo) -> Option<PathBuf>` — returns the
         worktree root (NOT the .git dir)
-- [ ] keep all errors INTERNAL — git module returns `Option`,
+- [x] keep all errors INTERNAL — git module returns `Option`,
       never `Result`. The render path can never error out;
       "no info" is the always-safe fallback.
-- [ ] write unit tests using `tempfile` + `git init` (shell out
+- [x] write unit tests using `tempfile` + `git init` (shell out
       via `std::process::Command` is fine for test setup):
       - `discover` returns Some inside a repo, None outside
       - `branch` returns Some("main") on a fresh repo with one
         commit
       - `branch` returns None for a detached HEAD
       - `root` returns the canonical repo path
-- [ ] update CLAUDE.md "locked dep set" section to add
+- [x] update CLAUDE.md "locked dep set" section to add
       `gix` with one-line justification
-- [ ] run `cargo build`, `cargo tree`, `cargo test git` — all pass
-- [ ] LOC check: `src/git/mod.rs` < 500
+- [x] run `cargo build`, `cargo tree`, `cargo test git` — all pass
+- [x] LOC check: `src/git/mod.rs` < 500
 
 ### Task 10: Add git-status counters + new placeholders
 
