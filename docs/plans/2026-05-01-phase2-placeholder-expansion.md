@@ -572,20 +572,21 @@ standard Rust prompt — uses `gix` for repository discovery.
 **Files:**
 - Modify: `src/config/builtins.rs`
 
-- [ ] **Locked decision:** the 8 existing built-in templates
+- [x] **Locked decision:** the 8 existing built-in templates
       (`default`, `minimal`, `compact`, `bars`, `colored`, `emoji`,
       `emoji_verbose`, `verbose`) MUST NOT be modified — Phase 1's
       `golden_output_unchanged` test pins them byte-for-byte
       against pre-Phase-1 .txt outputs.
-- [ ] add ONE new built-in called `rich` that uses the new
+- [x] add ONE new built-in called `rich` that uses the new
       placeholders: tokens, context bar, git_branch,
       session_clock, vim_mode (if non-None). Document it in the
       function's docstring as the Phase-2 showcase template.
-- [ ] update `lookup` to add `rich`. Update any `ALL_NAMES`
+- [x] update `lookup` to add `rich`. Update any `ALL_NAMES`
       array if present.
-- [ ] write unit tests: `rich` validates without errors; `rich`
+- [x] write unit tests: `rich` validates without errors; `rich`
       renders non-empty output against the full-payload fixture.
-- [ ] run `cargo test config::builtins` — all pass
+- [x] run `cargo test config::builtins` ��� all pass
+- ⚠️ `builtins.rs` split into `builtins.rs` + `builtins/templates.rs` to stay within 500-LOC ceiling after cargo fmt expansion.
 
 ### Task 12: Add Phase 2 golden test
 
