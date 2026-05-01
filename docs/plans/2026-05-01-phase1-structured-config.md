@@ -285,16 +285,16 @@ locked in, so a clean break is cheap now and expensive later.
 - Modify: `src/format/mod.rs`
 - Modify: `src/check.rs` (still calls `format::render` — must stay compiling)
 
-- [ ] add the new public `render_segment` function (already done in Task 4 if not earlier; either way confirm signature + tests)
-- [ ] delete `pub const DEFAULT_TEMPLATE`
-- [ ] delete `pub fn lookup_template` (callers move to `config::builtins::lookup`)
-- [ ] **DO NOT delete `pub fn render(template, ctx) -> String` yet** — `check.rs:201` still calls it. Mark `#[deprecated(note = "Phase-1 transition only — replaced by config::render in Task 10")]` and keep the function body intact. Final removal happens after Task 10 confirms `check.rs` no longer references it.
-- [ ] add a string-scan invariant test in `format::mod::tests`: assert no `src/format/**/*.rs` file contains `use crate::config` (one-way dependency)
-- [ ] update existing `format::tests` that referenced `DEFAULT_TEMPLATE` or `lookup_template` to use the new path or delete if obsolete
-- [ ] suppress the `deprecated` warning ONLY in `check.rs` for the transitional call site (`#[allow(deprecated)]` at the function level enclosing the `format::render` call). The CI gate runs `cargo clippy --all-targets -- -D warnings` which passes `-D warnings` to the compiler, making the rustc `deprecated` lint a hard error — without this suppression, the build will fail.
-- [ ] run `cargo build`; must compile cleanly
-- [ ] run `cargo clippy --all-targets -- -D warnings`; must pass — confirms the `#[allow(deprecated)]` is correctly scoped
-- [ ] run `cargo test format`; all pass; LOC check; ensure file shrinks (was 320; should drop to ~200) — must pass before next task
+- [x] add the new public `render_segment` function (already done in Task 4 if not earlier; either way confirm signature + tests)
+- [x] delete `pub const DEFAULT_TEMPLATE`
+- [x] delete `pub fn lookup_template` (callers move to `config::builtins::lookup`)
+- [x] **DO NOT delete `pub fn render(template, ctx) -> String` yet** — `check.rs:201` still calls it. Mark `#[deprecated(note = "Phase-1 transition only — replaced by config::render in Task 10")]` and keep the function body intact. Final removal happens after Task 10 confirms `check.rs` no longer references it.
+- [x] add a string-scan invariant test in `format::mod::tests`: assert no `src/format/**/*.rs` file contains `use crate::config` (one-way dependency)
+- [x] update existing `format::tests` that referenced `DEFAULT_TEMPLATE` or `lookup_template` to use the new path or delete if obsolete
+- [x] suppress the `deprecated` warning ONLY in `check.rs` for the transitional call site (`#[allow(deprecated)]` at the function level enclosing the `format::render` call). The CI gate runs `cargo clippy --all-targets -- -D warnings` which passes `-D warnings` to the compiler, making the rustc `deprecated` lint a hard error — without this suppression, the build will fail.
+- [x] run `cargo build`; must compile cleanly
+- [x] run `cargo clippy --all-targets -- -D warnings`; must pass — confirms the `#[allow(deprecated)]` is correctly scoped
+- [x] run `cargo test format`; all pass; LOC check; ensure file shrinks (was 320; should drop to ~200) — must pass before next task
 
 ### Task 7: Update `args.rs` — new flags
 

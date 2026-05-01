@@ -21,6 +21,7 @@ use cc_myasl::time;
 // ── constants ─────────────────────────────────────────────────────────────────
 
 use cc_myasl::api::DEFAULT_OAUTH_BASE_URL;
+#[allow(deprecated)]
 use cc_myasl::format::DEFAULT_TEMPLATE;
 
 const CACHE_TTL_SECS: u64 = 180;
@@ -244,6 +245,7 @@ fn build_cache_from_response(r: &api::UsageResponse, now: u64) -> UsageCache {
 }
 
 /// Resolve template: `--format` > `STATUSLINE_FORMAT` env > `--template` > built-in default.
+#[allow(deprecated)]
 fn resolve_template(args: &Args) -> String {
     if let Some(f) = &args.format {
         return f.clone();
@@ -261,6 +263,7 @@ fn resolve_template(args: &Args) -> String {
     DEFAULT_TEMPLATE.to_string()
 }
 
+#[allow(deprecated)]
 fn render_and_emit(trace: &mut Trace, args: &Args, ctx: &RenderCtx, started: SystemTime) {
     let line = format::render(&resolve_template(args), ctx);
     println!("{}", line);
@@ -294,6 +297,7 @@ fn print_usage() {
 // ── tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
     use cc_myasl::args;

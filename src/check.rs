@@ -16,6 +16,7 @@ use crate::format::{self, RenderCtx};
 // ── shared constants from sibling modules ─────────────────────────────────────
 
 use crate::api::DEFAULT_OAUTH_BASE_URL;
+#[allow(deprecated)]
 use crate::format::DEFAULT_TEMPLATE;
 
 // ── report ────────────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ pub fn run() -> i32 {
 
 /// Orchestrate the four section checks and return a `CheckReport`.
 /// Prints each section's result to stdout.
+#[allow(deprecated)]
 pub fn run_inner() -> CheckReport {
     let mut report = CheckReport::default();
     let mut out = std::io::stdout();
@@ -149,9 +151,6 @@ fn check_network(report: &mut CheckReport, token: Option<&str>, base_url: &str) 
 }
 
 /// Collapse the home-directory prefix of `path` to `~` for display.
-///
-/// Returns the tilde-collapsed string if `$HOME` is set and the path starts
-/// with it; otherwise returns the full path string unchanged.
 fn display_tilde(path: &Path) -> String {
     creds::redact_home(&path.display().to_string())
 }
@@ -187,6 +186,7 @@ fn check_cache(report: &mut CheckReport, dir: &Path) {
 }
 
 /// Check format; print result.
+#[allow(deprecated)]
 fn check_format(report: &mut CheckReport, template: &str) {
     let ctx = RenderCtx {
         model: Some("claude-opus-4".to_string()),
@@ -218,6 +218,7 @@ fn check_format(report: &mut CheckReport, template: &str) {
 // ── tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
     use std::sync::Mutex;

@@ -12,6 +12,7 @@ pub use placeholders::RenderCtx;
 /// nor a `--template <NAME>` lookup resolves to anything.  Single source of
 /// truth — both `main::resolve_template` and `check::report_format` consume
 /// this constant; do not duplicate.
+#[deprecated(note = "Phase-1 transition only — replaced by config::builtins::default in Task 10")]
 pub const DEFAULT_TEMPLATE: &str =
     "{model}{? · 5h: {five_left}%}{? · 7d: {seven_left}%}{? (resets {seven_reset_clock})}";
 
@@ -22,6 +23,7 @@ pub const DEFAULT_TEMPLATE: &str =
 ///   inside them resolves to a non-empty value; otherwise the whole
 ///   block is silently suppressed.
 /// - Unknown placeholder names produce no output (empty string).
+#[deprecated(note = "Phase-1 transition only — replaced by config::render in Task 10")]
 pub fn render(template: &str, ctx: &RenderCtx) -> String {
     let tokens = parser::tokenize(template);
     let mut out = String::new();
@@ -60,6 +62,7 @@ fn render_tokens(tokens: &[Token], ctx: &RenderCtx, out: &mut String) {
 /// `emoji`, `emoji_verbose`, `verbose`).  Returns `None`
 /// for any unknown name.  The orchestrator (`main.rs`)
 /// resolves the precedence order; this is just the lookup.
+#[deprecated(note = "Phase-1 transition only — replaced by config::builtins::lookup in Task 10")]
 pub fn lookup_template(name: &str) -> Option<&'static str> {
     match name {
         "default" => Some(include_str!("../../templates/default.txt")),
@@ -136,6 +139,7 @@ fn render_optional(tokens: &[Token], ctx: &RenderCtx, out: &mut String) -> bool 
 pub(crate) static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
     use std::path::PathBuf;
@@ -268,6 +272,7 @@ mod tests {
 
     // ── lookup_template ──────────────────────────────────────────────────────
 
+    #[allow(deprecated)]
     #[test]
     fn lookup_default_returns_some() {
         let s = lookup_template("default").expect("default exists");
@@ -275,11 +280,13 @@ mod tests {
         assert!(s.contains("{model}"));
     }
 
+    #[allow(deprecated)]
     #[test]
     fn lookup_unknown_returns_none() {
         assert!(lookup_template("does-not-exist").is_none());
     }
 
+    #[allow(deprecated)]
     #[test]
     fn all_shipped_templates_render_against_full_ctx() {
         let _guard = ENV_MUTEX.lock().unwrap();
@@ -314,6 +321,7 @@ mod tests {
         }
     }
 
+    #[allow(deprecated)]
     #[test]
     fn all_shipped_templates_render_against_empty_ctx() {
         let _guard = ENV_MUTEX.lock().unwrap();
@@ -334,6 +342,39 @@ mod tests {
             let tmpl = lookup_template(name).expect(name);
             let _out = render(tmpl, &ctx);
         }
+    }
+
+    // ── one-way-import invariant ─────────────────────────────────────────────
+
+    #[test]
+    fn format_files_do_not_import_config() {
+        // Split the banned pattern so the test source itself never contains it
+        // as a contiguous byte sequence (same technique as placeholders::tests).
+        let config_import = ["use crate", "::", "config"].concat();
+        let format_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/format");
+        for entry in walkdir_rs(&format_dir) {
+            let content = std::fs::read_to_string(&entry).unwrap_or_default();
+            assert!(
+                !content.contains(&config_import),
+                "format file {:?} must not import crate::config",
+                entry
+            );
+        }
+    }
+
+    fn walkdir_rs(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+        let mut out = Vec::new();
+        if let Ok(rd) = std::fs::read_dir(dir) {
+            for entry in rd.flatten() {
+                let p = entry.path();
+                if p.is_dir() {
+                    out.extend(walkdir_rs(&p));
+                } else if p.extension().map_or(false, |e| e == "rs") {
+                    out.push(p);
+                }
+            }
+        }
+        out
     }
 
     #[test]

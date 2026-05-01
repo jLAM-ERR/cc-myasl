@@ -353,6 +353,7 @@ mod tests {
     // config::render collapse semantics. Full byte-exact snapshot match
     // against tests/snapshots/builtin-outputs.txt is deferred to Task 11.
 
+    #[allow(deprecated)]
     #[test]
     fn default_renders_with_full_ctx() {
         use crate::format;
@@ -436,6 +437,7 @@ mod tests {
 
     // Simulates config::render (Task 4): renders each segment template via
     // format::render, applies hide_when_absent collapse, joins with separator.
+    #[allow(deprecated)]
     fn render_config_manually(
         cfg: &Config,
         ctx: &crate::format::placeholders::RenderCtx,
