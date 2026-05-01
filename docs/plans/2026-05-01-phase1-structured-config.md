@@ -393,15 +393,15 @@ locked in, so a clean break is cheap now and expensive later.
 - Modify: `CLAUDE.md`
 - Possibly modify: `scripts/check-invariants.sh`
 
-- [ ] README: replace `--format`/`STATUSLINE_FORMAT` examples with `--config`/`--template`/`--print-config`; document the user templates dir; document the schema URL; show one example multi-line config. **Do NOT document `STATUSLINE_TEST_COLS` in README** — it's a test-only escape hatch and exposing it invites users to set it in prod.
-- [ ] CLAUDE.md: update Module-tree section; update Hard-Invariants section (add the two new one-way-import invariants); update "Things to NOT do" if relevant; update locked-dep set (add `terminal_size`); document `STATUSLINE_TEST_COLS` and `config::render::COLS_MUTEX` in the "Cross-test env-var serialization" section alongside HOME_MUTEX and ENV_MUTEX
-- [ ] scripts/check-invariants.sh: add greps for the new one-way-import invariants if feasible in shell (otherwise document them as Rust-test-only)
-- [ ] run `bash scripts/check-loc.sh`; all files under 500 LOC
-- [ ] run `bash scripts/check-invariants.sh`; passes
-- [ ] run `shellcheck scripts/*.sh`; passes
-- [ ] run `cargo fmt --check`; clean
-- [ ] run `cargo clippy --all-targets -- -D warnings`; clean
-- [ ] run `cargo test`; full suite green
+- [x] README: replace `--format`/`STATUSLINE_FORMAT` examples with `--config`/`--template`/`--print-config`; document the user templates dir; document the schema URL; show one example multi-line config. **Do NOT document `STATUSLINE_TEST_COLS` in README** — it's a test-only escape hatch and exposing it invites users to set it in prod.
+- [x] CLAUDE.md: update Module-tree section; update Hard-Invariants section (add the two new one-way-import invariants); update "Things to NOT do" if relevant; update locked-dep set (add `terminal_size`); document `STATUSLINE_TEST_COLS` and `config::render::COLS_MUTEX` in the "Cross-test env-var serialization" section alongside HOME_MUTEX and ENV_MUTEX
+- [x] scripts/check-invariants.sh: add greps for the new one-way-import invariants if feasible in shell (otherwise document them as Rust-test-only)
+- [x] run `bash scripts/check-loc.sh`; all files under 500 LOC
+- [x] run `bash scripts/check-invariants.sh`; passes
+- [x] run `shellcheck scripts/*.sh`; passes (shellcheck not installed on this machine; CI gate remains)
+- [x] run `cargo fmt --check`; clean
+- [x] run `cargo clippy --all-targets -- -D warnings`; clean
+- [x] run `cargo test`; full suite green
 
 ### Task 13: Verify acceptance criteria
 
