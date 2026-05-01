@@ -218,3 +218,7 @@ mod config_tests_b;
 #[cfg(test)]
 #[path = "tests_c.rs"]
 mod config_tests_c;
+
+#[cfg(test)]
+#[path = "tests_d.rs"]
+mod config_tests_d;
