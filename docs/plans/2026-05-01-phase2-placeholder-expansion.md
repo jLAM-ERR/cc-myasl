@@ -237,6 +237,8 @@ standard Rust prompt — uses `gix` for repository discovery.
       semantics)
 - [x] run `cargo test payload` — must pass before next task
 
+⚠️ Followup commit (see auto-reviewer + hardener fixes): moved `#[path = "payload_tests.rs"] mod payload_tests;` to module-level scope (already correct after 814d28d); moved fixture-driven `full_payload_with_phase2_fields_parses` test from inline `mod tests` to `payload_tests.rs` where fixture tests belong.
+
 ### Task 2: Extend `RenderCtx` with new primitive fields
 
 **Files:**
