@@ -343,4 +343,153 @@ mod tests {
         let a = parse(&s(&["somefile"]));
         assert_eq!(a.unknown, vec!["somefile".to_string()]);
     }
+
+    // ── adversarial boundary cases ───────────────────────────────────────────
+
+    #[test]
+    fn config_equals_empty_value_sets_empty_path() {
+        // `--config=` → PathBuf::from(""). Pin current behavior.
+        let a = parse(&s(&["--config="]));
+        assert_eq!(a.config_path, Some(std::path::PathBuf::from("")));
+        assert!(a.unknown.is_empty());
+    }
+
+    #[test]
+    fn config_double_equals_treated_as_path_with_leading_equals() {
+        // `--config==/foo`: key="config", val="=/foo".
+        let a = parse(&s(&["--config==/foo"]));
+        assert_eq!(a.config_path, Some(std::path::PathBuf::from("=/foo")));
+        assert!(a.unknown.is_empty());
+    }
+
+    #[test]
+    fn config_repeated_last_wins() {
+        let a = parse(&s(&["--config", "/first.json", "--config", "/second.json"]));
+        assert_eq!(
+            a.config_path,
+            Some(std::path::PathBuf::from("/second.json"))
+        );
+        assert!(a.unknown.is_empty());
+    }
+
+    #[test]
+    fn config_repeated_last_wins_interleaved_with_template() {
+        let a = parse(&s(&[
+            "--config",
+            "/a.json",
+            "--template",
+            "default",
+            "--config",
+            "/b.json",
+        ]));
+        assert_eq!(a.config_path, Some(std::path::PathBuf::from("/b.json")));
+        assert_eq!(a.template_name, Some("default".into()));
+        assert!(a.unknown.is_empty());
+    }
+
+    #[test]
+    fn print_config_equals_empty_is_accepted() {
+        // Empty val on boolean flag → accepted (same as bare flag).
+        let a = parse(&s(&["--print-config="]));
+        assert!(a.print_config);
+        assert!(a.unknown.is_empty());
+    }
+
+    #[test]
+    fn print_config_repeated_is_idempotent() {
+        let a = parse(&s(&["--print-config", "--print-config"]));
+        assert!(a.print_config);
+        assert!(a.unknown.is_empty());
+    }
+
+    #[test]
+    fn short_c_not_recognized() {
+        let a = parse(&s(&["-c", "/tmp/x.json"]));
+        assert!(a.config_path.is_none());
+        assert!(a.unknown.contains(&"-c".to_string()));
+    }
+
+    #[test]
+    fn uppercase_config_flag_not_recognized() {
+        let a = parse(&s(&["--CONFIG", "/tmp/x.json"]));
+        assert!(a.config_path.is_none());
+        assert!(a.unknown.contains(&"--CONFIG".to_string()));
+    }
+
+    #[test]
+    fn config_single_dash_treated_as_literal_path() {
+        // `-` has no special stdin meaning; parsed as a literal path.
+        let a = parse(&s(&["--config", "-"]));
+        assert_eq!(a.config_path, Some(std::path::PathBuf::from("-")));
+        assert!(a.unknown.is_empty());
+    }
+
+    #[test]
+    #[ignore = "bug: --config consumes the next flag token as its value when no path follows"]
+    fn config_followed_immediately_by_another_flag_should_error() {
+        // `--config --template foo` → parser sets config_path=Some("--template"),
+        // template_name=None. Expected: config_path=None, template_name=Some("foo").
+        let a = parse(&s(&["--config", "--template", "foo"]));
+        assert!(a.config_path.is_none());
+        assert_eq!(a.template_name, Some("foo".into()));
+    }
+
+    #[test]
+    fn double_dash_not_an_end_of_options_sentinel() {
+        // `--` is not treated as an end-of-options delimiter: it goes to unknown,
+        // but subsequent flags continue to be parsed normally.
+        let a = parse(&s(&["--", "--debug"]));
+        assert!(a.debug);
+        assert!(a.unknown.contains(&"--".to_string()));
+        // `--debug` is still parsed, so it should NOT appear in unknown.
+        assert!(!a.unknown.contains(&"--debug".to_string()));
+    }
+
+    #[test]
+    fn unicode_path_preserved() {
+        let path = "/tmp/\u{043a}\u{043e}\u{043d}\u{0444}\u{0438}\u{0433}.json";
+        let a = parse(&s(&["--config", path]));
+        assert_eq!(a.config_path, Some(std::path::PathBuf::from(path)));
+        assert!(a.unknown.is_empty());
+    }
+
+    #[test]
+    fn template_equals_empty_value_sets_empty_string() {
+        let a = parse(&s(&["--template="]));
+        assert_eq!(a.template_name, Some(String::new()));
+        assert!(a.unknown.is_empty());
+    }
+
+    #[test]
+    fn check_equals_nonempty_is_unknown() {
+        let a = parse(&s(&["--check=yes"]));
+        assert!(!a.check);
+        assert_eq!(a.unknown, vec!["--check=yes".to_string()]);
+    }
+
+    #[test]
+    fn version_equals_nonempty_is_unknown() {
+        let a = parse(&s(&["--version=1"]));
+        assert!(!a.version);
+        assert_eq!(a.unknown, vec!["--version=1".to_string()]);
+    }
+
+    #[test]
+    fn all_known_flags_together() {
+        let a = parse(&s(&[
+            "--debug",
+            "--check",
+            "--version",
+            "--help",
+            "--print-config",
+            "--config",
+            "/x.json",
+            "--template",
+            "compact",
+        ]));
+        assert!(a.debug && a.check && a.version && a.help && a.print_config);
+        assert_eq!(a.config_path, Some(std::path::PathBuf::from("/x.json")));
+        assert_eq!(a.template_name, Some("compact".into()));
+        assert!(a.unknown.is_empty());
+    }
 }
