@@ -593,25 +593,25 @@ standard Rust prompt — uses `gix` for repository discovery.
 **Files:**
 - Create: `tests/golden_phase2.rs`
 
-- [ ] add `golden_full_payload_renders_all_placeholders`: load
+- [x] add `golden_full_payload_renders_all_placeholders`: load
       `tests/fixtures/full-payload.json`, run the binary with
       a custom config that references every new placeholder,
       assert each placeholder rendered to its expected value.
       Acquire `HOME_MUTEX` if HOME is touched. Pin
       `XDG_CONFIG_HOME` to a tempdir.
-- [ ] add `golden_rich_template_smoke`: run with `--template rich`
+- [x] add `golden_rich_template_smoke`: run with `--template rich`
       against the full-payload fixture; assert non-empty output
       with all expected segments visible.
-- [ ] add `golden_git_placeholders_outside_repo_collapse`: run
+- [x] add `golden_git_placeholders_outside_repo_collapse`: run
       against the full-payload fixture but set cwd to a non-repo
       tempdir; assert `{git_branch}` and friends collapse via
       hide_when_absent.
-- [ ] add `golden_git_placeholders_inside_repo_resolve`: create
+- [x] add `golden_git_placeholders_inside_repo_resolve`: create
       a tempdir + git init + commit; run with cwd in the repo;
       assert `{git_branch}` returns "main" (or the test-fixture
       branch).
-- [ ] run `cargo test --test golden_phase2` — all pass
-- [ ] verify Phase 1's `golden_output_unchanged` STILL passes
+- [x] run `cargo test --test golden_phase2` — all pass
+- [x] verify Phase 1's `golden_output_unchanged` STILL passes
       (the 8 original built-ins are untouched)
 
 ### Task 13: Update README + CLAUDE.md
