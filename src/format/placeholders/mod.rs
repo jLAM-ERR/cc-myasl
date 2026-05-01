@@ -169,6 +169,22 @@ pub fn render_placeholder(name: &str, ctx: &RenderCtx) -> Option<String> {
             Some(pick_icon(classify(min_left)).to_owned())
         }
 
+        // ── session / Claude metadata ─────────────────────────────────────────
+        "model_id" => ctx.model_id.clone(),
+        "version" => ctx.version.clone(),
+        "session_id" => ctx.session_id.clone(),
+        "session_name" => ctx.session_name.clone(),
+        "output_style" => ctx.output_style.clone(),
+        "effort" => ctx.effort_level.clone(),
+        // "thinking" when enabled, None when disabled or absent — caller
+        // shows/hides the segment rather than rendering a false-y string.
+        "thinking_enabled" => {
+            ctx.thinking_enabled
+                .and_then(|b| if b { Some("thinking".to_owned()) } else { None })
+        }
+        "vim_mode" => ctx.vim_mode.clone(),
+        "agent_name" => ctx.agent_name.clone(),
+
         // ── ANSI reset ────────────────────────────────────────────────────────
         "reset" => Some("\x1b[0m".to_owned()),
 
@@ -180,6 +196,10 @@ pub fn render_placeholder(name: &str, ctx: &RenderCtx) -> Option<String> {
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "session_tests.rs"]
+mod session_tests;
 
 #[cfg(test)]
 mod phase2_struct_tests {
