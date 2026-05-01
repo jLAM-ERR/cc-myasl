@@ -1,11 +1,7 @@
 use super::*;
 
 pub(super) fn template_seg(tmpl: &str) -> Segment {
-    Segment::Template(TemplateSegment {
-        template: tmpl.to_owned(),
-        padding: 0,
-        hide_when_absent: false,
-    })
+    Segment::Template(TemplateSegment::new(tmpl))
 }
 
 pub(super) fn flex_seg() -> Segment {
@@ -20,13 +16,10 @@ pub(super) fn flex_seg() -> Segment {
 fn padding_zero_is_valid_and_no_warning() {
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: "".to_owned(),
-            segments: vec![Segment::Template(TemplateSegment {
-                template: "x".to_owned(),
-                padding: 0,
-                hide_when_absent: false,
-            })],
+            segments: vec![Segment::Template(TemplateSegment::new("x"))],
         }],
     };
     let warnings = cfg.validate_and_clamp().expect("padding=0 must not error");
@@ -38,13 +31,10 @@ fn padding_exactly_max_no_warning() {
     assert_eq!(MAX_PADDING, 8, "MAX_PADDING constant must be 8");
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: "".to_owned(),
-            segments: vec![Segment::Template(TemplateSegment {
-                template: "x".to_owned(),
-                padding: 8,
-                hide_when_absent: false,
-            })],
+            segments: vec![Segment::Template(TemplateSegment::new("x").with_padding(8))],
         }],
     };
     let warnings = cfg
@@ -57,13 +47,10 @@ fn padding_exactly_max_no_warning() {
 fn padding_one_over_max_is_clamped() {
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: "".to_owned(),
-            segments: vec![Segment::Template(TemplateSegment {
-                template: "x".to_owned(),
-                padding: 9,
-                hide_when_absent: false,
-            })],
+            segments: vec![Segment::Template(TemplateSegment::new("x").with_padding(9))],
         }],
     };
     let warnings = cfg
@@ -83,13 +70,12 @@ fn padding_one_over_max_is_clamped() {
 fn padding_u8_max_255_is_clamped_to_max_padding() {
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: "".to_owned(),
-            segments: vec![Segment::Template(TemplateSegment {
-                template: "x".to_owned(),
-                padding: 255,
-                hide_when_absent: false,
-            })],
+            segments: vec![Segment::Template(
+                TemplateSegment::new("x").with_padding(255),
+            )],
         }],
     };
     let warnings = cfg
@@ -109,19 +95,12 @@ fn padding_u8_max_255_is_clamped_to_max_padding() {
 fn padding_warning_carries_correct_line_and_segment_index() {
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![
-                Segment::Template(TemplateSegment {
-                    template: "ok".to_owned(),
-                    padding: 1,
-                    hide_when_absent: false,
-                }),
-                Segment::Template(TemplateSegment {
-                    template: "bad".to_owned(),
-                    padding: 200,
-                    hide_when_absent: false,
-                }),
+                Segment::Template(TemplateSegment::new("ok").with_padding(1)),
+                Segment::Template(TemplateSegment::new("bad").with_padding(200)),
             ],
         }],
     };
@@ -151,6 +130,7 @@ fn line_with_no_segments_field_deserializes_to_empty_vec() {
 fn empty_lines_array_is_valid() {
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![],
     };
     let warnings = cfg
@@ -163,6 +143,7 @@ fn empty_lines_array_is_valid() {
 fn empty_segments_on_a_line_is_valid() {
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: " | ".to_owned(),
             segments: vec![],
@@ -212,13 +193,10 @@ fn very_long_template_string_round_trips() {
     let long = "x".repeat(10_000);
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: "".to_owned(),
-            segments: vec![Segment::Template(TemplateSegment {
-                template: long.clone(),
-                padding: 0,
-                hide_when_absent: false,
-            })],
+            segments: vec![Segment::Template(TemplateSegment::new(&long))],
         }],
     };
     let json = serde_json::to_string(&cfg).expect("serialize");
@@ -235,13 +213,10 @@ fn unicode_multibyte_template_string_round_trips() {
     let unicode = "日本語テスト 🦀 émojis こんにちは".to_owned();
     let orig = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: "→".to_owned(),
-            segments: vec![Segment::Template(TemplateSegment {
-                template: unicode.clone(),
-                padding: 0,
-                hide_when_absent: false,
-            })],
+            segments: vec![Segment::Template(TemplateSegment::new(&unicode))],
         }],
     };
     let json = serde_json::to_string(&orig).expect("serialize");

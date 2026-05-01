@@ -3,12 +3,20 @@ use serde::{Deserialize, Serialize};
 pub const MAX_LINES: usize = 3;
 pub const MAX_PADDING: u8 = 8;
 
+/// Named ANSI-16 colors accepted by `color` and `bg` segment fields.
+pub const NAMED_COLORS: &[&str] = &[
+    "red", "green", "yellow", "blue", "magenta", "cyan", "white", "default",
+];
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(default)]
 pub struct Config {
     #[serde(rename = "$schema", skip_serializing_if = "Option::is_none")]
     pub schema_url: Option<String>,
     pub lines: Vec<Line>,
+    /// When true, render segments as Powerline blocks with chevron transitions.
+    #[serde(default)]
+    pub powerline: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -36,6 +44,12 @@ pub struct TemplateSegment {
     pub padding: u8,
     #[serde(default)]
     pub hide_when_absent: bool,
+    /// Foreground color name (ANSI-16). Must be one of NAMED_COLORS or None.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    /// Background color name (ANSI-16). Must be one of NAMED_COLORS or None.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bg: Option<String>,
 }
 
 impl TemplateSegment {
@@ -44,6 +58,8 @@ impl TemplateSegment {
             template: s.to_owned(),
             padding: 0,
             hide_when_absent: false,
+            color: None,
+            bg: None,
         }
     }
 
@@ -83,6 +99,11 @@ pub enum ValidationErrorKind {
     MultipleFlex,
     /// FlexSegment with `flex: false` — semantically invalid.
     FlexFalse,
+    /// `color` or `bg` field contains a value not in NAMED_COLORS.
+    InvalidColor {
+        field: &'static str,
+        value: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -132,6 +153,30 @@ impl Config {
                                 },
                             });
                         }
+                        if let Some(c) = &t.color {
+                            if !NAMED_COLORS.contains(&c.as_str()) {
+                                errors.push(ValidationError {
+                                    line_index: Some(li),
+                                    segment_index: Some(si),
+                                    kind: ValidationErrorKind::InvalidColor {
+                                        field: "color",
+                                        value: c.clone(),
+                                    },
+                                });
+                            }
+                        }
+                        if let Some(b) = &t.bg {
+                            if !NAMED_COLORS.contains(&b.as_str()) {
+                                errors.push(ValidationError {
+                                    line_index: Some(li),
+                                    segment_index: Some(si),
+                                    kind: ValidationErrorKind::InvalidColor {
+                                        field: "bg",
+                                        value: b.clone(),
+                                    },
+                                });
+                            }
+                        }
                     }
                     Segment::Flex(f) => {
                         if !f.flex {
@@ -171,71 +216,29 @@ mod schema_tests;
 mod schema_tests_b;
 
 #[cfg(test)]
+#[path = "schema_tests_color.rs"]
+mod schema_tests_color;
+
+#[cfg(test)]
 mod tests {
     use super::*;
-
-    fn template_seg(tmpl: &str) -> Segment {
-        Segment::Template(TemplateSegment {
-            template: tmpl.to_owned(),
-            padding: 0,
-            hide_when_absent: false,
-        })
-    }
-
-    fn flex_seg() -> Segment {
-        Segment::Flex(FlexSegment { flex: true })
-    }
-
-    fn minimal_config() -> Config {
-        Config {
-            schema_url: None,
-            lines: vec![Line {
-                separator: " | ".to_owned(),
-                segments: vec![template_seg("{five_left}%")],
-            }],
-        }
-    }
-
-    fn full_config() -> Config {
-        Config {
-            schema_url: Some("https://example.com/schema.json".to_owned()),
-            lines: vec![
-                Line {
-                    separator: " · ".to_owned(),
-                    segments: vec![
-                        template_seg("{five_left}%"),
-                        flex_seg(),
-                        Segment::Template(TemplateSegment {
-                            template: "{model}".to_owned(),
-                            padding: 2,
-                            hide_when_absent: true,
-                        }),
-                    ],
-                },
-                Line {
-                    separator: "".to_owned(),
-                    segments: vec![template_seg("{seven_left}%")],
-                },
-            ],
-        }
-    }
 
     // --- round-trip serde ---
 
     #[test]
     fn serde_round_trip_minimal() {
-        let orig = minimal_config();
-        let json = serde_json::to_string(&orig).expect("serialize");
+        let mut cfg = Config {
+            schema_url: None,
+            powerline: false,
+            lines: vec![Line {
+                separator: " | ".to_owned(),
+                segments: vec![Segment::Template(TemplateSegment::new("{five_left}%"))],
+            }],
+        };
+        let json = serde_json::to_string(&cfg).expect("serialize");
         let back: Config = serde_json::from_str(&json).expect("deserialize");
-        assert_eq!(orig, back);
-    }
-
-    #[test]
-    fn serde_round_trip_full() {
-        let orig = full_config();
-        let json = serde_json::to_string(&orig).expect("serialize");
-        let back: Config = serde_json::from_str(&json).expect("deserialize");
-        assert_eq!(orig, back);
+        cfg.validate_and_clamp().expect("minimal must be valid");
+        assert_eq!(cfg, back);
     }
 
     #[test]
@@ -245,6 +248,7 @@ mod tests {
                 "https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/cc-myasl.schema.json"
                     .to_owned(),
             ),
+            powerline: false,
             lines: vec![],
         };
         let json = serde_json::to_string(&orig).expect("serialize");
@@ -260,6 +264,7 @@ mod tests {
     fn serde_round_trip_without_schema_field() {
         let orig = Config {
             schema_url: None,
+            powerline: false,
             lines: vec![],
         };
         let json = serde_json::to_string(&orig).expect("serialize");
@@ -308,173 +313,7 @@ mod tests {
         }
     }
 
-    // --- validation rejections ---
-
-    #[test]
-    fn validate_rejects_too_many_lines() {
-        let mut cfg = Config {
-            schema_url: None,
-            lines: vec![
-                Line {
-                    separator: "".to_owned(),
-                    segments: vec![template_seg("a")],
-                },
-                Line {
-                    separator: "".to_owned(),
-                    segments: vec![template_seg("b")],
-                },
-                Line {
-                    separator: "".to_owned(),
-                    segments: vec![template_seg("c")],
-                },
-                Line {
-                    separator: "".to_owned(),
-                    segments: vec![template_seg("d")],
-                },
-            ],
-        };
-        let result = cfg.validate_and_clamp();
-        let errors = result.expect_err("4 lines should produce errors");
-        assert!(
-            errors
-                .iter()
-                .any(|e| e.kind == ValidationErrorKind::TooManyLines),
-            "expected TooManyLines error, got: {errors:?}"
-        );
-    }
-
-    #[test]
-    fn validate_rejects_two_flex_on_one_line() {
-        let mut cfg = Config {
-            schema_url: None,
-            lines: vec![Line {
-                separator: "".to_owned(),
-                segments: vec![flex_seg(), template_seg("x"), flex_seg()],
-            }],
-        };
-        let result = cfg.validate_and_clamp();
-        let errors = result.expect_err("two flex segments should produce errors");
-        assert!(
-            errors
-                .iter()
-                .any(|e| e.kind == ValidationErrorKind::MultipleFlex),
-            "expected MultipleFlex error, got: {errors:?}"
-        );
-    }
-
-    #[test]
-    fn validate_rejects_flex_false() {
-        let mut cfg = Config {
-            schema_url: None,
-            lines: vec![Line {
-                separator: "".to_owned(),
-                segments: vec![Segment::Flex(FlexSegment { flex: false })],
-            }],
-        };
-        let result = cfg.validate_and_clamp();
-        let errors = result.expect_err("flex:false should produce errors");
-        assert!(
-            errors
-                .iter()
-                .any(|e| e.kind == ValidationErrorKind::FlexFalse),
-            "expected FlexFalse error, got: {errors:?}"
-        );
-    }
-
-    // --- padding clamp ---
-
-    #[test]
-    fn validate_clamps_padding_over_max() {
-        let mut cfg = Config {
-            schema_url: None,
-            lines: vec![Line {
-                separator: "".to_owned(),
-                segments: vec![Segment::Template(TemplateSegment {
-                    template: "x".to_owned(),
-                    padding: 99,
-                    hide_when_absent: false,
-                })],
-            }],
-        };
-        let warnings = cfg
-            .validate_and_clamp()
-            .expect("padding clamp should not error");
-        assert_eq!(warnings.len(), 1);
-        assert_eq!(
-            warnings[0].kind,
-            ValidationWarningKind::PaddingClamped {
-                from: 99,
-                to: MAX_PADDING
-            }
-        );
-        // self was mutated
-        if let Segment::Template(t) = &cfg.lines[0].segments[0] {
-            assert_eq!(t.padding, MAX_PADDING);
-        } else {
-            panic!("expected Template segment");
-        }
-    }
-
-    #[test]
-    fn validate_padding_at_max_produces_no_warning() {
-        let mut cfg = Config {
-            schema_url: None,
-            lines: vec![Line {
-                separator: "".to_owned(),
-                segments: vec![Segment::Template(TemplateSegment {
-                    template: "x".to_owned(),
-                    padding: MAX_PADDING,
-                    hide_when_absent: false,
-                })],
-            }],
-        };
-        let warnings = cfg
-            .validate_and_clamp()
-            .expect("max padding should not error");
-        assert!(warnings.is_empty(), "padding at MAX_PADDING must not warn");
-    }
-
-    #[test]
-    fn validate_valid_config_returns_no_errors_no_warnings() {
-        let mut cfg = minimal_config();
-        let warnings = cfg
-            .validate_and_clamp()
-            .expect("valid config must not error");
-        assert!(warnings.is_empty());
-    }
-
-    #[test]
-    fn validate_full_config_is_valid() {
-        let mut cfg = full_config();
-        let warnings = cfg
-            .validate_and_clamp()
-            .expect("full config must not error");
-        // padding=2 is within MAX_PADDING, no warnings expected
-        assert!(warnings.is_empty());
-    }
-
-    #[test]
-    fn validate_exactly_max_lines_is_valid() {
-        let mut cfg = Config {
-            schema_url: None,
-            lines: vec![
-                Line {
-                    separator: "".to_owned(),
-                    segments: vec![template_seg("a")],
-                },
-                Line {
-                    separator: "".to_owned(),
-                    segments: vec![template_seg("b")],
-                },
-                Line {
-                    separator: "".to_owned(),
-                    segments: vec![template_seg("c")],
-                },
-            ],
-        };
-        let result = cfg.validate_and_clamp();
-        assert!(result.is_ok(), "exactly MAX_LINES lines must not error");
-    }
+    // --- serde defaults ---
 
     #[test]
     fn serde_defaults_separator_to_empty_string() {

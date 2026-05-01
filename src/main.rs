@@ -47,6 +47,25 @@ fn main() {
         trace.emit(args.debug);
         std::process::exit(0);
     }
+    if args.configure {
+        use std::io::IsTerminal;
+        if !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
+            eprintln!("cc-myasl --configure requires an interactive terminal");
+            std::process::exit(1);
+        }
+        let mut trace = Trace::default();
+        let config = cc_myasl::config::resolve(&args, &mut trace);
+        let output_path = args.output.clone().unwrap_or_else(|| {
+            directories::ProjectDirs::from("", "", "cc-myasl")
+                .map(|d| d.config_dir().join("config.json"))
+                .unwrap_or_else(|| std::path::PathBuf::from("config.json"))
+        });
+        if let Err(e) = cc_myasl::tui::run(config, output_path) {
+            eprintln!("cc-myasl --configure error: {e}");
+            std::process::exit(1);
+        }
+        std::process::exit(0);
+    }
 
     run_render(&args);
     std::process::exit(0); // render mode ALWAYS exits 0
@@ -290,6 +309,8 @@ fn print_usage() {
            --config <PATH>    Explicit config file (highest precedence)\n\
            --template <NAME>  Named built-in or user template\n\
            --print-config     Print resolved config as JSON and exit\n\
+           --configure        Open the interactive TUI config editor\n\
+           --output <PATH>    Override output path for --configure\n\
            --debug            Emit a JSON trace line to stderr\n\
            --check            Run setup-verification diagnostic\n\
            -V, --version      Print version and exit\n\

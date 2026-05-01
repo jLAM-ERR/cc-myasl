@@ -28,10 +28,10 @@ Override defaults with environment variables:
 
 ```sh
 # Pin a specific release
-VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/scripts/install.sh | sh
+VERSION=v1.0.0 curl -fsSL https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/scripts/install.sh | sh
 
 # Override owner/repo if you've forked
-OWNER=jLAM-ERR REPO=cc-myasl VERSION=v0.1.0 \
+OWNER=jLAM-ERR REPO=cc-myasl VERSION=v1.0.0 \
   curl -fsSL https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/scripts/install.sh | sh
 ```
 
@@ -61,8 +61,8 @@ The installer:
 3. Verify and install:
 
    ```sh
-   # Example for macOS Apple Silicon, v0.1.0
-   VERSION=v0.1.0
+   # Example for macOS Apple Silicon, v1.0.0
+   VERSION=v1.0.0
    TARGET=aarch64-apple-darwin
    TARBALL="cc-myasl-${VERSION#v}-${TARGET}.tar.gz"
 
@@ -217,6 +217,52 @@ to empty if the corresponding data is absent (e.g. first session, no git repo).
 
 Run `cc-myasl --print-config` to dump the currently resolved config as
 pretty JSON (useful as a starting point for customisation).
+
+### Segment colors and Powerline mode
+
+Each `TemplateSegment` accepts two optional color fields:
+
+- `"color"` — foreground (text) color
+- `"bg"` — background color
+
+Both accept one of the 8 named ANSI-16 colors: `"red"`, `"green"`,
+`"yellow"`, `"blue"`, `"magenta"`, `"cyan"`, `"white"`, `"default"`,
+or `null` (absent = no color applied). 256-color and hex are not
+supported; use a named color or omit the field.
+
+The top-level `"powerline"` boolean (default `false`) switches the
+renderer to Powerline mode: segments become colored blocks separated by
+chevron glyphs (`\u{E0B0}`, i.e. ``) rather than a plain `separator`
+string.
+
+**Powerline mode requires a Nerd Font** in your terminal emulator (e.g.
+FiraCode NF, Hack NF, JetBrains Mono NF) for the `\u{E0B0}` chevron
+glyph to render correctly. Without a Nerd Font the chevron appears as a
+box or question mark. See the [Nerd Font Tips](#nerd-font-tips) section
+for install instructions.
+
+### Example: colors + Powerline
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/cc-myasl.schema.json",
+  "powerline": true,
+  "lines": [
+    {
+      "segments": [
+        { "template": " {model} ", "color": "white", "bg": "blue" },
+        { "template": " {five_left}% ", "color": "white", "bg": "green",
+          "hide_when_absent": true },
+        { "template": " {cwd_basename} ", "color": "white", "bg": "magenta" }
+      ]
+    }
+  ]
+}
+```
+
+With a Nerd Font the output is a chain of colored blocks with chevron
+transitions. Without one, the chevrons render as boxes but the colors
+still work.
 
 ---
 
@@ -423,6 +469,32 @@ You can pipe stderr to a file for post-mortem analysis:
 ```sh
 echo '{}' | cc-myasl --debug 2>trace.jsonl
 ```
+
+---
+
+## Interactive editor
+
+`cc-myasl --configure` opens a terminal UI for editing
+`~/.config/cc-myasl/config.json` visually — no JSON hand-editing needed.
+
+```sh
+cc-myasl --configure
+```
+
+Write the result to a different path with `--output`:
+
+```sh
+cc-myasl --configure --output ~/.config/cc-myasl/templates/myfmt.json
+```
+
+The editor shows three panes: a line list, a segment list, and a segment
+editor with a live preview at the bottom that updates on every keystroke.
+Press `?` inside the TUI to see all keybindings. Press `Ctrl+S` to save;
+press `q` to quit (you are prompted if there are unsaved changes).
+
+`--configure` requires an interactive terminal. Running it with stdin or
+stdout redirected (e.g. in a pipe or CI) prints an error to stderr and
+exits 1.
 
 ---
 

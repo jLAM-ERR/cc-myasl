@@ -29,7 +29,7 @@ cargo build
 # Build release (≤ 1.5 MB stripped binary on macOS-arm64)
 cargo build --release
 
-# Run the full test suite (303 tests, 1 ignored real-HTTPS smoke)
+# Run the full test suite (940 tests, 1 ignored real-HTTPS smoke)
 cargo test
 
 # Run only the integration suite
@@ -75,7 +75,12 @@ src/
 ├── cache/{mod,lock,backoff,atomic_helper}.rs   Disk cache + lock + backoff ladder
 ├── format/{mod,parser,placeholders,values,thresholds}.rs   Template engine (segment rendering)
 ├── config/{mod,schema,builtins,render}.rs      Structured JSON config + 9 built-ins + multi-line renderer
-└── git/{mod,status}.rs               gix-based git discovery + branch/root + status counters
+├── git/{mod,status}.rs               gix-based git discovery + branch/root + status counters
+└── tui/{mod,app,draw,save,preview}.rs +        Interactive config editor (--configure); ratatui/crossterm;
+    tui/widgets/{line_list,segment_list,        pure-state widgets + tests. MUST NOT import crate::api,
+    segment_editor,placeholder_picker,          crate::cache, or crate::git — invariant 11.
+    color_picker,help,status}.rs +
+    tui/tests.rs + tui/preview_fixture.json
 ```
 
 ### Three-stage render flow (`main.rs`)
@@ -91,8 +96,8 @@ read stdin → parse Payload
        └── creds missing → drop quota, no lock, render, exit 0
 ```
 
-**Render mode ALWAYS exits 0.** `--check` is the only path that may
-exit non-zero.
+**Render mode ALWAYS exits 0.** `--check` and `--configure` are the
+only paths that may exit non-zero.
 
 ### Hard invariants (CI-gated; do not weaken)
 
@@ -118,6 +123,10 @@ exit non-zero.
     `payload_mapping::populate_git_ctx`; the render engine never reaches the
     git module directly. Verified by string-scan test in
     `format::placeholders::tests` and by `scripts/check-invariants.sh`.
+11. **`tui/*.rs` must NOT import `crate::api`, `crate::cache`, or
+    `crate::git`** — the TUI consumes `Config` and `Payload` via existing
+    modules; it never reaches backend or git layers directly. Verified by
+    string-scan test in `tui::tests` and by `scripts/check-invariants.sh`.
 
 ### Format engine decoupling invariant
 
@@ -183,6 +192,11 @@ acquire the appropriate mutex and restore prior values before releasing.
   `tests/fixtures/full-payload.json` as the standard fixture — a
   comprehensive stdin payload populating every Phase 2 field. Use this
   fixture as the base for any new placeholder tests.
+- **Phase 3 golden tests** (`tests/golden_phase3.rs`) cover save flow,
+  color/bg ANSI output, and Powerline rendering. The TUI module embeds
+  `src/tui/preview_fixture.json` (via `include_str!`) as a TUI-only
+  stable fixture — separate from `tests/fixtures/full-payload.json`,
+  which is a test-path file and must not be referenced from production code.
 - **No real-network tests** in CI. The one `#[ignore]`-marked test in
   `api::tests` exercises a real `https://example.com` request only when
   invoked manually via `cargo test -- --ignored`.
@@ -197,18 +211,19 @@ acquire the appropriate mutex and restore prior values before releasing.
   `directories`, `anyhow`, `terminal_size` (flex-spacer correctness;
   ioctl alternative requires unsafe libc), `gix` (slim build,
   `default-features = false`; git repo discovery + branch reads;
-  avoids fragile shell-out parsing; matches Starship's pattern).
+  avoids fragile shell-out parsing; matches Starship's pattern),
+  `ratatui` (TUI primitives for `--configure` mode; only crate
+  supporting live preview without hand-rolled widgets; pinned to
+  0.29 — 0.30 requires rustc 1.86, incompatible with our
+  `rust-version = "1.85"`), `crossterm` (terminal backend for
+  ratatui; pinned to 0.28 to match ratatui 0.29's requirement).
   Dev-deps add `mockito`, `tempfile`, `assert_cmd`, `predicates`.
   No `clap`, no `tokio`/`reqwest`, no `chrono`, no `keyring`.
 - The MSRV is `rust-version = "1.85"` (Rust 2024 edition baseline).
-  `rust-toolchain.toml` pins channel `1.85`. `gix 0.83` requires the
-  `sha1` feature for any commit/tree work — `Cargo.toml` enables only
-  `sha1`, no network/signing/async. Older Cargo.lock pins for
-  `clru=0.6.2` and `idna_adapter=1.2.0` (workarounds for the prior
-  `1.83` floor) are no longer needed and were removed when the
-  toolchain bumped. Some deps (icu_*, idna_adapter ≥ 1.2.2) require
-  Rust 1.86; the current Cargo.lock holds them at compatible
-  versions — do not run `cargo update` without a coordinated MSRV
+  `rust-toolchain.toml` pins channel `1.85`. Some indirect deps
+  (`icu_*` 2.x, `idna_adapter` ≥ 1.2.2, ratatui 0.30) require
+  Rust 1.86 — the current `Cargo.lock` holds them at compatible
+  versions. Do NOT run `cargo update` without a coordinated MSRV
   bump.
 - Do NOT call `security dump-keychain` (or even mention the literal
   string in `src/` or `scripts/` — the invariant grep is naive).
@@ -216,7 +231,9 @@ acquire the appropriate mutex and restore prior values before releasing.
   `src/` or `scripts/`.
 - Do NOT exit non-zero from `main` in render mode. Every error path
   must collapse to "render line without quota segment + emit trace
-  if --debug + exit 0".
+  if --debug + exit 0". `--configure` mode IS allowed to exit non-zero
+  (e.g. on TUI I/O error or non-TTY invocation) — alongside `--check`.
+  All other paths (render mode) still always exit 0.
 - Do NOT log the bearer token. The `Trace` struct only carries the
   fingerprint (`creds::fingerprint` — non-cryptographic SipHash, fine
   for rotation detection only).
@@ -246,3 +263,5 @@ acquire the appropriate mutex and restore prior values before releasing.
 - `docs/plans/completed/2026-05-01-phase2-placeholder-expansion.md` —
   Phase 2 placeholder expansion (stdin extension + gix-based git module).
   Implementation complete.
+- `docs/plans/completed/2026-05-01-phase3-interactive-tui.md` — Phase 3
+  interactive TUI (`--configure`, colors, Powerline). Implementation complete.

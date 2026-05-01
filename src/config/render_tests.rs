@@ -5,11 +5,11 @@ use crate::config::schema::{Config, FlexSegment, Line, Segment, TemplateSegment}
 use crate::format::placeholders::RenderCtx;
 
 fn tmpl_seg(template: &str, padding: u8, hide_when_absent: bool) -> Segment {
-    Segment::Template(TemplateSegment {
-        template: template.to_owned(),
-        padding,
-        hide_when_absent,
-    })
+    let mut t = TemplateSegment::new(template).with_padding(padding);
+    if hide_when_absent {
+        t = t.with_hide_when_absent();
+    }
+    Segment::Template(t)
 }
 
 fn flex_seg() -> Segment {
@@ -19,6 +19,7 @@ fn flex_seg() -> Segment {
 fn one_line(separator: &str, segments: Vec<Segment>) -> Config {
     Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: separator.to_owned(),
             segments,
@@ -100,6 +101,7 @@ fn render_segment_only_optional_block_absent_returns_some_empty() {
 fn render_empty_config_returns_empty_string() {
     let config = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![],
     };
     assert_eq!(render(&config, &RenderCtx::default()), "");
@@ -209,6 +211,7 @@ fn render_exactly_max_lines_renders_all() {
     };
     let config = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![line.clone(), line.clone(), line.clone()],
     };
     let out = render(&config, &RenderCtx::default());
@@ -228,6 +231,7 @@ fn render_multi_line_joined_with_newline_not_crlf() {
     };
     let config = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![mk("line1"), mk("line2")],
     };
     let out = render(&config, &RenderCtx::default());
@@ -427,14 +431,11 @@ fn flex_two_flex_segments_bypass_validation_safe() {
     );
 }
 
-/// Flex with ANSI-colored surrounding segments: visible_width strips ANSI so
-/// the fill is based on visible chars, not raw bytes.
 #[test]
 fn flex_with_ansi_colored_segments_correct_fill() {
     let _guard = COLS_MUTEX.lock().unwrap();
     let prior = std::env::var("STATUSLINE_TEST_COLS").ok();
     unsafe { std::env::set_var("STATUSLINE_TEST_COLS", "10") };
-    // "\x1b[32mAB\x1b[0m" → 2 visible chars; flex fills remaining 8
     let config = one_line(
         "",
         vec![tmpl_seg("\x1b[32mAB\x1b[0m", 0, false), flex_seg()],

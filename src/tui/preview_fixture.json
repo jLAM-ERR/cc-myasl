@@ -1,0 +1,70 @@
+{
+  "model": {
+    "id": "claude-opus-4-7",
+    "display_name": "claude-opus-4-7"
+  },
+  "cwd": "/Users/demo/myproject",
+  "workspace": {
+    "current_dir": "/Users/demo/myproject",
+    "project_dir": "/Users/demo/myproject",
+    "added_dirs": ["/Users/demo/extra1"],
+    "git_worktree": "main"
+  },
+  "transcript_path": "/tmp/transcripts/preview-session.jsonl",
+  "session_id": "preview-session-001",
+  "session_name": "Preview Session",
+  "version": "2.0.0",
+  "output_style": {
+    "name": "verbose"
+  },
+  "cost": {
+    "total_cost_usd": 1.23,
+    "total_duration_ms": 3600000,
+    "total_api_duration_ms": 3500000,
+    "total_lines_added": 100,
+    "total_lines_removed": 20
+  },
+  "context_window": {
+    "total_input_tokens": 10000,
+    "total_output_tokens": 5000,
+    "context_window_size": 200000,
+    "used_percentage": 30.0,
+    "remaining_percentage": 70.0,
+    "current_usage": {
+      "input_tokens": 2048,
+      "output_tokens": 512,
+      "cache_creation_input_tokens": 1024,
+      "cache_read_input_tokens": 2048
+    }
+  },
+  "exceeds_200k_tokens": false,
+  "effort": {
+    "level": "high"
+  },
+  "thinking": {
+    "enabled": true
+  },
+  "vim": {
+    "mode": "normal"
+  },
+  "agent": {
+    "name": "code-agent"
+  },
+  "worktree": {
+    "name": "feature-preview",
+    "path": "/Users/demo/worktrees/feature-preview",
+    "branch": "feature/preview",
+    "original_cwd": "/Users/demo/myproject",
+    "original_branch": "main"
+  },
+  "rate_limits": {
+    "five_hour": {
+      "used_percentage": 30.0,
+      "resets_at": 9999999999
+    },
+    "seven_day": {
+      "used_percentage": 50.0,
+      "resets_at": 9999999999
+    }
+  }
+}

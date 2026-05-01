@@ -9,6 +9,7 @@ use super::*;
 fn multiple_errors_collected_too_many_lines_and_multi_flex() {
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![
             Line {
                 separator: "".to_owned(),
@@ -46,6 +47,7 @@ fn multiple_errors_collected_too_many_lines_and_multi_flex() {
 fn multiple_flex_false_errors_all_collected() {
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![
@@ -73,14 +75,11 @@ fn multiple_flex_false_errors_all_collected() {
 fn padding_clamped_even_when_hard_errors_present() {
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![
-                Segment::Template(TemplateSegment {
-                    template: "y".to_owned(),
-                    padding: 100,
-                    hide_when_absent: false,
-                }),
+                Segment::Template(TemplateSegment::new("y").with_padding(100)),
                 Segment::Flex(FlexSegment { flex: false }),
             ],
         }],
@@ -125,6 +124,7 @@ fn schema_url_is_preserved_through_serialize_deserialize() {
     let url = "https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/schema.json";
     let orig = Config {
         schema_url: Some(url.to_owned()),
+        powerline: false,
         lines: vec![],
     };
     let json = serde_json::to_string(&orig).expect("serialize");
@@ -172,6 +172,7 @@ fn validate_one_over_max_lines_produces_exactly_one_too_many_lines_error() {
     };
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: (0..MAX_LINES + 1).map(|_| make_line()).collect(),
     };
     let errors = cfg.validate_and_clamp().expect_err("must error");
@@ -193,6 +194,7 @@ fn validate_one_over_max_lines_produces_exactly_one_too_many_lines_error() {
 fn flex_true_alone_on_line_is_valid() {
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![flex_seg()],
@@ -212,6 +214,7 @@ fn flex_true_alone_on_line_is_valid() {
 fn flex_on_different_lines_is_valid() {
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![
             Line {
                 separator: "".to_owned(),
@@ -238,13 +241,12 @@ fn padding_clamp_warning_reports_original_value_not_clamped_value() {
     let original_padding: u8 = 42;
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: "".to_owned(),
-            segments: vec![Segment::Template(TemplateSegment {
-                template: "z".to_owned(),
-                padding: original_padding,
-                hide_when_absent: false,
-            })],
+            segments: vec![Segment::Template(
+                TemplateSegment::new("z").with_padding(original_padding),
+            )],
         }],
     };
     let warnings = cfg.validate_and_clamp().expect("must not hard-error");
@@ -265,13 +267,12 @@ fn padding_clamp_warning_reports_original_value_not_clamped_value() {
 fn validate_and_clamp_is_idempotent() {
     let mut cfg = Config {
         schema_url: None,
+        powerline: false,
         lines: vec![Line {
             separator: "".to_owned(),
-            segments: vec![Segment::Template(TemplateSegment {
-                template: "x".to_owned(),
-                padding: 50,
-                hide_when_absent: false,
-            })],
+            segments: vec![Segment::Template(
+                TemplateSegment::new("x").with_padding(50),
+            )],
         }],
     };
     let w1 = cfg.validate_and_clamp().expect("first call must not error");

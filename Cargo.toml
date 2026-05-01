@@ -1,6 +1,6 @@
 [package]
 name = "cc-myasl"
-version = "0.1.1"
+version = "1.0.0"
 edition = "2024"
 license = "MIT"
 description = "cc-myasl — My Yet Another Status Line for Claude Code (remaining 5h/7d Claude.ai token quota)"
@@ -24,6 +24,11 @@ terminal_size = "0.4"
 # features chosen: sha1 — gix 0.83 made hash algorithms feature-gated; sha1 is required for any commit/tree work.
 # No network, no signing, no async features enabled.
 gix = { version = "0.83", default-features = false, features = ["sha1"] }
+# TUI primitives for `--configure` mode. ratatui 0.30 requires rustc 1.86; we're on 1.85.
+# 0.29 satisfies our floor and pairs with crossterm 0.28 — proven combo from Phase 3 development.
+ratatui = { version = "0.29", default-features = false, features = ["macros", "crossterm"] }
+# crossterm pulls: mio (event loop), signal-hook (terminal resize) — expected runtime deps for ratatui.
+crossterm = { version = "0.28", default-features = false }
 
 [dev-dependencies]
 mockito = "1"
