@@ -314,6 +314,8 @@ locked in, so a clean break is cheap now and expensive later.
 - [x] write unit tests for error cases: missing value after `--config`; missing value after `--template`
 - [x] run `cargo test args`; all pass before next task
 
+⚠️ Followup commit `f157332`: parser now peeks ahead and treats a `--flag` token following `--config`/`--template` as dangling (pushed to `unknown`) rather than greedy-consuming it as a value. Tests split to `src/args_tests.rs`; 3 new tests added; hardener's `#[ignore]` test un-ignored.
+
 ### Task 8: Wire main.rs — use new resolver, drop STATUSLINE_FORMAT
 
 **Files:**

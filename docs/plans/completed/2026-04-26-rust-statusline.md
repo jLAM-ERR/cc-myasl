@@ -455,8 +455,6 @@ swap in `http://127.0.0.1:PORT` from `mockito::Server::url()`.
       `cargo test -- --ignored`.
 - [x] run `cargo test` — must pass before Task 8
 
-⚠️ Followup commit (see fix(args)): reject adjacent flag-name as flag value — parser now peeks ahead and treats a `--flag` token following `--config`/`--template` as dangling rather than consuming it as a value; tests split to `src/args_tests.rs`; three new tests added and hardener's `#[ignore]` test un-ignored.
-
 ### Task 8: Implement `cache/lock.rs`, `cache/backoff.rs`, `cache/atomic_helper.rs`
 
 **Files:**
