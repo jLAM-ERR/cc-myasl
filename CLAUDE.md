@@ -178,9 +178,11 @@ acquire the appropriate mutex and restore prior values before releasing.
 - Do NOT add new top-level dependencies without explicit justification.
   The locked dep set is `ureq + rustls`, `serde + serde_json`,
   `directories`, `anyhow`, `terminal_size` (flex-spacer correctness;
-  ioctl alternative requires unsafe libc). Dev-deps add `mockito`,
-  `tempfile`, `assert_cmd`, `predicates`. No `clap`, no `tokio`/`reqwest`,
-  no `chrono`, no `keyring`.
+  ioctl alternative requires unsafe libc), `gix` (slim build,
+  `default-features = false`; git repo discovery + branch reads;
+  avoids fragile shell-out parsing; matches Starship's pattern).
+  Dev-deps add `mockito`, `tempfile`, `assert_cmd`, `predicates`.
+  No `clap`, no `tokio`/`reqwest`, no `chrono`, no `keyring`.
 - Do NOT call `security dump-keychain` (or even mention the literal
   string in `src/` or `scripts/` — the invariant grep is naive).
 - Do NOT add `@latest` or `npx -y …@latest` patterns anywhere in
