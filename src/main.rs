@@ -449,3 +449,7 @@ mod tests {
             .expect("print_config output must deserialize back into Config");
     }
 }
+
+#[cfg(test)]
+#[path = "main_tests.rs"]
+mod main_tests;
