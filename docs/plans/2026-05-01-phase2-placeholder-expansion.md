@@ -179,15 +179,15 @@ standard Rust prompt — uses `gix` for repository discovery.
 **Files:**
 - Create: `tests/fixtures/full-payload.json`
 
-- [ ] run `cargo test` — baseline must be green before any change
-- [ ] hand-craft a comprehensive `tests/fixtures/full-payload.json`
+- [x] run `cargo test` — baseline must be green before any change
+- [x] hand-craft a comprehensive `tests/fixtures/full-payload.json`
       based on the canonical Claude Code stdin contract documented
       at https://code.claude.com/docs/en/statusline. Include every
       field this plan will surface as a placeholder. Use stable
       values (no clock-of-day, no random IDs).
-- [ ] commit fixture. Commit message:
+- [x] commit fixture. Commit message:
       `chore(fixtures): full Claude Code stdin payload for Phase 2`
-- [ ] Note: NO standalone "baseline" snapshot file is captured. The
+- [x] Note: NO standalone "baseline" snapshot file is captured. The
       Phase-1 `golden_output_unchanged` test ALREADY pins the
       BEFORE state for the 8 built-in templates against the
       pre-Phase-1 .txt outputs; Phase 2 doesn't modify those
