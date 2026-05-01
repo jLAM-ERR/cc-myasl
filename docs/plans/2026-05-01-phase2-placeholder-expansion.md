@@ -244,7 +244,7 @@ standard Rust prompt — uses `gix` for repository discovery.
 **Files:**
 - Modify: `src/format/placeholders/mod.rs`
 
-- [ ] extend `RenderCtx` struct adding (all `Option<T>`):
+- [x] extend `RenderCtx` struct adding (all `Option<T>`):
       - `model_id: Option<String>`
       - `version: Option<String>`
       - `session_id: Option<String>`
@@ -281,12 +281,12 @@ standard Rust prompt — uses `gix` for repository discovery.
         `git_staged_count: Option<u64>`,
         `git_unstaged_count: Option<u64>`,
         `git_untracked_count: Option<u64>`
-- [ ] keep all existing fields unchanged. `RenderCtx` discipline
+- [x] keep all existing fields unchanged. `RenderCtx` discipline
       (primitives only) preserved.
-- [ ] write a unit test asserting `RenderCtx::default()` has all
+- [x] write a unit test asserting `RenderCtx::default()` has all
       `Option`-typed fields set to `None` (sanity check after large
       struct expansion)
-- [ ] run `cargo test format::placeholders` — must pass before next task
+- [x] run `cargo test format::placeholders` — must pass before next task
 
 ### Task 3: Wire `Payload → RenderCtx` mapping in a sibling module
 
