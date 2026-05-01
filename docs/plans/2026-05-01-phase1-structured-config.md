@@ -351,6 +351,8 @@ locked in, so a clean break is cheap now and expensive later.
 - [x] write unit test: every shipped built-in serializes to JSON whose top-level keys match those declared in the schema's `required` / `properties` lists (sanity check, not full conformance)
 - [x] run tests; all pass before next task
 
+⚠️ Followup commit (Task 9 followup): fix(schema): relax segment additionalProperties to match runtime tolerance — `TemplateSegment` and `FlexSegment` had `additionalProperties: false` in schema but the Rust structs do NOT use `#[serde(deny_unknown_fields)]`; test `unknown_field_in_template_segment_is_ignored` proved runtime tolerates extras; schema was rejecting them causing false-positive IDE errors. Changed both to `additionalProperties: true`. Added top-level `description` note about `oneOf` vs `#[serde(untagged)]` stricture. Added two new tests in `tests_d.rs`: `schema_template_segment_additional_properties_is_true_or_unset` and `schema_flex_segment_additional_properties_is_true_or_unset`.
+
 ### Task 10: Update `check.rs` and `--check` output
 
 **Files:**

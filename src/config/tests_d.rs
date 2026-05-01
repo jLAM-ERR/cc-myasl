@@ -101,6 +101,35 @@ fn schema_template_segment_requires_template() {
     );
 }
 
+// ── spot-check: TemplateSegment additionalProperties is true (not false) ─────
+
+#[test]
+fn schema_template_segment_additional_properties_is_true_or_unset() {
+    let s = schema();
+    let ap = &s["definitions"]["TemplateSegment"]["additionalProperties"];
+    // Must be absent (serde_json::Value::Null when missing) or explicitly true.
+    // Must NOT be false — the Rust runtime ignores unknown fields.
+    assert_ne!(
+        ap.as_bool(),
+        Some(false),
+        "TemplateSegment.additionalProperties must not be false; runtime tolerates extra fields"
+    );
+}
+
+// ── spot-check: FlexSegment additionalProperties is true (not false) ──────────
+
+#[test]
+fn schema_flex_segment_additional_properties_is_true_or_unset() {
+    let s = schema();
+    let ap = &s["definitions"]["FlexSegment"]["additionalProperties"];
+    // Must be absent or explicitly true. Must NOT be false.
+    assert_ne!(
+        ap.as_bool(),
+        Some(false),
+        "FlexSegment.additionalProperties must not be false; runtime tolerates extra fields"
+    );
+}
+
 // ── sanity: every built-in serializes with keys that appear in schema.properties ─
 
 #[test]

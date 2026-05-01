@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/cc-myasl.schema.json",
   "title": "cc-myasl config",
-  "description": "Structured layout config for cc-myasl. One-flex-per-line is enforced at runtime by Config::validate_and_clamp, not statically by this schema.",
+  "description": "Structured layout config for cc-myasl. One-flex-per-line is enforced at runtime by Config::validate_and_clamp, not statically by this schema. Note: this schema may be slightly stricter than the Rust runtime for segment disambiguation — the runtime uses #[serde(untagged)] and accepts a single segment object with both 'template' and 'flex' keys (silently resolving to Template); this schema uses oneOf and requires choosing exactly one variant.",
   "type": "object",
   "additionalProperties": true,
   "properties": {
@@ -53,7 +53,7 @@
     "TemplateSegment": {
       "description": "A segment that renders a format-string template. Supports placeholder substitution (e.g. {model}, {five_left}).",
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": ["template"],
       "properties": {
         "template": {
@@ -77,7 +77,7 @@
     "FlexSegment": {
       "description": "A spacer segment that expands to fill the remaining terminal width on this line. At most one flex segment per line is allowed (enforced at runtime).",
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": ["flex"],
       "properties": {
         "flex": {
