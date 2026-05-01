@@ -376,7 +376,7 @@ standard Rust prompt — uses `gix` for repository discovery.
 - Modify: `src/format/placeholders/tests.rs`
 - Modify: `src/format/values.rs` (helper functions)
 
-- [ ] add match arms for: `cost_usd` (formatted to 2 decimals),
+- [x] add match arms for: `cost_usd` (formatted to 2 decimals),
       `session_clock` (from `total_duration_ms`, formatted as
       "1h23m" via the new `format_duration_ms` helper —
       do NOT reuse `countdown` which subtracts from a future epoch
@@ -384,12 +384,12 @@ standard Rust prompt — uses `gix` for repository discovery.
       `api_duration` (from `api_duration_ms`),
       `lines_added`, `lines_removed`,
       `lines_changed` (added + removed convenience)
-- [ ] add `format::values::format_duration_ms(ms: u64) -> String`
+- [x] add `format::values::format_duration_ms(ms: u64) -> String`
       helper (e.g., 4500ms → "4s", 60500ms → "1m", 3600500ms →
       "1h0m"). Tests for boundaries: 0ms, 999ms, 1000ms, 60000ms,
       3600000ms, 86400000ms.
-- [ ] write unit tests for each placeholder: success + None paths.
-- [ ] run `cargo test format` — must pass before next task
+- [x] write unit tests for each placeholder: success + None paths.
+- [x] run `cargo test format` — must pass before next task
 
 ### Task 6: Add token placeholders
 
