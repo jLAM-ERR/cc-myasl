@@ -154,6 +154,10 @@ pub fn parse<R: std::io::Read>(reader: R) -> Result<Payload, anyhow::Error> {
 }
 
 #[cfg(test)]
+#[path = "payload_tests.rs"]
+mod payload_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
