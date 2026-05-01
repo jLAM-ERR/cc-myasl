@@ -57,6 +57,13 @@ if grep -r "use crate::git" src/format/ 2>/dev/null | grep -v "^\s*//" ; then
     FAILED=1
 fi
 
+# Invariant 11: tui/*.rs must NOT import crate::api, crate::cache, or crate::git.
+# (TUI consumes Config + Payload via existing modules; no direct backend access.)
+if grep -r "use crate::api\|use crate::cache\|use crate::git" src/tui/ 2>/dev/null | grep -v "^\s*//" ; then
+    echo "FAIL: 'use crate::api', 'use crate::cache', or 'use crate::git' found in src/tui/" >&2
+    FAILED=1
+fi
+
 if [ "$FAILED" -eq 1 ]; then
     exit 1
 fi

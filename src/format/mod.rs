@@ -1,5 +1,6 @@
 //! Format engine for the status-line template language.
 
+pub mod catalog;
 pub mod parser;
 pub mod placeholders;
 pub mod thresholds;

@@ -1,5 +1,6 @@
 pub mod builtins;
 pub mod render;
+pub mod render_powerline;
 pub mod schema;
 
 pub use builtins::lookup;
