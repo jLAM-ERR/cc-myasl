@@ -208,3 +208,5 @@ acquire the appropriate mutex and restore prior values before releasing.
 - `docs/plan.md` — superseded sh-based plan, kept for historical context.
 - `docs/plans/completed/2026-04-26-rust-statusline.md` — the
   authoritative implementation plan, all tasks `[x]`.
+- `docs/plans/completed/2026-05-01-phase1-structured-config.md` —
+  Phase 1 structured-config rewrite. Implementation complete.

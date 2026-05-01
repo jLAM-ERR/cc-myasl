@@ -405,7 +405,7 @@ locked in, so a clean break is cheap now and expensive later.
 
 ### Task 13: Verify acceptance criteria
 
-- [ ] verify all requirements from Overview implemented:
+- [x] verify all requirements from Overview implemented:
   - structured JSON config ✓
   - multi-line (≤ 3) ✓
   - per-segment padding ✓
@@ -417,28 +417,28 @@ locked in, so a clean break is cheap now and expensive later.
   - `--config` / `--template` / `--print-config` / `STATUSLINE_CONFIG` ✓
   - `--format` / `STATUSLINE_FORMAT` removed ✓
   - `terminal_size` added (only new dep) ✓
-- [ ] verify edge cases handled:
+- [x] verify edge cases handled:
   - corrupt config falls back to default ✓
   - missing config file uses embedded default ✓
   - flex without terminal width degrades to 1 space ✓
   - invalid `lines.len() > 3` rejected with warning ✓
   - hidden segment drops adjacent separator ✓
-- [ ] run full test suite: `cargo test`
-- [ ] run release build: `cargo build --release`; size still ≤ 1.5 MB
+- [x] run full test suite: `cargo test`
+- [x] run release build: `cargo build --release`; size still ≤ 1.5 MB
       stripped (CLAUDE.md target)
-- [ ] manual smoke: `echo '{}' | ./target/release/cc-myasl --template default`
+- [x] manual smoke: `echo '{}' | ./target/release/cc-myasl --template default`
       and `echo '{}' | ./target/release/cc-myasl --print-config` produce
       sensible output
-- [ ] verify test coverage hasn't regressed (rough: number of tests
+- [x] verify test coverage hasn't regressed (rough: number of tests
       grew, none deleted without replacement)
 
 ### Task 14: [Final] Move plan to completed
 
-- [ ] update CLAUDE.md "Reference docs" section: add link to this plan
+- [x] update CLAUDE.md "Reference docs" section: add link to this plan
       under completed
-- [ ] move `docs/plans/2026-05-01-phase1-structured-config.md` to
+- [x] move `docs/plans/2026-05-01-phase1-structured-config.md` to
       `docs/plans/completed/2026-05-01-phase1-structured-config.md`
-- [ ] commit with `feat: structured JSON config (multi-line, padding, separator, flex spacer)`
+- [x] commit with `feat: structured JSON config (multi-line, padding, separator, flex spacer)`
 
 ## Technical Details
 
