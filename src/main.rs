@@ -45,6 +45,7 @@ fn main() {
         let mut trace = Trace::default();
         let config = cc_myasl::config::resolve(&args, &mut trace);
         println!("{}", cc_myasl::config::print_config(&config));
+        trace.emit(args.debug);
         std::process::exit(0);
     }
 

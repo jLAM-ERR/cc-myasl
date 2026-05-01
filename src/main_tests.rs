@@ -164,6 +164,37 @@ fn apply_cache_none_resets_at_leaves_reset_unix_none() {
     );
 }
 
+// ── --print-config --debug: trace is populated and config JSON is valid ───
+
+#[test]
+fn print_config_debug_emits_trace_to_stderr() {
+    // Verify the --print-config branch populates the Trace (so emit is meaningful)
+    // and that print_config still produces valid JSON on stdout.
+    let a = args::Args {
+        print_config: true,
+        debug: true,
+        ..Default::default()
+    };
+    let mut trace = Trace::default();
+    let config = cc_myasl::config::resolve(&a, &mut trace);
+    // config_source must be set — this is what the trace serialises for diagnostics.
+    assert!(
+        trace.config_source.is_some(),
+        "config_source must be populated by resolve for the debug trace"
+    );
+    // Calling emit(true) must not panic (actual stderr capture is in debug::tests).
+    // We call emit with force=true here just to exercise the code path.
+    trace.emit(true);
+    // Stdout output must remain valid JSON regardless of debug flag.
+    let output = cc_myasl::config::print_config(&config);
+    let v: serde_json::Value =
+        serde_json::from_str(&output).expect("print_config must remain valid JSON");
+    assert!(
+        v.get("$schema").is_some(),
+        "$schema must be present in print_config output"
+    );
+}
+
 // ── render-mode invariant: all-None ctx renders without panic ─────────────
 
 #[test]
