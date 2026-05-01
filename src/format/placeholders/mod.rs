@@ -225,6 +225,22 @@ pub fn render_placeholder(name: &str, ctx: &RenderCtx) -> Option<String> {
         "tokens_input_total" => ctx.tokens_input_total.map(format_count),
         "tokens_output_total" => ctx.tokens_output_total.map(format_count),
 
+        // ── context window ────────────────────────────────────────────────────
+        "context_size" => ctx.context_size.map(|n| n.to_string()),
+        "context_used_pct" => ctx.context_used_pct.map(percent_decimal),
+        "context_remaining_pct" => ctx.context_remaining_pct.map(percent_decimal),
+        // Rounded down (floor), not rounded — so 8.9% shows as "8" not "9".
+        "context_used_pct_int" => ctx
+            .context_used_pct
+            .map(|v| format!("{}", v.floor() as i64)),
+        "context_bar" => ctx.context_used_pct.map(|v| bar(v, 10)),
+        "context_bar_long" => ctx.context_used_pct.map(|v| bar(v, 20)),
+        // "!" when context exceeds 200k tokens; None otherwise — segment collapses
+        // cleanly when within limits (same pattern as `thinking_enabled`).
+        "exceeds_200k" => ctx
+            .exceeds_200k
+            .and_then(|b| if b { Some("!".to_owned()) } else { None }),
+
         // ── ANSI reset ────────────────────────────────────────────────────────
         "reset" => Some("\x1b[0m".to_owned()),
 
@@ -248,6 +264,10 @@ mod cost_tests;
 #[cfg(test)]
 #[path = "tokens_tests.rs"]
 mod tokens_tests;
+
+#[cfg(test)]
+#[path = "context_tests.rs"]
+mod context_tests;
 
 #[cfg(test)]
 mod phase2_struct_tests {
