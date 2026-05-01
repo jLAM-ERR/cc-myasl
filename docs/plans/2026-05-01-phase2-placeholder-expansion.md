@@ -429,23 +429,23 @@ standard Rust prompt — uses `gix` for repository discovery.
 - Modify: `src/format/placeholders/mod.rs`
 - Modify: `src/format/placeholders/tests.rs`
 
-- [ ] add match arms for: `project_dir` (with HOME-tilde
+- [x] add match arms for: `project_dir` (with HOME-tilde
       compression like `cwd`), `added_dirs_count`,
       `workspace_git_worktree` (the simple worktree NAME from
       `workspace.git_worktree`), `worktree_name` (from
       `worktree.name`), `worktree_path` (with HOME-tilde),
       `worktree_branch`, `worktree_original_cwd` (with HOME-tilde),
       `worktree_original_branch`
-- [ ] note: `workspace_git_worktree` and `worktree_name` are
+- [x] note: `workspace_git_worktree` and `worktree_name` are
       different sources (`workspace.git_worktree` vs
       `worktree.name`) — see Claude Code docs. Document the
       distinction in placeholder docstring.
-- [ ] write unit tests for each placeholder + edge cases
+- [x] write unit tests for each placeholder + edge cases
       (HOME unset, empty paths, missing worktree section)
-- [ ] LOC check on `format/placeholders/mod.rs`. If approaching
+- [x] LOC check on `format/placeholders/mod.rs`. If approaching
       500, split into sibling files (`session.rs`, `tokens.rs`,
       `git.rs` etc.) under `format/placeholders/`.
-- [ ] run `cargo test format` — must pass before next task
+- [x] run `cargo test format` — must pass before next task
 
 ### Task 9: Add `gix` dep (slim build) + create `src/git/` module
 
