@@ -27,7 +27,7 @@ impl Repo {
 
     /// Worktree root directory; None for bare repositories.
     pub fn root(&self) -> Option<PathBuf> {
-        self.inner.work_dir().map(PathBuf::from)
+        self.inner.workdir().map(PathBuf::from)
     }
 }
 

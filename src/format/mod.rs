@@ -266,7 +266,7 @@ mod tests {
                 let p = entry.path();
                 if p.is_dir() {
                     out.extend(walkdir_rs(&p));
-                } else if p.extension().map_or(false, |e| e == "rs") {
+                } else if p.extension().is_some_and(|e| e == "rs") {
                     out.push(p);
                 }
             }

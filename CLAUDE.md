@@ -200,12 +200,16 @@ acquire the appropriate mutex and restore prior values before releasing.
   avoids fragile shell-out parsing; matches Starship's pattern).
   Dev-deps add `mockito`, `tempfile`, `assert_cmd`, `predicates`.
   No `clap`, no `tokio`/`reqwest`, no `chrono`, no `keyring`.
-- Do NOT add `clru` or `idna_adapter` as direct dependencies.
-  They are transitive deps of `gix`/`ureq` pinned by `Cargo.lock`
-  to old-edition versions (`clru=0.6.2`, `idna_adapter=1.2.0`) because
-  `0.6.3+`/`1.3+` require the Rust 2024 edition which `rust-version = "1.83"`
-  cannot parse. The pins live in `Cargo.lock`; adding them to `[dependencies]`
-  was the wrong mechanism and has been removed.
+- The MSRV is `rust-version = "1.85"` (Rust 2024 edition baseline).
+  `rust-toolchain.toml` pins channel `1.85`. `gix 0.83` requires the
+  `sha1` feature for any commit/tree work — `Cargo.toml` enables only
+  `sha1`, no network/signing/async. Older Cargo.lock pins for
+  `clru=0.6.2` and `idna_adapter=1.2.0` (workarounds for the prior
+  `1.83` floor) are no longer needed and were removed when the
+  toolchain bumped. Some deps (icu_*, idna_adapter ≥ 1.2.2) require
+  Rust 1.86; the current Cargo.lock holds them at compatible
+  versions — do not run `cargo update` without a coordinated MSRV
+  bump.
 - Do NOT call `security dump-keychain` (or even mention the literal
   string in `src/` or `scripts/` — the invariant grep is naive).
 - Do NOT add `@latest` or `npx -y …@latest` patterns anywhere in
