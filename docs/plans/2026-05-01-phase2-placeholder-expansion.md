@@ -334,6 +334,8 @@ standard Rust prompt — uses `gix` for repository discovery.
       src/payload_mapping.rs` < 500
 - [x] run `cargo test` — all tests pass before next task
 
+⚠️ Followup commit (Task 3): rewrote stale `valid_stdin_with_rate_limits_populates_ctx` test in `main.rs` to call `payload_mapping::build_render_ctx` directly instead of hand-copying the mapping. `pub mod payload_mapping` kept as `pub` (cannot be narrowed to `pub(crate)` — the binary crate in `src/main.rs` accesses it as an external crate consumer via `cc_myasl::payload_mapping`).
+
 ### Task 4: Rewrite the format-placeholders invariant test + add session/Claude metadata placeholders
 
 **Files:**

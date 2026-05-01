@@ -383,18 +383,13 @@ mod tests {
     fn valid_stdin_with_rate_limits_populates_ctx() {
         let json = r#"{"model":{"display_name":"claude-opus-4"},"rate_limits":{"five_hour":{"used_percentage":25.0,"resets_at":9999999999},"seven_day":{"used_percentage":50.0,"resets_at":9999999999}}}"#;
         let p = payload::parse(json.as_bytes()).expect("valid payload");
-        let mut ctx = RenderCtx {
-            now_unix: time::now_unix(),
-            ..Default::default()
-        };
-        ctx.model = p.model.and_then(|m| m.display_name);
-        if let Some(rl) = &p.rate_limits {
-            if let Some(fh) = &rl.five_hour {
-                ctx.five_used = fh.used_percentage;
-            }
-        }
+        let ctx = payload_mapping::build_render_ctx(&p, 0);
+        // model is mapped by build_render_ctx; rate_limits fields left None (caller fills them)
         assert_eq!(ctx.model.as_deref(), Some("claude-opus-4"));
-        assert_eq!(ctx.five_used, Some(25.0));
+        assert!(
+            ctx.five_used.is_none(),
+            "rate-limit fields must not be pre-populated by build_render_ctx"
+        );
     }
 
     // ── adversarial: corrupt config file must not exit non-zero ──────────────
