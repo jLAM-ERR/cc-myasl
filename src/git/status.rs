@@ -170,4 +170,75 @@ mod tests {
         assert_eq!(c.staged, 1);
         assert_eq!(c.unstaged, 1);
     }
+
+    #[test]
+    fn parse_renamed_file_type2_line() {
+        // `2 R.` = renamed, staged; Y='.' no worktree change.
+        let out = b"2 R. N... 100644 100644 100644 abc def R100 old.txt\tnew.txt\n";
+        let c = parse_porcelain2(out);
+        assert_eq!(c.staged, 1);
+        assert_eq!(c.unstaged, 0);
+    }
+
+    #[test]
+    fn parse_submodule_modified_line() {
+        // `1 .M S...` — submodule modified in worktree, nothing staged.
+        let out = b"1 .M SC.. 160000 160000 160000 abc def mysubmodule\n";
+        let c = parse_porcelain2(out);
+        assert_eq!(c.staged, 0);
+        assert_eq!(c.unstaged, 1);
+    }
+
+    #[test]
+    fn parse_submodule_staged_and_unstaged() {
+        // `1 MM S...` — submodule staged AND modified in worktree.
+        let out = b"1 MM SC.. 160000 160000 160000 abc def mysubmodule\n";
+        let c = parse_porcelain2(out);
+        assert_eq!(c.staged, 1);
+        assert_eq!(c.unstaged, 1);
+        assert_eq!(c.changes, 2);
+    }
+
+    #[test]
+    fn parse_invalid_utf8_returns_zeros() {
+        // Non-UTF-8 bytes — parse_porcelain2 falls back to "" via unwrap_or.
+        let out: &[u8] = &[0xFF, 0xFE, b'\n', b'?', b' ', b'f', b'\n'];
+        let c = parse_porcelain2(out);
+        // unwrap_or("") treats the whole thing as empty — all zeros.
+        assert_eq!(c.staged, 0);
+        assert_eq!(c.unstaged, 0);
+        assert_eq!(c.untracked, 0);
+        assert_eq!(c.changes, 0);
+    }
+
+    #[test]
+    fn parse_type1_line_with_only_xy_no_trailing_fields() {
+        // Minimal / truncated line — should not panic; XY still parsed.
+        let out = b"1 M.\n";
+        let c = parse_porcelain2(out);
+        assert_eq!(c.staged, 1);
+        assert_eq!(c.unstaged, 0);
+    }
+
+    #[test]
+    fn parse_type1_line_exactly_two_chars_after_prefix() {
+        // "1 XY" with no space after — edge of field boundary.
+        let out = b"1 MM\n";
+        let c = parse_porcelain2(out);
+        assert_eq!(c.staged, 1);
+        assert_eq!(c.unstaged, 1);
+    }
+
+    #[test]
+    fn parse_changes_equals_staged_plus_unstaged_plus_untracked() {
+        // Invariant: changes == staged + unstaged + untracked (not double-counted).
+        let out = b"1 MM N... 100644 100644 100644 a b file1.txt\n\
+                    1 M. N... 100644 100644 100644 a b file2.txt\n\
+                    1 .M N... 100644 100644 100644 a b file3.txt\n\
+                    ? new.txt\n\
+                    u AA N... 0 0 0 0 a b conflict.txt\n";
+        let c = parse_porcelain2(out);
+        // staged=4 (MM, M., u), unstaged=4 (MM, .M, u), untracked=1
+        assert_eq!(c.changes, c.staged + c.unstaged + c.untracked);
+    }
 }
