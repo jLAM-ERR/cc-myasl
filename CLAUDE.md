@@ -108,6 +108,9 @@ exit non-zero.
 8. **`config/*.rs` must NOT import `crate::api` or `crate::cache`** —
    parallel to format's decoupling invariant; verified by string-scan test
    in `config::tests`.
+9. **`git/*.rs` must NOT import `crate::format`, `crate::config`, `crate::api`,
+   or `crate::cache`** — low-level module; verified by string-scan test in
+   `git::tests` and by `scripts/check-invariants.sh`.
 
 ### Format engine decoupling invariant
 
@@ -183,6 +186,12 @@ acquire the appropriate mutex and restore prior values before releasing.
   avoids fragile shell-out parsing; matches Starship's pattern).
   Dev-deps add `mockito`, `tempfile`, `assert_cmd`, `predicates`.
   No `clap`, no `tokio`/`reqwest`, no `chrono`, no `keyring`.
+- Do NOT add `clru` or `idna_adapter` as direct dependencies.
+  They are transitive deps of `gix`/`ureq` pinned by `Cargo.lock`
+  to old-edition versions (`clru=0.6.2`, `idna_adapter=1.2.0`) because
+  `0.6.3+`/`1.3+` require the Rust 2024 edition which `rust-version = "1.83"`
+  cannot parse. The pins live in `Cargo.lock`; adding them to `[dependencies]`
+  was the wrong mechanism and has been removed.
 - Do NOT call `security dump-keychain` (or even mention the literal
   string in `src/` or `scripts/` — the invariant grep is naive).
 - Do NOT add `@latest` or `npx -y …@latest` patterns anywhere in

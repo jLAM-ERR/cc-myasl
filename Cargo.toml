@@ -23,9 +23,6 @@ anyhow = "1"
 terminal_size = "0.4"
 # features chosen: none (empty) — gix base provides discover/head_name/work_dir; no network, no signing, no async
 gix = { version = "0.70", default-features = false, features = [] }
-# pin old editions: 0.6.3+ use Rust 2024 edition which Cargo 1.83 cannot parse
-clru = "=0.6.2"
-idna_adapter = "=1.2.0"
 
 [dev-dependencies]
 mockito = "1"

@@ -43,6 +43,13 @@ if grep -r "use crate::api\|use crate::cache" src/config/ 2>/dev/null | grep -v 
     FAILED=1
 fi
 
+# Invariant 9: git/*.rs must NOT import crate::format, crate::config, crate::api, or crate::cache.
+# (git is a low-level module; it must not depend on rendering or HTTP layers.)
+if grep -r "use crate::format\|use crate::config\|use crate::api\|use crate::cache" src/git/ 2>/dev/null | grep -v "^\s*//" ; then
+    echo "FAIL: forbidden crate import found in src/git/" >&2
+    FAILED=1
+fi
+
 if [ "$FAILED" -eq 1 ]; then
     exit 1
 fi

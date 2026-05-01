@@ -1,5 +1,5 @@
-use std::path::PathBuf;
-use std::process::Command;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 
 use tempfile::TempDir;
 
@@ -19,8 +19,9 @@ fn init_repo(branch: &str) -> TempDir {
             .expect("git init fallback");
         Command::new("git")
             .args(["-C", dir.path().to_str().unwrap(), "checkout", "-b", branch])
+            .stderr(Stdio::null())
             .status()
-            .ok();
+            .expect("git checkout -b failed");
     }
     dir
 }
@@ -49,6 +50,43 @@ fn commit(dir: &TempDir) {
         .expect("git commit");
 }
 
+// ── decoupling invariant ─────────────────────────────────────────────────
+
+/// Walk `src/git/` and assert no `.rs` file contains forbidden high-level imports.
+#[test]
+fn git_module_does_not_depend_on_format_config_api_cache() {
+    use std::fs;
+
+    let forbidden: &[&str] = &[
+        &["use crate", "::", "format"].concat(),
+        &["use crate", "::", "config"].concat(),
+        &["use crate", "::", "api"].concat(),
+        &["use crate", "::", "cache"].concat(),
+    ];
+
+    fn walk(dir: &Path, forbidden: &[&str]) {
+        let entries = fs::read_dir(dir).expect("read_dir failed");
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                walk(&path, forbidden);
+            } else if path.extension().and_then(|e| e.to_str()) == Some("rs") {
+                let src = fs::read_to_string(&path).unwrap_or_default();
+                for pat in forbidden {
+                    assert!(
+                        !src.contains(*pat),
+                        "{} has forbidden import: {}",
+                        path.display(),
+                        pat
+                    );
+                }
+            }
+        }
+    }
+
+    walk(Path::new("src/git"), forbidden);
+}
+
 #[test]
 fn discover_returns_some_inside_repo() {
     let dir = init_repo("main");
@@ -57,8 +95,13 @@ fn discover_returns_some_inside_repo() {
 
 #[test]
 fn discover_returns_none_outside_repo() {
+    let _guard = super::GIT_ENV_MUTEX.lock().unwrap();
     let dir = tempfile::tempdir().expect("tempdir");
-    assert!(super::discover(dir.path()).is_none());
+    // Prevent gix from walking past the tempdir even if a parent is a git repo.
+    std::env::set_var("GIT_CEILING_DIRECTORIES", dir.path());
+    let result = super::discover(dir.path());
+    std::env::remove_var("GIT_CEILING_DIRECTORIES");
+    assert!(result.is_none());
 }
 
 #[test]
@@ -80,7 +123,13 @@ fn branch_returns_none_for_detached_head() {
         .expect("rev-parse");
     let sha = String::from_utf8_lossy(&out.stdout).trim().to_owned();
     Command::new("git")
-        .args(["-C", dir.path().to_str().unwrap(), "checkout", &sha])
+        .args([
+            "-C",
+            dir.path().to_str().unwrap(),
+            "checkout",
+            "--quiet",
+            &sha,
+        ])
         .status()
         .expect("git checkout sha");
     let repo = super::discover(dir.path()).expect("repo");

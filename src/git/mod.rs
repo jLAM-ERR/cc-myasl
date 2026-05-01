@@ -28,6 +28,10 @@ impl Repo {
     }
 }
 
+/// Serialises tests that read or write `GIT_CEILING_DIRECTORIES` or other git env vars.
+#[cfg(test)]
+pub(crate) static GIT_ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;
