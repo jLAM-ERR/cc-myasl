@@ -651,10 +651,10 @@ standard Rust prompt — uses `gix` for repository discovery.
 
 ### Task 14: Verify acceptance + finalize
 
-- [ ] verify all requirements from Overview implemented:
+- [x] verify all requirements from Overview implemented:
   - Payload struct extended with all stdin fields ✓
   - RenderCtx extended with primitives ✓
-  - ~30 new placeholders working ✓
+  - ~30 new placeholders working ✓ (44 new placeholders shipped)
   - gix-based git module functional inside repos ✓
   - git placeholders collapse cleanly outside repos ✓
   - `rich` built-in template added ✓
@@ -662,34 +662,25 @@ standard Rust prompt — uses `gix` for repository discovery.
   - No transcript JSONL parsing introduced ✓
   - No settings.json reading introduced ✓
   - Only `gix` added as new dep ✓
-- [ ] run full test suite: `cargo test`
-- [ ] run release build: `cargo build --release`. Confirm size
-      after gix slim build is reasonable. Phase 1 binary was
-      1.0 MB stripped. Target: ≤ 2.0 MB stripped after gix.
-      If over, reconsider feature flags or split git module
-      into a feature-gated module (config flag to disable git).
-- [ ] manual smoke:
+- [x] run full test suite: `cargo test` — 802 tests, all pass
+- [x] run release build: `cargo build --release`. Binary: 1.5 MB stripped
+      (Phase 1 was 1.0 MB; target was ≤ 2.0 MB — within target).
+- [x] manual smoke:
       - `echo '{}' | ./target/release/cc-myasl --template rich` →
-        renders sensibly (most segments collapse with empty
-        payload)
+        renders sensibly (all segments collapse with empty payload)
       - `cat tests/fixtures/full-payload.json |
         ./target/release/cc-myasl --template rich` → renders
         all segments
-- [ ] verify test count grew. Phase 1 ended with 534 tests; Phase 2
-      should add 60+ for ~30 placeholders, struct extension,
-      git module.
-- [ ] update CLAUDE.md "Reference docs" section: add a link to
-      this plan under completed:
-      ```
-      - `docs/plans/completed/2026-05-01-phase2-placeholder-expansion.md` —
-        Phase 2 placeholder expansion. Implementation complete.
-      ```
-- [ ] move `docs/plans/2026-05-01-phase2-placeholder-expansion.md`
+- [x] verify test count grew. Phase 1 ended with 534 tests; Phase 2
+      added 268 tests for a total of 802 (unit + golden).
+- [x] update CLAUDE.md "Reference docs" section: link updated to
+      `docs/plans/completed/2026-05-01-phase2-placeholder-expansion.md`.
+- [x] move `docs/plans/2026-05-01-phase2-placeholder-expansion.md`
       to `docs/plans/completed/2026-05-01-phase2-placeholder-expansion.md`
       via `git mv`.
-- [ ] mark all Task 14 checkboxes `[x]` in the (now-moved) plan
+- [x] mark all Task 14 checkboxes `[x]` in the (now-moved) plan
       file.
-- [ ] commit. Suggested message:
+- [x] commit. Suggested message:
       `feat: Phase 2 placeholder expansion (stdin extension + gix-based git module)`
 
 ## Technical Details

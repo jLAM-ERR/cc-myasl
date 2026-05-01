@@ -239,6 +239,6 @@ acquire the appropriate mutex and restore prior values before releasing.
   authoritative implementation plan, all tasks `[x]`.
 - `docs/plans/completed/2026-05-01-phase1-structured-config.md` —
   Phase 1 structured-config rewrite. Implementation complete.
-- `docs/plans/2026-05-01-phase2-placeholder-expansion.md` —
+- `docs/plans/completed/2026-05-01-phase2-placeholder-expansion.md` —
   Phase 2 placeholder expansion (stdin extension + gix-based git module).
-  Implementation complete; will be moved to `completed/` in Task 14.
+  Implementation complete.
