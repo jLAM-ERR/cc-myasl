@@ -21,6 +21,18 @@ fn bin() -> Command {
     Command::cargo_bin("cc-myasl").expect("binary must build")
 }
 
+/// Write a single-segment config JSON to a tempfile and return (tempdir, path).
+/// The template string may contain `{? … }` optional blocks — they are handled
+/// by the segment renderer exactly as `format::render` handled them.
+fn write_config_for_template(dir: &tempfile::TempDir, template: &str) -> std::path::PathBuf {
+    let path = dir.path().join("test_config.json");
+    let escaped = template.replace('\\', "\\\\").replace('"', "\\\"");
+    let json =
+        format!(r#"{{"lines":[{{"separator":"","segments":[{{"template":"{escaped}"}}]}}]}}"#);
+    fs::write(&path, json).unwrap();
+    path
+}
+
 /// Return the cache dir the binary will use given `home`.
 /// Compute the cache directory the binary will use, given a tempdir HOME.
 ///
@@ -63,9 +75,12 @@ fn write_creds(home: &Path, token: &str) {
 #[test]
 fn pro_max_hot_path_renders_quota() {
     let started = std::time::Instant::now();
+    let tmpdir = tempfile::tempdir().unwrap();
+    let cfg = write_config_for_template(&tmpdir, "{model} · 5h: {five_left}% · 7d: {seven_left}%");
 
     bin()
-        .args(["--format", "{model} · 5h: {five_left}% · 7d: {seven_left}%"])
+        .arg("--config")
+        .arg(&cfg)
         .env("STATUSLINE_OAUTH_BASE_URL", "http://127.0.0.1:1")
         .write_stdin(fixture("pro_max_with_rate_limits"))
         .assert()
@@ -115,8 +130,12 @@ fn api_key_oauth_200_renders_quota() {
         )
         .create();
 
+    let cfg_dir = tempfile::tempdir().unwrap();
+    let cfg = write_config_for_template(&cfg_dir, "{five_left}/{seven_left}");
+
     bin()
-        .args(["--format", "{five_left}/{seven_left}"])
+        .arg("--config")
+        .arg(&cfg)
         .env("STATUSLINE_OAUTH_BASE_URL", server.url())
         .env("HOME", home.path())
         // On Linux, `directories::ProjectDirs` honours `$XDG_CACHE_HOME`
@@ -147,8 +166,12 @@ fn api_key_oauth_401_drops_quota_segment() {
         .with_status(401)
         .create();
 
+    let cfg_dir = tempfile::tempdir().unwrap();
+    let cfg = write_config_for_template(&cfg_dir, "{model}{? · 5h:{five_left}%}");
+
     bin()
-        .args(["--format", "{model}{? · 5h:{five_left}%}"])
+        .arg("--config")
+        .arg(&cfg)
         .env("STATUSLINE_OAUTH_BASE_URL", server.url())
         .env("HOME", home.path())
         // On Linux, `directories::ProjectDirs` honours `$XDG_CACHE_HOME`
@@ -185,8 +208,12 @@ fn api_key_oauth_429_writes_lock() {
         .unwrap()
         .as_secs();
 
+    let cfg_dir = tempfile::tempdir().unwrap();
+    let cfg = write_config_for_template(&cfg_dir, "{model}");
+
     bin()
-        .args(["--format", "{model}"])
+        .arg("--config")
+        .arg(&cfg)
         .env("STATUSLINE_OAUTH_BASE_URL", server.url())
         .env("HOME", home.path())
         // On Linux, `directories::ProjectDirs` honours `$XDG_CACHE_HOME`
@@ -239,8 +266,12 @@ fn extra_usage_renders_when_enabled() {
         )
         .create();
 
+    let cfg_dir = tempfile::tempdir().unwrap();
+    let cfg = write_config_for_template(&cfg_dir, "{model}{? extra:{extra_left}}");
+
     bin()
-        .args(["--format", "{model}{? extra:{extra_left}}"])
+        .arg("--config")
+        .arg(&cfg)
         .env("STATUSLINE_OAUTH_BASE_URL", server.url())
         .env("HOME", home.path())
         // On Linux, `directories::ProjectDirs` honours `$XDG_CACHE_HOME`

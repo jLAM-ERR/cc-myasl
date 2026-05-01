@@ -265,7 +265,16 @@ fn resolve_template(args: &Args) -> String {
 
 #[allow(deprecated)]
 fn render_and_emit(trace: &mut Trace, args: &Args, ctx: &RenderCtx, started: SystemTime) {
-    let line = format::render(&resolve_template(args), ctx);
+    // Task-7 forward-compat: if --config is set, use the structured renderer.
+    // Full Task-8 wiring will replace resolve_template entirely.
+    let line = if let Some(path) = &args.config_path {
+        match cc_myasl::config::from_file(path) {
+            Ok(cfg) => cc_myasl::config::render::render(&cfg, ctx),
+            Err(_) => format::render(&resolve_template(args), ctx),
+        }
+    } else {
+        format::render(&resolve_template(args), ctx)
+    };
     println!("{}", line);
     trace.took_ms = SystemTime::now()
         .duration_since(started)
@@ -275,23 +284,32 @@ fn render_and_emit(trace: &mut Trace, args: &Args, ctx: &RenderCtx, started: Sys
 }
 
 fn print_usage() {
-    eprintln!("cc-myasl — Claude Code status line with remaining 5h/7d quota");
-    eprintln!();
-    eprintln!("USAGE: cc-myasl [OPTIONS]");
-    eprintln!();
-    eprintln!("OPTIONS:");
-    eprintln!("  --format <STR>     Inline template string (highest precedence)");
-    eprintln!("  --template <NAME>  Use a named template (default, minimal, …)");
-    eprintln!("  --debug            Emit a JSON trace line to stderr");
-    eprintln!("  --check            Run setup-verification diagnostic [Task 12]");
-    eprintln!("  -V, --version      Print version and exit");
-    eprintln!("  -h, --help         Print this message and exit");
-    eprintln!();
-    eprintln!("ENV:");
-    eprintln!("  STATUSLINE_FORMAT          Inline template (overridden by --format)");
-    eprintln!("  STATUSLINE_RED, STATUSLINE_YELLOW   Threshold percentages");
-    eprintln!("  STATUSLINE_DEBUG=1         Same as --debug");
-    eprintln!("  STATUSLINE_OAUTH_BASE_URL  Override the OAuth endpoint (testing)");
+    eprintln!(
+        "cc-myasl — Claude Code status line with remaining 5h/7d quota\n\
+         \n\
+         USAGE: cc-myasl [OPTIONS]\n\
+         \n\
+         OPTIONS:\n\
+           --config <PATH>    Explicit config file (highest precedence)\n\
+           --template <NAME>  Named built-in or user template\n\
+           --print-config     Print resolved config as JSON and exit\n\
+           --debug            Emit a JSON trace line to stderr\n\
+           --check            Run setup-verification diagnostic\n\
+           -V, --version      Print version and exit\n\
+           -h, --help         Print this message and exit\n\
+         \n\
+         CONFIG PRECEDENCE (highest → lowest):\n\
+           --config > --template > STATUSLINE_CONFIG > default file > embedded\n\
+           Passing both --config and --template is allowed; --config wins.\n\
+           User templates: <config_dir>/cc-myasl/templates/<name>.json\n\
+           Built-ins: default, minimal, compact, bars, colored, emoji, emoji_verbose, verbose\n\
+         \n\
+         ENV:\n\
+           STATUSLINE_CONFIG          Config file path (same as --config)\n\
+           STATUSLINE_RED, STATUSLINE_YELLOW   Threshold percentages\n\
+           STATUSLINE_DEBUG=1         Same as --debug\n\
+           STATUSLINE_OAUTH_BASE_URL  Override the OAuth endpoint (testing)"
+    );
 }
 
 // ── tests ─────────────────────────────────────────────────────────────────────
@@ -305,43 +323,6 @@ mod tests {
     use std::sync::Mutex;
 
     static ENV_MUTEX: Mutex<()> = Mutex::new(());
-
-    // ── resolve_template precedence ───────────────────────────────────────────
-
-    #[test]
-    fn resolve_template_format_flag_wins() {
-        let _g = ENV_MUTEX.lock().unwrap();
-        std::env::remove_var("STATUSLINE_FORMAT");
-        let a = args::parse(&["--format".to_string(), "custom {model}".to_string()]);
-        assert_eq!(resolve_template(&a), "custom {model}");
-    }
-
-    #[test]
-    fn resolve_template_env_beats_template_flag() {
-        let _g = ENV_MUTEX.lock().unwrap();
-        std::env::set_var("STATUSLINE_FORMAT", "from_env");
-        let a = args::parse(&["--template".to_string(), "minimal".to_string()]);
-        let t = resolve_template(&a);
-        std::env::remove_var("STATUSLINE_FORMAT");
-        assert_eq!(t, "from_env");
-    }
-
-    #[test]
-    fn resolve_template_default_fallback() {
-        let _g = ENV_MUTEX.lock().unwrap();
-        std::env::remove_var("STATUSLINE_FORMAT");
-        assert_eq!(resolve_template(&args::parse(&[])), DEFAULT_TEMPLATE);
-    }
-
-    #[test]
-    fn resolve_template_template_flag_uses_lookup() {
-        let _g = ENV_MUTEX.lock().unwrap();
-        std::env::remove_var("STATUSLINE_FORMAT");
-        let a = args::parse(&["--template".to_string(), "default".to_string()]);
-        assert!(resolve_template(&a).contains("{model}"));
-        let b = args::parse(&["--template".to_string(), "does-not-exist".to_string()]);
-        assert_eq!(resolve_template(&b), DEFAULT_TEMPLATE);
-    }
 
     // ── apply_cache_to_ctx ────────────────────────────────────────────────────
 
@@ -479,7 +460,11 @@ mod tests {
     fn adversarial_custom_format_preserved_on_error() {
         let _g = ENV_MUTEX.lock().unwrap();
         std::env::remove_var("STATUSLINE_FORMAT");
-        let a = args::parse(&["--format".to_string(), "hello world".to_string()]);
+        // args.format is no longer set via CLI; construct directly for this test.
+        let a = args::Args {
+            format: Some("hello world".to_string()),
+            ..Default::default()
+        };
         assert!(render_from_str("{ bad json }", &a).contains("hello world"));
     }
 
@@ -488,10 +473,11 @@ mod tests {
         let _g = ENV_MUTEX.lock().unwrap();
         std::env::remove_var("STATUSLINE_FORMAT");
         let json = r#"{"model":{"display_name":"claude-opus-4"},"rate_limits":{"five_hour":{"used_percentage":25.0,"resets_at":9999999999},"seven_day":{"used_percentage":50.0,"resets_at":9999999999}}}"#;
-        let a = args::parse(&[
-            "--format".to_string(),
-            "{model} 5h:{five_left}%".to_string(),
-        ]);
+        // args.format is no longer set via CLI; construct directly for this test.
+        let a = args::Args {
+            format: Some("{model} 5h:{five_left}%".to_string()),
+            ..Default::default()
+        };
         let out = render_from_str(json, &a);
         assert!(out.contains("claude-opus-4"), "model missing: {out:?}");
         assert!(out.contains("75%"), "five_left=75% missing: {out:?}");

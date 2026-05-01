@@ -301,18 +301,18 @@ locked in, so a clean break is cheap now and expensive later.
 **Files:**
 - Modify: `src/args.rs`
 
-- [ ] add `pub config_path: Option<PathBuf>` and `pub template_name: Option<String>` fields to `Args`
-- [ ] add `pub print_config: bool` flag field
-- [ ] parse `--config <path>` to populate `config_path`
-- [ ] parse `--template <name>` to populate `template_name`
-- [ ] parse `--print-config` boolean flag (no value)
-- [ ] remove parsing of `--format <string>` from the parser
-- [ ] update `--help` text to document the new surface and remove `--format`
-- [ ] **Conflict handling:** parser does NOT error on `--config X --template Y` — both fields are populated and the resolver in Task 5 picks `config_path` (precedence step 1) over `template_name` (precedence step 2). `--help` documents this precedence so users aren't surprised. This keeps a single source of truth for precedence (the resolver), not split across parser + resolver.
-- [ ] write unit tests for each new flag parsed correctly (standalone)
-- [ ] write unit tests for combined flags (`--config X --template Y` populates both; `--print-config` combined with `--config`)
-- [ ] write unit tests for error cases: missing value after `--config`; missing value after `--template`
-- [ ] run `cargo test args`; all pass before next task
+- [x] add `pub config_path: Option<PathBuf>` and `pub template_name: Option<String>` fields to `Args`
+- [x] add `pub print_config: bool` flag field
+- [x] parse `--config <path>` to populate `config_path`
+- [x] parse `--template <name>` to populate `template_name`
+- [x] parse `--print-config` boolean flag (no value)
+- [x] remove parsing of `--format <string>` from the parser
+- [x] update `--help` text to document the new surface and remove `--format`
+- [x] **Conflict handling:** parser does NOT error on `--config X --template Y` — both fields are populated and the resolver in Task 5 picks `config_path` (precedence step 1) over `template_name` (precedence step 2). `--help` documents this precedence so users aren't surprised. This keeps a single source of truth for precedence (the resolver), not split across parser + resolver.
+- [x] write unit tests for each new flag parsed correctly (standalone)
+- [x] write unit tests for combined flags (`--config X --template Y` populates both; `--print-config` combined with `--config`)
+- [x] write unit tests for error cases: missing value after `--config`; missing value after `--template`
+- [x] run `cargo test args`; all pass before next task
 
 ### Task 8: Wire main.rs — use new resolver, drop STATUSLINE_FORMAT
 
