@@ -337,19 +337,19 @@ locked in, so a clean break is cheap now and expensive later.
 **Files:**
 - Create: `cc-myasl.schema.json`
 
-- [ ] write JSON Schema (draft-07 or 2020-12) describing the `Config` shape
-- [ ] enforce `lines: maxItems: 3`
-- [ ] enforce `padding: minimum: 0, maximum: 8`
-- [ ] enforce segment as `oneOf: [TemplateSegment, FlexSegment]` with `additionalProperties: false` on each variant
-- [ ] enforce one-flex-per-line via JSON Schema where feasible (note: JSON Schema can't express "at most one element of array X has property Y true" cleanly; document this as a soft constraint enforced by `Config::validate`)
-- [ ] include description fields on every top-level property — these surface in IDE tooltips
-- [ ] **Decision (was deferred):** NO new `jsonschema` dev-dep. Schema validation in tests is narrow: assert the schema file parses as valid JSON, and spot-check 3 specific constraints by direct `serde_json::Value` traversal: `properties.lines.maxItems == 3`, padding `maximum == 8`, segment `oneOf` has exactly 2 entries. Full schema-conformance verification is left to the IDE-side experience (the contract users actually rely on). Rationale: validating arbitrary configs against a JSON Schema in Rust without a dedicated lib is a project unto itself; the spot-checks catch the constraints we care about regressing.
-- [ ] write unit test: schema file parses as valid JSON via `serde_json::from_str::<serde_json::Value>(...)` on the included file content
-- [ ] write unit test: spot-check `lines.maxItems == 3`
-- [ ] write unit test: spot-check padding `maximum == 8`
-- [ ] write unit test: spot-check segment `oneOf` has exactly 2 variants
-- [ ] write unit test: every shipped built-in serializes to JSON whose top-level keys match those declared in the schema's `required` / `properties` lists (sanity check, not full conformance)
-- [ ] run tests; all pass before next task
+- [x] write JSON Schema (draft-07 or 2020-12) describing the `Config` shape
+- [x] enforce `lines: maxItems: 3`
+- [x] enforce `padding: minimum: 0, maximum: 8`
+- [x] enforce segment as `oneOf: [TemplateSegment, FlexSegment]` with `additionalProperties: false` on each variant
+- [x] enforce one-flex-per-line via JSON Schema where feasible (note: JSON Schema can't express "at most one element of array X has property Y true" cleanly; document this as a soft constraint enforced by `Config::validate`)
+- [x] include description fields on every top-level property — these surface in IDE tooltips
+- [x] **Decision (was deferred):** NO new `jsonschema` dev-dep. Schema validation in tests is narrow: assert the schema file parses as valid JSON, and spot-check 3 specific constraints by direct `serde_json::Value` traversal: `properties.lines.maxItems == 3`, padding `maximum == 8`, segment `oneOf` has exactly 2 entries. Full schema-conformance verification is left to the IDE-side experience (the contract users actually rely on). Rationale: validating arbitrary configs against a JSON Schema in Rust without a dedicated lib is a project unto itself; the spot-checks catch the constraints we care about regressing.
+- [x] write unit test: schema file parses as valid JSON via `serde_json::from_str::<serde_json::Value>(...)` on the included file content
+- [x] write unit test: spot-check `lines.maxItems == 3`
+- [x] write unit test: spot-check padding `maximum == 8`
+- [x] write unit test: spot-check segment `oneOf` has exactly 2 variants
+- [x] write unit test: every shipped built-in serializes to JSON whose top-level keys match those declared in the schema's `required` / `properties` lists (sanity check, not full conformance)
+- [x] run tests; all pass before next task
 
 ### Task 10: Update `check.rs` and `--check` output
 
