@@ -7,7 +7,9 @@
 use std::path::PathBuf;
 
 use crate::format::thresholds::{classify, pick_color, pick_icon};
-use crate::format::values::{bar, clock_local, countdown, percent_decimal, percent_int};
+use crate::format::values::{
+    bar, clock_local, countdown, format_duration_ms, percent_decimal, percent_int,
+};
 
 /// All data the renderer needs — primitives and stdlib types only.
 ///
@@ -185,6 +187,17 @@ pub fn render_placeholder(name: &str, ctx: &RenderCtx) -> Option<String> {
         "vim_mode" => ctx.vim_mode.clone(),
         "agent_name" => ctx.agent_name.clone(),
 
+        // ── cost / session clock ──────────────────────────────────────────────
+        "cost_usd" => ctx.cost_usd.map(|v| format!("{:.2}", v)),
+        "session_clock" => ctx.total_duration_ms.map(format_duration_ms),
+        "api_duration" => ctx.api_duration_ms.map(format_duration_ms),
+        "lines_added" => ctx.lines_added.map(|n| n.to_string()),
+        "lines_removed" => ctx.lines_removed.map(|n| n.to_string()),
+        "lines_changed" => match (ctx.lines_added, ctx.lines_removed) {
+            (Some(a), Some(r)) => Some((a + r).to_string()),
+            _ => None,
+        },
+
         // ── ANSI reset ────────────────────────────────────────────────────────
         "reset" => Some("\x1b[0m".to_owned()),
 
@@ -200,6 +213,10 @@ mod tests;
 #[cfg(test)]
 #[path = "session_tests.rs"]
 mod session_tests;
+
+#[cfg(test)]
+#[path = "cost_tests.rs"]
+mod cost_tests;
 
 #[cfg(test)]
 mod phase2_struct_tests {
