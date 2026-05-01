@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 use crate::format::thresholds::{classify, pick_color, pick_icon};
 use crate::format::values::{
-    bar, clock_local, countdown, format_duration_ms, percent_decimal, percent_int,
+    bar, clock_local, countdown, format_count, format_duration_ms, percent_decimal, percent_int,
 };
 
 /// All data the renderer needs — primitives and stdlib types only.
@@ -198,6 +198,33 @@ pub fn render_placeholder(name: &str, ctx: &RenderCtx) -> Option<String> {
             _ => None,
         },
 
+        // ── token counters (current turn) ─────────────────────────────────────
+        "tokens_input" => ctx.tokens_input.map(format_count),
+        "tokens_output" => ctx.tokens_output.map(format_count),
+        "tokens_cached_creation" => ctx.tokens_cache_creation.map(format_count),
+        "tokens_cached_read" => ctx.tokens_cache_read.map(format_count),
+        // cached_total: creation + read; None if either constituent is absent.
+        "tokens_cached_total" => match (ctx.tokens_cache_creation, ctx.tokens_cache_read) {
+            (Some(c), Some(r)) => Some(format_count(c + r)),
+            _ => None,
+        },
+        // tokens_total: all four; None if any constituent is absent.
+        "tokens_total" => {
+            match (
+                ctx.tokens_input,
+                ctx.tokens_output,
+                ctx.tokens_cache_creation,
+                ctx.tokens_cache_read,
+            ) {
+                (Some(i), Some(o), Some(cc), Some(cr)) => Some(format_count(i + o + cc + cr)),
+                _ => None,
+            }
+        }
+
+        // ── token counters (session totals) ───────────────────────────────────
+        "tokens_input_total" => ctx.tokens_input_total.map(format_count),
+        "tokens_output_total" => ctx.tokens_output_total.map(format_count),
+
         // ── ANSI reset ────────────────────────────────────────────────────────
         "reset" => Some("\x1b[0m".to_owned()),
 
@@ -217,6 +244,10 @@ mod session_tests;
 #[cfg(test)]
 #[path = "cost_tests.rs"]
 mod cost_tests;
+
+#[cfg(test)]
+#[path = "tokens_tests.rs"]
+mod tokens_tests;
 
 #[cfg(test)]
 mod phase2_struct_tests {

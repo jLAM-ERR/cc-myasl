@@ -136,6 +136,34 @@ pub fn format_duration_ms(ms: u64) -> String {
     }
 }
 
+// ── format_count ─────────────────────────────────────────────────────────────
+
+/// Format a token count as a compact human-readable string.
+///
+/// Rounding: values are divided by the unit magnitude and formatted with
+/// `{:.1}`, which uses standard "round half to even" (banker's rounding)
+/// as implemented by Rust's `format!`.  In practice the difference is
+/// only visible at exact .5 boundaries — callers should treat the
+/// displayed value as an approximation.
+///
+/// Thresholds (exclusive lower bound for the *next* suffix):
+/// - `< 1_000` → raw integer (no suffix), e.g. `999` → `"999"`
+/// - `< 1_000_000` → `"X.Xk"`, e.g. `1_234` → `"1.2k"`
+/// - `< 1_000_000_000` → `"X.XM"`, e.g. `1_234_567` → `"1.2M"`
+/// - `≥ 1_000_000_000` → `"X.XG"`, e.g. `1_000_000_000` → `"1.0G"`
+pub fn format_count(n: u64) -> String {
+    if n < 1_000 {
+        return n.to_string();
+    }
+    if n < 1_000_000 {
+        return format!("{:.1}k", n as f64 / 1_000.0);
+    }
+    if n < 1_000_000_000 {
+        return format!("{:.1}M", n as f64 / 1_000_000.0);
+    }
+    format!("{:.1}G", n as f64 / 1_000_000_000.0)
+}
+
 // ── helper: current unix time ────────────────────────────────────────────────
 
 /// Return the current Unix timestamp in seconds (best-effort; 0 on error).
@@ -436,5 +464,20 @@ mod tests {
     fn duration_ms_u64_max_does_not_panic() {
         // Should not panic; exact value not pinned.
         let _ = format_duration_ms(u64::MAX);
+    }
+
+    // ── format_count (full boundary suite in placeholders::tokens_tests) ────
+
+    #[test]
+    fn count_raw_below_1k() {
+        assert_eq!(format_count(0), "0");
+        assert_eq!(format_count(999), "999");
+    }
+
+    #[test]
+    fn count_suffixes() {
+        assert_eq!(format_count(1_000), "1.0k");
+        assert_eq!(format_count(1_000_000), "1.0M");
+        assert_eq!(format_count(1_000_000_000), "1.0G");
     }
 }
