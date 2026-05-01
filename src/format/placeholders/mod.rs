@@ -15,6 +15,7 @@ use crate::format::values::{bar, clock_local, countdown, percent_decimal, percen
 /// source was used (stdin `rate_limits`, API response, or cache).
 #[derive(Debug, Default)]
 pub struct RenderCtx {
+    // ── existing Phase-1 fields ───────────────────────────────────────────
     pub model: Option<String>,
     pub cwd: Option<PathBuf>,
     pub five_used: Option<f64>,       // 0..=100
@@ -26,6 +27,60 @@ pub struct RenderCtx {
     pub extra_limit: Option<f64>,
     pub extra_pct: Option<f64>,
     pub now_unix: u64,
+
+    // ── Phase-2: Claude Code session / metadata ───────────────────────────
+    pub model_id: Option<String>,
+    pub version: Option<String>,
+    pub session_id: Option<String>,
+    pub session_name: Option<String>,
+    pub output_style: Option<String>,
+    pub effort_level: Option<String>,
+    pub thinking_enabled: Option<bool>,
+    pub vim_mode: Option<String>,
+    pub agent_name: Option<String>,
+
+    // ── Phase-2: cost / session clock ─────────────────────────────────────
+    pub cost_usd: Option<f64>,
+    pub total_duration_ms: Option<u64>,
+    pub api_duration_ms: Option<u64>,
+    pub lines_added: Option<u64>,
+    pub lines_removed: Option<u64>,
+
+    // ── Phase-2: token counters (session totals) ──────────────────────────
+    pub tokens_input_total: Option<u64>,
+    pub tokens_output_total: Option<u64>,
+
+    // ── Phase-2: token counters (current turn) ────────────────────────────
+    pub tokens_input: Option<u64>,
+    pub tokens_output: Option<u64>,
+    pub tokens_cache_creation: Option<u64>,
+    pub tokens_cache_read: Option<u64>,
+
+    // ── Phase-2: context window ───────────────────────────────────────────
+    pub context_size: Option<u64>,
+    pub context_used_pct: Option<f64>,
+    pub context_remaining_pct: Option<f64>,
+    pub exceeds_200k: Option<bool>,
+
+    // ── Phase-2: workspace ────────────────────────────────────────────────
+    pub project_dir: Option<PathBuf>,
+    pub added_dirs_count: Option<u64>,
+    pub workspace_git_worktree: Option<String>,
+
+    // ── Phase-2: worktree ─────────────────────────────────────────────────
+    pub worktree_name: Option<String>,
+    pub worktree_path: Option<PathBuf>,
+    pub worktree_branch: Option<String>,
+    pub worktree_original_cwd: Option<PathBuf>,
+    pub worktree_original_branch: Option<String>,
+
+    // ── Phase-2: git (populated by git module in Task 10) ─────────────────
+    pub git_branch: Option<String>,
+    pub git_root: Option<PathBuf>,
+    pub git_changes_count: Option<u64>,
+    pub git_staged_count: Option<u64>,
+    pub git_unstaged_count: Option<u64>,
+    pub git_untracked_count: Option<u64>,
 }
 
 /// Render a single placeholder `name` against `ctx`.
@@ -125,3 +180,33 @@ pub fn render_placeholder(name: &str, ctx: &RenderCtx) -> Option<String> {
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod phase2_struct_tests {
+    use super::RenderCtx;
+
+    /// Sanity check: all 38 Phase-2 Option fields default to None.
+    #[test]
+    fn render_ctx_default_all_phase2_option_fields_are_none() {
+        let c = RenderCtx::default();
+        assert!(c.model_id.is_none() && c.version.is_none() && c.session_id.is_none());
+        assert!(c.session_name.is_none() && c.output_style.is_none() && c.effort_level.is_none());
+        assert!(c.thinking_enabled.is_none() && c.vim_mode.is_none() && c.agent_name.is_none());
+        assert!(c.cost_usd.is_none() && c.total_duration_ms.is_none());
+        assert!(
+            c.api_duration_ms.is_none() && c.lines_added.is_none() && c.lines_removed.is_none()
+        );
+        assert!(c.tokens_input_total.is_none() && c.tokens_output_total.is_none());
+        assert!(c.tokens_input.is_none() && c.tokens_output.is_none());
+        assert!(c.tokens_cache_creation.is_none() && c.tokens_cache_read.is_none());
+        assert!(c.context_size.is_none() && c.context_used_pct.is_none());
+        assert!(c.context_remaining_pct.is_none() && c.exceeds_200k.is_none());
+        assert!(c.project_dir.is_none() && c.added_dirs_count.is_none());
+        assert!(c.workspace_git_worktree.is_none() && c.worktree_name.is_none());
+        assert!(c.worktree_path.is_none() && c.worktree_branch.is_none());
+        assert!(c.worktree_original_cwd.is_none() && c.worktree_original_branch.is_none());
+        assert!(c.git_branch.is_none() && c.git_root.is_none());
+        assert!(c.git_changes_count.is_none() && c.git_staged_count.is_none());
+        assert!(c.git_unstaged_count.is_none() && c.git_untracked_count.is_none());
+    }
+}

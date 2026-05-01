@@ -14,6 +14,7 @@ fn ctx_full() -> RenderCtx {
         extra_limit: Some(100.0),
         extra_pct: Some(25.0),
         now_unix: 0,
+        ..Default::default()
     }
 }
 

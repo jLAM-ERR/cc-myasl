@@ -168,6 +168,7 @@ mod tests {
             extra_limit: None,
             extra_pct: None,
             now_unix: 0,
+            ..Default::default()
         }
     }
 
