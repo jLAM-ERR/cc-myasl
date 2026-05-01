@@ -295,17 +295,17 @@ standard Rust prompt — uses `gix` for repository discovery.
 - Modify: `src/main.rs`
 - Modify: `src/lib.rs` (add `pub mod payload_mapping;`)
 
-- [ ] **MANDATORY extraction:** `src/main.rs` is at 456 LOC and
+- [x] **MANDATORY extraction:** `src/main.rs` is at 456 LOC and
       will breach the 500-LOC ceiling once 30+ mapping lines are
       added. CREATE `src/payload_mapping.rs` first, then move the
       `Payload → RenderCtx` mapping into it. main.rs imports the
       function and calls it from `run_render`.
-- [ ] in `payload_mapping.rs`, define
+- [x] in `payload_mapping.rs`, define
       `pub fn build_render_ctx(payload: &Payload, now_unix: u64)
       -> RenderCtx`. Populate every existing RenderCtx field
       (preserving Phase-1 behaviour) PLUS every new RenderCtx
       field from Task 2.
-- [ ] **Scope of extraction:** `build_render_ctx` covers the
+- [x] **Scope of extraction:** `build_render_ctx` covers the
       FIELD-MAPPING portion only — `Payload` field reads into
       `RenderCtx` primitives. The hot-path control flow in
       `main.rs::run_render` (e.g., "if `payload.rate_limits`
@@ -316,23 +316,23 @@ standard Rust prompt — uses `gix` for repository discovery.
       stdin parsing → control flow decisions → calling
       `build_render_ctx` at the right point → `config::resolve`
       → `config::render::render` → output.
-- [ ] for fields requiring conversion (e.g., `String` →
+- [x] for fields requiring conversion (e.g., `String` →
       `PathBuf`), apply `.map(PathBuf::from)`
-- [ ] for `added_dirs: Option<Vec<String>>`, populate
+- [x] for `added_dirs: Option<Vec<String>>`, populate
       `added_dirs_count: Option<u64>` as
       `payload.workspace.as_ref().and_then(|w|
        w.added_dirs.as_ref().map(|v| v.len() as u64))`
-- [ ] update `run_render` in `main.rs` to call
+- [x] update `run_render` in `main.rs` to call
       `payload_mapping::build_render_ctx` instead of inline
       mapping. main.rs LOC must DECREASE post-extraction.
-- [ ] write a unit test in `payload_mapping.rs` that builds a
+- [x] write a unit test in `payload_mapping.rs` that builds a
       fully-populated `Payload` via serde and asserts every
       RenderCtx field is `Some(...)`
-- [ ] write a unit test that builds an EMPTY `Payload` and asserts
+- [x] write a unit test that builds an EMPTY `Payload` and asserts
       every new RenderCtx field is `None`
-- [ ] LOC check: `wc -l src/main.rs` < 500, `wc -l
+- [x] LOC check: `wc -l src/main.rs` < 500, `wc -l
       src/payload_mapping.rs` < 500
-- [ ] run `cargo test` — all tests pass before next task
+- [x] run `cargo test` — all tests pass before next task
 
 ### Task 4: Rewrite the format-placeholders invariant test + add session/Claude metadata placeholders
 
