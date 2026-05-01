@@ -1,6 +1,6 @@
 [package]
 name = "cc-myasl"
-version = "0.1.1"
+version = "1.0.0"
 edition = "2024"
 license = "MIT"
 description = "cc-myasl — My Yet Another Status Line for Claude Code (remaining 5h/7d Claude.ai token quota)"

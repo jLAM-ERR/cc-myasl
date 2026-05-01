@@ -28,10 +28,10 @@ Override defaults with environment variables:
 
 ```sh
 # Pin a specific release
-VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/scripts/install.sh | sh
+VERSION=v1.0.0 curl -fsSL https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/scripts/install.sh | sh
 
 # Override owner/repo if you've forked
-OWNER=jLAM-ERR REPO=cc-myasl VERSION=v0.1.0 \
+OWNER=jLAM-ERR REPO=cc-myasl VERSION=v1.0.0 \
   curl -fsSL https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/scripts/install.sh | sh
 ```
 
@@ -61,8 +61,8 @@ The installer:
 3. Verify and install:
 
    ```sh
-   # Example for macOS Apple Silicon, v0.1.0
-   VERSION=v0.1.0
+   # Example for macOS Apple Silicon, v1.0.0
+   VERSION=v1.0.0
    TARGET=aarch64-apple-darwin
    TARBALL="cc-myasl-${VERSION#v}-${TARGET}.tar.gz"
 

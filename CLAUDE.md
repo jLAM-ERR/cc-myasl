@@ -4,7 +4,7 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 ## Project in one paragraph
 
-`cc-myasl` (My Yet Another Status Line) is a Rust v0.1 single-binary
+`cc-myasl` (My Yet Another Status Line) is a Rust v1.0 single-binary
 tool that renders remaining Claude.ai 5-hour and 7-day token quota in
 the Claude Code status line. The shipped binary is named
 `cc-myasl` (descriptive of what it does). Reads Claude Code's
@@ -58,7 +58,7 @@ STATUSLINE_DEBUG=1 ./target/release/cc-myasl < some-stdin.json
 
 ## Big-picture architecture
 
-### Module tree (locked in v0.1)
+### Module tree (locked in v1.0)
 
 ```
 src/
