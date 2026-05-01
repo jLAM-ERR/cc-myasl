@@ -415,13 +415,13 @@ standard Rust prompt — uses `gix` for repository discovery.
 - Modify: `src/format/placeholders/mod.rs`
 - Modify: `src/format/placeholders/tests.rs`
 
-- [ ] add match arms for: `context_size`, `context_used_pct`,
+- [x] add match arms for: `context_size`, `context_used_pct`,
       `context_remaining_pct`, `context_used_pct_int` (rounded
       down), `context_bar` (10-char visual bar like the existing
       `five_bar` reusing `format::values::bar`),
       `context_bar_long` (20-char), `exceeds_200k`
-- [ ] write unit tests for each placeholder
-- [ ] run `cargo test format` — must pass before next task
+- [x] write unit tests for each placeholder
+- [x] run `cargo test format` — must pass before next task
 
 ### Task 8: Add workspace + worktree placeholders
 
