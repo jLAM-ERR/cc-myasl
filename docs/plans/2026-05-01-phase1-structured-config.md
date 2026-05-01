@@ -358,15 +358,15 @@ locked in, so a clean break is cheap now and expensive later.
 **Files:**
 - Modify: `src/check.rs`
 
-- [ ] adapt `report_format` (or rename to `report_config`) to print:
+- [x] adapt `report_format` (or rename to `report_config`) to print:
   - resolved config source (which precedence layer won)
   - active config as pretty JSON (or summary if too long)
   - list of all 8 built-in names
   - schema URL: `https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/cc-myasl.schema.json`
   - user templates dir path (whether it exists or not)
-- [ ] keep `--check` exit codes intact (this is the only path allowed to exit non-zero)
-- [ ] write tests: `--check` runs against tempdir config, against missing config, against malformed config; output contains expected strings
-- [ ] run `cargo test check`; all pass
+- [x] keep `--check` exit codes intact (this is the only path allowed to exit non-zero)
+- [x] write tests: `--check` runs against tempdir config, against missing config, against malformed config; output contains expected strings
+- [x] run `cargo test check`; all pass
 
 ### Task 11: Migrate existing 8 golden tests + add 5 new ones
 
