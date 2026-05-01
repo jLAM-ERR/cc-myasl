@@ -330,6 +330,8 @@ locked in, so a clean break is cheap now and expensive later.
 - [x] write test: `--print-config` outputs valid JSON parseable back into `Config`; output contains `$schema` field
 - [x] run `cargo test`; all pass; verify `main.rs` LOC under 500
 
+⚠️ Followup commit 33260e5: fix(main): emit trace under --print-config --debug — `--print-config` branch was building a `Trace` but never calling `trace.emit(args.debug)`; fixed by adding the emit call before `process::exit(0)` and adding `print_config_debug_emits_trace_to_stderr` unit test in `main_tests.rs`.
+
 ### Task 9: Add `cc-myasl.schema.json` at repo root
 
 **Files:**
