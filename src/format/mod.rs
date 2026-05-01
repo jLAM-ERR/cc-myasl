@@ -8,13 +8,6 @@ pub mod values;
 use parser::Token;
 pub use placeholders::RenderCtx;
 
-/// Built-in fallback template used when neither `--format`, `STATUSLINE_FORMAT`,
-/// nor a `--template <NAME>` lookup resolves to anything.  Single source of
-/// truth — both `main::resolve_template` and `check::report_format` consume
-/// this constant; do not duplicate.
-pub const DEFAULT_TEMPLATE: &str =
-    "{model}{? · 5h: {five_left}%}{? · 7d: {seven_left}%}{? (resets {seven_reset_clock})}";
-
 /// Render `template` against `ctx`, returning the final status-line string.
 ///
 /// - `{name}` placeholders are substituted from `ctx`.
@@ -22,6 +15,7 @@ pub const DEFAULT_TEMPLATE: &str =
 ///   inside them resolves to a non-empty value; otherwise the whole
 ///   block is silently suppressed.
 /// - Unknown placeholder names produce no output (empty string).
+#[deprecated(note = "Phase-1 transition only — replaced by config::render in Task 10")]
 pub fn render(template: &str, ctx: &RenderCtx) -> String {
     let tokens = parser::tokenize(template);
     let mut out = String::new();
@@ -53,25 +47,37 @@ fn render_tokens(tokens: &[Token], ctx: &RenderCtx, out: &mut String) {
     }
 }
 
-/// Look up a built-in template by name.
+/// Render `template` against `ctx` for use as a single config segment.
 ///
-/// Returns `Some(&str)` for one of the shipped templates
-/// (`default`, `minimal`, `compact`, `bars`, `colored`,
-/// `emoji`, `emoji_verbose`, `verbose`).  Returns `None`
-/// for any unknown name.  The orchestrator (`main.rs`)
-/// resolves the precedence order; this is just the lookup.
-pub fn lookup_template(name: &str) -> Option<&'static str> {
-    match name {
-        "default" => Some(include_str!("../../templates/default.txt")),
-        "minimal" => Some(include_str!("../../templates/minimal.txt")),
-        "compact" => Some(include_str!("../../templates/compact.txt")),
-        "bars" => Some(include_str!("../../templates/bars.txt")),
-        "colored" => Some(include_str!("../../templates/colored.txt")),
-        "emoji" => Some(include_str!("../../templates/emoji.txt")),
-        "emoji_verbose" => Some(include_str!("../../templates/emoji_verbose.txt")),
-        "verbose" => Some(include_str!("../../templates/verbose.txt")),
-        _ => None,
+/// Returns `None` if any top-level placeholder in the template resolves to
+/// `None` or empty — the caller (config::render) will then decide whether to
+/// hide the segment based on `hide_when_absent`.  Optional blocks (`{? … }`)
+/// inside a segment are handled normally: a collapsing inner block renders to
+/// empty but does NOT make the outer result `None`.
+///
+/// Differs from `render`: `render` always returns a `String` (unknown
+/// placeholders → empty string); `render_segment` is strict — any top-level
+/// placeholder that resolves to absent makes the whole segment `None`.
+pub fn render_segment(template: &str, ctx: &RenderCtx) -> Option<String> {
+    let tokens = parser::tokenize(template);
+    let mut out = String::new();
+    for t in &tokens {
+        match t {
+            Token::Text(s) => out.push_str(s),
+            Token::Placeholder(name) => match placeholders::render_placeholder(name, ctx) {
+                Some(v) if !v.is_empty() => out.push_str(&v),
+                _ => return None,
+            },
+            Token::Optional(inner) => {
+                // Optional blocks collapse internally but do not propagate None upward.
+                let mut scratch = String::new();
+                if render_optional(inner, ctx, &mut scratch) {
+                    out.push_str(&scratch);
+                }
+            }
+        }
     }
+    Some(out)
 }
 
 fn render_optional(tokens: &[Token], ctx: &RenderCtx, out: &mut String) -> bool {
@@ -103,6 +109,7 @@ fn render_optional(tokens: &[Token], ctx: &RenderCtx, out: &mut String) -> bool 
 pub(crate) static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
     use std::path::PathBuf;
@@ -233,74 +240,37 @@ mod tests {
         std::env::remove_var("STATUSLINE_YELLOW");
     }
 
-    // ── lookup_template ──────────────────────────────────────────────────────
+    // ── one-way-import invariant ─────────────────────────────────────────────
 
     #[test]
-    fn lookup_default_returns_some() {
-        let s = lookup_template("default").expect("default exists");
-        assert!(!s.is_empty());
-        assert!(s.contains("{model}"));
-    }
-
-    #[test]
-    fn lookup_unknown_returns_none() {
-        assert!(lookup_template("does-not-exist").is_none());
-    }
-
-    #[test]
-    fn all_shipped_templates_render_against_full_ctx() {
-        let _guard = ENV_MUTEX.lock().unwrap();
-        use crate::format::placeholders::RenderCtx;
-        use std::path::PathBuf;
-        let ctx = RenderCtx {
-            model: Some("claude".into()),
-            cwd: Some(PathBuf::from("/tmp/proj")),
-            five_used: Some(30.0),
-            five_reset_unix: Some(3600),
-            seven_used: Some(60.0),
-            seven_reset_unix: Some(90000),
-            extra_enabled: Some(true),
-            extra_used: Some(50.0),
-            extra_limit: Some(100.0),
-            extra_pct: Some(50.0),
-            now_unix: 0,
-        };
-        for name in [
-            "default",
-            "minimal",
-            "compact",
-            "bars",
-            "colored",
-            "emoji",
-            "emoji_verbose",
-            "verbose",
-        ] {
-            let tmpl = lookup_template(name).expect(name);
-            let out = render(tmpl, &ctx);
-            assert!(!out.is_empty(), "{name} rendered empty");
+    fn format_files_do_not_import_config() {
+        // Split the banned pattern so the test source itself never contains it
+        // as a contiguous byte sequence (same technique as placeholders::tests).
+        let config_import = ["use crate", "::", "config"].concat();
+        let format_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/format");
+        for entry in walkdir_rs(&format_dir) {
+            let content = std::fs::read_to_string(&entry).unwrap_or_default();
+            assert!(
+                !content.contains(&config_import),
+                "format file {:?} must not import crate::config",
+                entry
+            );
         }
     }
 
-    #[test]
-    fn all_shipped_templates_render_against_empty_ctx() {
-        let _guard = ENV_MUTEX.lock().unwrap();
-        // Empty ctx → optional segments all collapse → output may be very short
-        // but must NOT panic.
-        use crate::format::placeholders::RenderCtx;
-        let ctx = RenderCtx::default();
-        for name in [
-            "default",
-            "minimal",
-            "compact",
-            "bars",
-            "colored",
-            "emoji",
-            "emoji_verbose",
-            "verbose",
-        ] {
-            let tmpl = lookup_template(name).expect(name);
-            let _out = render(tmpl, &ctx);
+    fn walkdir_rs(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+        let mut out = Vec::new();
+        if let Ok(rd) = std::fs::read_dir(dir) {
+            for entry in rd.flatten() {
+                let p = entry.path();
+                if p.is_dir() {
+                    out.extend(walkdir_rs(&p));
+                } else if p.extension().map_or(false, |e| e == "rs") {
+                    out.push(p);
+                }
+            }
         }
+        out
     }
 
     #[test]

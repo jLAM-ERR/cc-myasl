@@ -1,1 +1,0 @@
-{model}{? · 5h: {five_color}{five_left}%{reset}}{? · 7d: {seven_color}{seven_left}%{reset}}

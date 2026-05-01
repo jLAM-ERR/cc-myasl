@@ -21,18 +21,18 @@ fn bin() -> Command {
     Command::cargo_bin("cc-myasl").expect("binary must build")
 }
 
+/// Write a single-segment config JSON to a tempfile and return the path.
+/// The template string may contain `{? … }` optional blocks.
+fn write_config_for_template(dir: &tempfile::TempDir, template: &str) -> PathBuf {
+    let path = dir.path().join("test_config.json");
+    let escaped = template.replace('\\', "\\\\").replace('"', "\\\"");
+    let json =
+        format!(r#"{{"lines":[{{"separator":"","segments":[{{"template":"{escaped}"}}]}}]}}"#);
+    fs::write(&path, json).unwrap();
+    path
+}
+
 /// Return the cache dir the binary will use given `home`.
-/// Compute the cache directory the binary will use, given a tempdir HOME.
-///
-/// The `directories` crate composes the project path differently per OS:
-///   macOS:   <qualifier>.<organization>.<application>
-///   Linux:   just <application>
-///   Windows: <organization>\<application>
-///
-/// We're macOS + Linux only. On macOS we expect
-/// `<home>/Library/Caches/ai.cc-myasl.cc-myasl`; on Linux,
-/// `<home>/.cache/cc-myasl` (the test sets XDG_CACHE_HOME to
-/// `<home>/.cache` so this lines up regardless of runner-set XDG values).
 fn cache_dir_for_home(home: &Path) -> PathBuf {
     #[cfg(target_os = "macos")]
     {
@@ -57,15 +57,16 @@ fn write_creds(home: &Path, token: &str) {
 // ── test 1: pro_max hot path — byte-exact snapshot canary ────────────────────
 
 /// Byte-exact snapshot test on the hot path (rate_limits in stdin).
-/// Expected to break on intentional formatter changes and is updated by hand.
-/// Port 1 is not-listening; if any HTTP call escaped the binary would time out
-/// in ~5 s — the test completing in < 1 s IS the proof that no call was made.
+/// Port 1 is not-listening; completing < 1 s proves no HTTP call was made.
 #[test]
 fn pro_max_hot_path_renders_quota() {
     let started = std::time::Instant::now();
+    let tmpdir = tempfile::tempdir().unwrap();
+    let cfg = write_config_for_template(&tmpdir, "{model} · 5h: {five_left}% · 7d: {seven_left}%");
 
     bin()
-        .args(["--format", "{model} · 5h: {five_left}% · 7d: {seven_left}%"])
+        .arg("--config")
+        .arg(&cfg)
         .env("STATUSLINE_OAUTH_BASE_URL", "http://127.0.0.1:1")
         .write_stdin(fixture("pro_max_with_rate_limits"))
         .assert()
@@ -115,16 +116,15 @@ fn api_key_oauth_200_renders_quota() {
         )
         .create();
 
+    let cfg_dir = tempfile::tempdir().unwrap();
+    let cfg = write_config_for_template(&cfg_dir, "{five_left}/{seven_left}");
+
     bin()
-        .args(["--format", "{five_left}/{seven_left}"])
+        .arg("--config")
+        .arg(&cfg)
         .env("STATUSLINE_OAUTH_BASE_URL", server.url())
         .env("HOME", home.path())
-        // On Linux, `directories::ProjectDirs` honours `$XDG_CACHE_HOME`
-        // BEFORE falling back to `$HOME/.cache`. CI runners export
-        // XDG_CACHE_HOME (e.g. `/home/runner/.cache`) which would route the
-        // binary's cache writes outside our tempdir even when HOME is set.
-        // Pin XDG_CACHE_HOME to inside the tempdir so both code paths agree.
-        // (No-op on macOS where ProjectDirs uses Library/Caches regardless.)
+        // Pin XDG_CACHE_HOME so Linux CI doesn't route writes outside tempdir.
         .env("XDG_CACHE_HOME", home.path().join(".cache"))
         .write_stdin(fixture("api_key_no_rate_limits"))
         .assert()
@@ -147,16 +147,14 @@ fn api_key_oauth_401_drops_quota_segment() {
         .with_status(401)
         .create();
 
+    let cfg_dir = tempfile::tempdir().unwrap();
+    let cfg = write_config_for_template(&cfg_dir, "{model}{? · 5h:{five_left}%}");
+
     bin()
-        .args(["--format", "{model}{? · 5h:{five_left}%}"])
+        .arg("--config")
+        .arg(&cfg)
         .env("STATUSLINE_OAUTH_BASE_URL", server.url())
         .env("HOME", home.path())
-        // On Linux, `directories::ProjectDirs` honours `$XDG_CACHE_HOME`
-        // BEFORE falling back to `$HOME/.cache`. CI runners export
-        // XDG_CACHE_HOME (e.g. `/home/runner/.cache`) which would route the
-        // binary's cache writes outside our tempdir even when HOME is set.
-        // Pin XDG_CACHE_HOME to inside the tempdir so both code paths agree.
-        // (No-op on macOS where ProjectDirs uses Library/Caches regardless.)
         .env("XDG_CACHE_HOME", home.path().join(".cache"))
         .write_stdin(fixture("api_key_no_rate_limits"))
         .assert()
@@ -185,23 +183,20 @@ fn api_key_oauth_429_writes_lock() {
         .unwrap()
         .as_secs();
 
+    let cfg_dir = tempfile::tempdir().unwrap();
+    let cfg = write_config_for_template(&cfg_dir, "{model}");
+
     bin()
-        .args(["--format", "{model}"])
+        .arg("--config")
+        .arg(&cfg)
         .env("STATUSLINE_OAUTH_BASE_URL", server.url())
         .env("HOME", home.path())
-        // On Linux, `directories::ProjectDirs` honours `$XDG_CACHE_HOME`
-        // BEFORE falling back to `$HOME/.cache`. CI runners export
-        // XDG_CACHE_HOME (e.g. `/home/runner/.cache`) which would route the
-        // binary's cache writes outside our tempdir even when HOME is set.
-        // Pin XDG_CACHE_HOME to inside the tempdir so both code paths agree.
-        // (No-op on macOS where ProjectDirs uses Library/Caches regardless.)
         .env("XDG_CACHE_HOME", home.path().join(".cache"))
         .write_stdin(fixture("api_key_no_rate_limits"))
         .assert()
         .success()
         .stdout("claude-sonnet-4-6\n");
 
-    // Verify lock file exists and blocked_until > now + 590.
     let lock_path = cache_dir.join("usage.lock");
     assert!(lock_path.exists(), "lock file should have been written");
 
@@ -239,16 +234,14 @@ fn extra_usage_renders_when_enabled() {
         )
         .create();
 
+    let cfg_dir = tempfile::tempdir().unwrap();
+    let cfg = write_config_for_template(&cfg_dir, "{model}{? extra:{extra_left}}");
+
     bin()
-        .args(["--format", "{model}{? extra:{extra_left}}"])
+        .arg("--config")
+        .arg(&cfg)
         .env("STATUSLINE_OAUTH_BASE_URL", server.url())
         .env("HOME", home.path())
-        // On Linux, `directories::ProjectDirs` honours `$XDG_CACHE_HOME`
-        // BEFORE falling back to `$HOME/.cache`. CI runners export
-        // XDG_CACHE_HOME (e.g. `/home/runner/.cache`) which would route the
-        // binary's cache writes outside our tempdir even when HOME is set.
-        // Pin XDG_CACHE_HOME to inside the tempdir so both code paths agree.
-        // (No-op on macOS where ProjectDirs uses Library/Caches regardless.)
         .env("XDG_CACHE_HOME", home.path().join(".cache"))
         .write_stdin(fixture("extra_usage_enabled"))
         .assert()
@@ -258,12 +251,13 @@ fn extra_usage_renders_when_enabled() {
 
 // ── test 7: malformed payload — graceful degrade ──────────────────────────────
 
-/// Malformed stdin types (display_name is a number, workspace is null, etc.)
-/// The parser should fail gracefully; main must still exit 0 with non-empty output.
+/// Malformed stdin: display_name is a number, workspace is null, rate_limits wrong type.
+/// Parser must fail gracefully; main must still exit 0 with non-empty output.
 #[test]
 fn malformed_payload_degrades_to_exit_zero() {
     bin()
-        .args(["--format", "{model}"])
+        .arg("--template")
+        .arg("default")
         .env("STATUSLINE_OAUTH_BASE_URL", "http://127.0.0.1:1")
         .write_stdin(fixture("malformed_field"))
         .assert()
@@ -273,7 +267,6 @@ fn malformed_payload_degrades_to_exit_zero() {
 
 // ── test 8: fixture hygiene — no real bearer tokens ──────────────────────────
 
-/// Returns the longest run of consecutive alphanumeric chars in `s`.
 fn longest_alnum_run(s: &str) -> usize {
     let mut max = 0usize;
     let mut cur = 0usize;
@@ -290,9 +283,7 @@ fn longest_alnum_run(s: &str) -> usize {
     max
 }
 
-/// Asserts that no fixture file contains a string of 30+ alphanumerics
-/// (heuristic for "looks like a real bearer token"). Protects against
-/// accidentally checking in leaked credentials.
+/// No fixture file contains a 30+ alphanumeric run (heuristic for real bearer tokens).
 #[test]
 fn fixture_hygiene_no_real_bearer_tokens() {
     let fixture_names = [
@@ -301,7 +292,6 @@ fn fixture_hygiene_no_real_bearer_tokens() {
         "extra_usage_enabled",
         "malformed_field",
     ];
-
     for name in &fixture_names {
         let content = fixture(name);
         let run = longest_alnum_run(&content);

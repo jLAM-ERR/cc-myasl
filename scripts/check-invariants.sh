@@ -28,6 +28,21 @@ if [ -f scripts/install.sh ]; then
     fi
 fi
 
+# Invariant 7: format/*.rs must NOT import crate::config.
+# (One-way dependency: format is a pure rendering engine.)
+# Skip comments (lines starting with //) to reduce false positives.
+if grep -r "use crate::config" src/format/ 2>/dev/null | grep -v "^\s*//" ; then
+    echo "FAIL: 'use crate::config' found in src/format/" >&2
+    FAILED=1
+fi
+
+# Invariant 8: config/*.rs must NOT import crate::api or crate::cache.
+# (Parallel decoupling invariant — config must not reach into HTTP/cache layers.)
+if grep -r "use crate::api\|use crate::cache" src/config/ 2>/dev/null | grep -v "^\s*//" ; then
+    echo "FAIL: 'use crate::api' or 'use crate::cache' found in src/config/" >&2
+    FAILED=1
+fi
+
 if [ "$FAILED" -eq 1 ]; then
     exit 1
 fi

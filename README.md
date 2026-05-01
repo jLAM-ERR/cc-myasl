@@ -101,105 +101,84 @@ stored credentials.
 
 ## Template Gallery
 
-Select a built-in template with `--template <NAME>`, supply an inline
-string with `--format "<STRING>"`, or set `STATUSLINE_FORMAT`. Precedence:
-`--format` > `STATUSLINE_FORMAT` > `--template` > built-in `default`.
+Eight built-in templates are available. Select one with `--template <NAME>`.
 
-### default
+| Name | Sample output |
+|---|---|
+| `default` | `claude-opus-4-7 · 5h: 76% · 7d: 59% (resets 18:00)` |
+| `minimal` | `claude-opus-4-7 76%/59%` |
+| `compact` | `claude-opus-4-7 76/59` |
+| `bars` | `claude-opus-4-7 5h:███████░░░ 7d:█████░░░░░` |
+| `colored` | `claude-opus-4-7 · 5h: [green]76%[/] · 7d: [green]59%[/]` |
+| `emoji` | `claude-opus-4-7 · 🟢 5h 76% · 🟢 7d 59%` |
+| `emoji_verbose` | `🤖 claude-opus-4-7 · 🟢 myproject · ⏳ 76%/59% · ⏰ 18:00` |
+| `verbose` | `claude-opus-4-7 · myproject · 5h:███████░░░ 76% (in 1h24m) · …` |
 
-```
-{model}{? · 5h: {five_left}%}{? · 7d: {seven_left}%}{? (resets {seven_reset_clock})}
-```
+---
 
-Sample output:
+## Custom Configs
 
-```
-claude-opus-4-7 · 5h: 76% · 7d: 59% (resets 18:00)
-```
+Configs are JSON files describing a list of lines, each with a list of
+segments. Each segment is either a template string or a flex spacer.
 
-### minimal
+### Precedence (highest to lowest)
 
-```
-{model}{? {five_left}%/{seven_left}%}
-```
+1. `--config <path>` — explicit file path
+2. `--template <name>` — user dir `~/.config/cc-myasl/templates/<name>.json`
+   first, then built-in by that name
+3. `STATUSLINE_CONFIG` env var — same as `--config`
+4. Default config file at `~/.config/cc-myasl/config.json`
+5. Embedded built-in `default`
 
-Sample output:
+`--config` wins over `--template` when both are given.
 
-```
-claude-opus-4-7 76%/59%
-```
+### User templates directory
 
-### compact
+Drop a JSON config at `~/.config/cc-myasl/templates/<name>.json` to
+override a built-in or add a new name. Override `XDG_CONFIG_HOME` if
+you use a non-standard config directory.
 
-```
-{model}{? {five_left}/{seven_left}}
-```
+### JSON Schema
 
-Sample output:
+Add a `"$schema"` field to any config file for IDE auto-completion and
+inline validation:
 
-```
-claude-opus-4-7 76/59
-```
-
-### bars
-
-```
-{model}{? 5h:{five_bar}}{? 7d:{seven_bar}}
-```
-
-Sample output:
-
-```
-claude-opus-4-7 5h:███████░░░ 7d:█████░░░░░
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/cc-myasl.schema.json"
+}
 ```
 
-### colored
+### Example: 2-line config
 
-```
-{model}{? · 5h: {five_color}{five_left}%{reset}}{? · 7d: {seven_color}{seven_left}%{reset}}
-```
-
-Sample output (colour escapes rendered by your terminal):
-
-```
-claude-opus-4-7 · 5h: [green]76%[/] · 7d: [green]59%[/]
-```
-
-### emoji
-
-```
-{model}{? · {five_state} 5h {five_left}%}{? · {seven_state} 7d {seven_left}%}
-```
-
-Sample output:
-
-```
-claude-opus-4-7 · 🟢 5h 76% · 🟢 7d 59%
-```
-
-### emoji_verbose
-
-```
-🤖 {model}{? · {state_icon} {cwd_basename}}{? · ⏳ {five_left}%/{seven_left}%}{? · ⏰ {seven_reset_clock}}
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/cc-myasl.schema.json",
+  "lines": [
+    {
+      "separator": " · ",
+      "segments": [
+        { "template": "{model}" },
+        { "template": "{five_left}%", "hide_when_absent": true }
+      ]
+    },
+    {
+      "separator": " ",
+      "segments": [
+        { "template": "{cwd_basename}" },
+        { "flex": true },
+        { "template": "{seven_left}%", "hide_when_absent": true }
+      ]
+    }
+  ]
+}
 ```
 
-Sample output:
+Save it to `~/.config/cc-myasl/templates/myfmt.json` and activate with
+`--template myfmt`, or point directly with `--config ~/.config/cc-myasl/templates/myfmt.json`.
 
-```
-🤖 claude-opus-4-7 · 🟢 myproject · ⏳ 76%/59% · ⏰ 18:00
-```
-
-### verbose
-
-```
-{model} · {cwd_basename}{? · 5h:{five_bar} {five_left}% (in {five_reset_in})}{? · 7d:{seven_bar} {seven_left}% (in {seven_reset_in})}{? · extra:{extra_left}}
-```
-
-Sample output:
-
-```
-claude-opus-4-7 · myproject · 5h:███████░░░ 76% (in 1h24m) · 7d:█████░░░░░ 59% (in 3d02h)
-```
+Run `cc-myasl --print-config` to dump the currently resolved config as
+pretty JSON (useful as a starting point for customisation).
 
 ---
 
@@ -257,7 +236,7 @@ If `five_left` is unavailable (no quota data yet), the output is just
 |---|---|---|
 | `STATUSLINE_RED` | `20` | Remaining % at or below which state is Red |
 | `STATUSLINE_YELLOW` | `50` | Remaining % at or below which state is Yellow |
-| `STATUSLINE_FORMAT` | _(unset)_ | Inline format string; overrides `--template` |
+| `STATUSLINE_CONFIG` | _(unset)_ | Path to a JSON config file; same as `--config` |
 | `STATUSLINE_DEBUG` | _(unset)_ | Set to `1` to emit a JSON trace to stderr on every render |
 | `STATUSLINE_OAUTH_BASE_URL` | `https://api.anthropic.com` | Override the OAuth endpoint base URL (useful for testing) |
 
@@ -365,25 +344,27 @@ If you see three distinct icons (clock, warning triangle, battery), your
 font has the glyphs. If you see boxes or question marks, the font does
 not include them.
 
-### Example Nerd Font template
+### Example Nerd Font config
 
-Once your terminal font supports the glyphs, you can write:
+Once your terminal font supports the glyphs, create a config file, e.g.
+`~/.config/cc-myasl/templates/nerdfont.json`:
 
+```json
+{
+  "lines": [
+    {
+      "separator": "  ",
+      "segments": [
+        { "template": "{model}" },
+        { "template": "  {five_left}%", "hide_when_absent": true },
+        { "template": "  {seven_left}%", "hide_when_absent": true }
+      ]
+    }
+  ]
+}
 ```
-{model}   {five_left}%   {seven_left}%
-```
 
-And use it with:
-
-```sh
-cc-myasl --format "{model}   {five_left}%   {seven_left}%"
-```
-
-Or set it in your environment:
-
-```sh
-export STATUSLINE_FORMAT="{model}   {five_left}%   {seven_left}%"
-```
+Activate with `--template nerdfont` or `STATUSLINE_CONFIG=~/.config/cc-myasl/templates/nerdfont.json`.
 
 **Note:** `cc-myasl` does not ship a Nerd Font preset — Nerd
 Fonts are an opt-in install that you configure in your terminal emulator.

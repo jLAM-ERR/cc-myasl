@@ -31,6 +31,8 @@ pub enum Error {
     CacheWrite(String),
     /// Failure during template rendering.
     FormatRender(String),
+    /// Failure to read or parse a config file.
+    ConfigParse(String),
 }
 
 impl fmt::Display for Error {
@@ -44,6 +46,7 @@ impl fmt::Display for Error {
             Error::CacheRead(msg) => write!(f, "[CacheRead] {msg}"),
             Error::CacheWrite(msg) => write!(f, "[CacheWrite] {msg}"),
             Error::FormatRender(msg) => write!(f, "[FormatRender] {msg}"),
+            Error::ConfigParse(msg) => write!(f, "[ConfigParse] {msg}"),
         }
     }
 }

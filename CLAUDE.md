@@ -12,9 +12,9 @@ stdin JSON; if the official `rate_limits` field is absent (fresh
 session, non-Pro/Max, first turn), falls back to
 `GET https://api.anthropic.com/api/oauth/usage` using a Bearer token
 read from the macOS Keychain entry `Claude Code-credentials` or
-`~/.claude/.credentials.json`. Output is fully template-driven — 9
-baked-in templates plus user-overridable `--format` strings — so users
-can change which segments appear without rebuilding.
+`~/.claude/.credentials.json`. Output is fully config-driven — 8 baked-in templates as JSON Configs
+plus user-overridable `--config` and `--template <name>` flags — so
+users can change which segments appear without rebuilding.
 
 The canonical implementation plan is
 `docs/plans/completed/2026-04-26-rust-statusline.md`. Read it first
@@ -72,7 +72,8 @@ src/
 ├── args.rs           hand-rolled CLI parser (no clap)
 ├── api/{mod,response,retry}.rs       HTTP client + serde + Retry-After
 ├── cache/{mod,lock,backoff,atomic_helper}.rs   Disk cache + lock + backoff ladder
-└── format/{mod,parser,placeholders,values,thresholds}.rs   Template engine
+├── format/{mod,parser,placeholders,values,thresholds}.rs   Template engine (segment rendering)
+└── config/{mod,schema,builtins,render}.rs      Structured JSON config + 8 built-ins + multi-line renderer
 ```
 
 ### Three-stage render flow (`main.rs`)
@@ -102,6 +103,11 @@ exit non-zero.
 4. **No `security dump-keychain` invocation** — `scripts/check-invariants.sh`.
 5. **`scripts/install.sh` has no cargo/rust references** — same script.
 6. **No `npx -y …@latest` style auto-update path** — same script.
+7. **`format/*.rs` must NOT import `crate::config`** — one-way dependency;
+   verified by string-scan test in `format::mod::tests`.
+8. **`config/*.rs` must NOT import `crate::api` or `crate::cache`** —
+   parallel to format's decoupling invariant; verified by string-scan test
+   in `config::tests`.
 
 ### Format engine decoupling invariant
 
@@ -117,16 +123,23 @@ by string-scanning the source files.
 
 ### Cross-test env-var serialization
 
-Tests that read or mutate process-global env vars share two mutexes
-(both `pub(crate)` from `creds.rs` and `format/mod.rs` respectively):
+Tests that read or mutate process-global env vars share four mutexes
+(`pub(crate)` from their respective modules):
 
 - `creds::HOME_MUTEX` — for tests touching `HOME`. Tests that mutate it
   MUST restore the original value (or unset cleanly) before releasing.
-- `format::ENV_MUTEX` — for tests touching `STATUSLINE_RED` / `_YELLOW`.
+- `format::ENV_MUTEX` — for tests touching `STATUSLINE_RED` / `STATUSLINE_YELLOW`.
+- `config::CONFIG_MUTEX` — for tests touching `STATUSLINE_CONFIG` or
+  `XDG_CONFIG_HOME`. Declared in `src/config/mod.rs` (test-gated).
+- `config::render::COLS_MUTEX` — for tests touching `STATUSLINE_TEST_COLS`.
+  `STATUSLINE_TEST_COLS` is a **test-only** escape hatch read by
+  `config::render` for deterministic flex-spacer width in unit tests.
+  It is never set by production code and must NOT appear in README or
+  user-facing docs. Declared in `src/config/render.rs` (test-gated).
 
 Without these, parallel `cargo test` interleaves env writes and tests
 flap. If you add a new test that reads or writes any of these vars,
-acquire the appropriate mutex.
+acquire the appropriate mutex and restore prior values before releasing.
 
 ### Distribution
 
@@ -156,16 +169,17 @@ acquire the appropriate mutex.
 - **No real-network tests** in CI. The one `#[ignore]`-marked test in
   `api::tests` exercises a real `https://example.com` request only when
   invoked manually via `cargo test -- --ignored`.
-- **Cross-platform isolation**: golden tests pin both `HOME` and
-  `XDG_CACHE_HOME` to a tempdir so the binary's `directories::ProjectDirs`
+- **Cross-platform isolation**: golden tests pin `HOME`, `XDG_CACHE_HOME`,
+  and `XDG_CONFIG_HOME` to a tempdir so the binary's `directories::ProjectDirs`
   resolves to the test-controlled location regardless of runner env.
 
 ## Things to NOT do
 
 - Do NOT add new top-level dependencies without explicit justification.
   The locked dep set is `ureq + rustls`, `serde + serde_json`,
-  `directories`, `anyhow`. Dev-deps add `mockito`, `tempfile`,
-  `assert_cmd`, `predicates`. No `clap`, no `tokio`/`reqwest`,
+  `directories`, `anyhow`, `terminal_size` (flex-spacer correctness;
+  ioctl alternative requires unsafe libc). Dev-deps add `mockito`,
+  `tempfile`, `assert_cmd`, `predicates`. No `clap`, no `tokio`/`reqwest`,
   no `chrono`, no `keyring`.
 - Do NOT call `security dump-keychain` (or even mention the literal
   string in `src/` or `scripts/` — the invariant grep is naive).
@@ -179,6 +193,9 @@ acquire the appropriate mutex.
   for rotation detection only).
 - Do NOT pull `format/*.rs` into `crate::api` or `crate::cache` types.
   Use primitives in `RenderCtx`.
+- Do NOT import `crate::config` from `format/*.rs`, and do NOT import
+  `crate::api` or `crate::cache` from `config/*.rs`. Both are one-way
+  dependency invariants enforced by string-scan unit tests.
 - Do NOT edit `~/.claude/settings.json` from `install.sh`. Print the
   snippet; let the user merge.
 
@@ -191,3 +208,5 @@ acquire the appropriate mutex.
 - `docs/plan.md` — superseded sh-based plan, kept for historical context.
 - `docs/plans/completed/2026-04-26-rust-statusline.md` — the
   authoritative implementation plan, all tasks `[x]`.
+- `docs/plans/completed/2026-05-01-phase1-structured-config.md` —
+  Phase 1 structured-config rewrite. Implementation complete.

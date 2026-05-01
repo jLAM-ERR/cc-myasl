@@ -5,6 +5,7 @@ pub mod api;
 pub mod args;
 pub mod cache;
 pub mod check;
+pub mod config;
 pub mod creds;
 pub mod debug;
 pub mod error;

@@ -1,1 +1,0 @@
-🤖 {model}{? · {state_icon} {cwd_basename}}{? · ⏳ {five_left}%/{seven_left}%}{? · ⏰ {seven_reset_clock}}

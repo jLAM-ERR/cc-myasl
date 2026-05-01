@@ -1,1 +1,0 @@
-{model}{? 5h:{five_bar}}{? 7d:{seven_bar}}

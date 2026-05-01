@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/jLAM-ERR/cc-myasl/main/cc-myasl.schema.json",
+  "title": "cc-myasl config",
+  "description": "Structured layout config for cc-myasl. One-flex-per-line is enforced at runtime by Config::validate_and_clamp, not statically by this schema. Note: this schema may be slightly stricter than the Rust runtime for segment disambiguation — the runtime uses #[serde(untagged)] and accepts a single segment object with both 'template' and 'flex' keys (silently resolving to Template); this schema uses oneOf and requires choosing exactly one variant.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "$schema": {
+      "description": "URI of this JSON Schema; used by IDEs for auto-complete and validation.",
+      "type": "string"
+    },
+    "lines": {
+      "description": "Ordered list of statusline rows (at most 3). Each line is rendered independently and joined with a newline.",
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/definitions/Line"
+      }
+    }
+  },
+  "definitions": {
+    "Line": {
+      "description": "A single statusline row containing an ordered list of segments.",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "separator": {
+          "description": "Inserted between every pair of visible segments on this line. Defaults to an empty string.",
+          "type": "string",
+          "default": ""
+        },
+        "segments": {
+          "description": "Ordered list of segments to render on this line.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Segment"
+          }
+        }
+      }
+    },
+    "Segment": {
+      "description": "Either a template segment (renders a format string) or a flex spacer (fills remaining terminal width).",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/TemplateSegment"
+        },
+        {
+          "$ref": "#/definitions/FlexSegment"
+        }
+      ]
+    },
+    "TemplateSegment": {
+      "description": "A segment that renders a format-string template. Supports placeholder substitution (e.g. {model}, {five_left}).",
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["template"],
+      "properties": {
+        "template": {
+          "description": "Format string with zero or more {placeholder} tokens. Rendered text replaces the placeholders at runtime.",
+          "type": "string"
+        },
+        "padding": {
+          "description": "Number of space characters added on each side of the rendered text (0–8). Clamped to 8 at runtime if exceeded.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8,
+          "default": 0
+        },
+        "hide_when_absent": {
+          "description": "When true, the segment is omitted entirely (including its adjacent separator) if every placeholder in the template resolves to an absent value.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "FlexSegment": {
+      "description": "A spacer segment that expands to fill the remaining terminal width on this line. At most one flex segment per line is allowed (enforced at runtime).",
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["flex"],
+      "properties": {
+        "flex": {
+          "description": "Must be true. A value of false is rejected by runtime validation.",
+          "type": "boolean",
+          "enum": [true]
+        }
+      }
+    }
+  }
+}
