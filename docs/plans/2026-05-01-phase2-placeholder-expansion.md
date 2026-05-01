@@ -398,16 +398,16 @@ standard Rust prompt — uses `gix` for repository discovery.
 - Modify: `src/format/placeholders/tests.rs`
 - Modify: `src/format/values.rs` (number-formatting helpers)
 
-- [ ] add match arms for: `tokens_input` (current_usage), `tokens_output`,
+- [x] add match arms for: `tokens_input` (current_usage), `tokens_output`,
       `tokens_cached_creation`, `tokens_cached_read`,
       `tokens_cached_total` (creation + read), `tokens_total`
       (all four summed), `tokens_input_total` (session sum),
       `tokens_output_total` (session sum)
-- [ ] add `format::values::format_count(n: u64) -> String` helper
+- [x] add `format::values::format_count(n: u64) -> String` helper
       (1234 → "1.2k", 1234567 → "1.2M") for compact display
-- [ ] write unit tests for each placeholder + helper boundaries
+- [x] write unit tests for each placeholder + helper boundaries
       (0, 1, 999, 1000, 1500, 999_999, 1_000_000, u64::MAX)
-- [ ] run `cargo test format` — must pass before next task
+- [x] run `cargo test format` — must pass before next task
 
 ### Task 7: Add context placeholders + bar
 
