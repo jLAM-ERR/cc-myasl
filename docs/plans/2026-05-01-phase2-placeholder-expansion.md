@@ -199,16 +199,16 @@ standard Rust prompt — uses `gix` for repository discovery.
 **Files:**
 - Modify: `src/payload.rs`
 
-- [ ] add nested struct types for: `Cost`, `ContextWindow`,
+- [x] add nested struct types for: `Cost`, `ContextWindow`,
       `ContextWindowCurrentUsage`, `Effort`, `Thinking`, `OutputStyle`,
       `Vim`, `Agent`, `Worktree`. Each with `#[serde(default)]`,
       `Deserialize`, `Debug`, `Default`, `PartialEq`, all fields
       `Option<T>` where T is primitive.
-- [ ] **Note:** `session_id: Option<String>` is ALREADY present in
+- [x] **Note:** `session_id: Option<String>` is ALREADY present in
       the existing `Payload` struct (`src/payload.rs:49`). Do NOT
       add it again. Tasks 2/3 will simply pipe it through to
       `RenderCtx`.
-- [ ] extend top-level `Payload` to add:
+- [x] extend top-level `Payload` to add:
       - `cwd: Option<String>` (Claude Code now sends both
         `cwd` and `workspace.current_dir`)
       - `version: Option<String>` (Claude Code CLI version)
@@ -226,16 +226,16 @@ standard Rust prompt — uses `gix` for repository discovery.
       - `agent: Option<Agent>` (name)
       - `worktree: Option<Worktree>` (name, path, branch,
         original_cwd, original_branch)
-- [ ] extend `Workspace` (existing struct) to add:
+- [x] extend `Workspace` (existing struct) to add:
       - `project_dir: Option<String>`
       - `added_dirs: Option<Vec<String>>`
       - `git_worktree: Option<String>`
-- [ ] extend `Model` (existing) to add `id: Option<String>`
-- [ ] write unit tests: full payload deserializes; partial payloads
+- [x] extend `Model` (existing) to add `id: Option<String>`
+- [x] write unit tests: full payload deserializes; partial payloads
       (most fields absent) deserialize; unknown fields tolerated;
       `current_usage: null` early in session is handled (Option
       semantics)
-- [ ] run `cargo test payload` — must pass before next task
+- [x] run `cargo test payload` — must pass before next task
 
 ### Task 2: Extend `RenderCtx` with new primitive fields
 
