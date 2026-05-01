@@ -620,31 +620,31 @@ standard Rust prompt — uses `gix` for repository discovery.
 - Modify: `README.md`
 - Modify: `CLAUDE.md`
 
-- [ ] README: add a "Placeholders" section listing every new
+- [x] README: add a "Placeholders" section listing every new
       placeholder grouped by source (Claude Code stdin, git).
       Keep it tabular and brief.
-- [ ] README: add the `rich` built-in to the template gallery.
-- [ ] README: example config showing tokens + context bar +
+- [x] README: add the `rich` built-in to the template gallery.
+- [x] README: example config showing tokens + context bar +
       git branch on a 2-line statusline.
-- [ ] CLAUDE.md: update Module-tree section to include `git/`.
+- [x] CLAUDE.md: update Module-tree section to include `git/`.
       Update locked-dep set already updated in Task 9 — verify.
       Update Hard-Invariants section: ADD `format/*.rs` MUST NOT
       import `crate::git`. Same one-way pattern as Phase 1's
       `format/* must not import config/*`.
-- [ ] **Verify** the directory-walk invariant test added in Task 4
+- [x] **Verify** the directory-walk invariant test added in Task 4
       now also covers `use crate::git`. Add this substring to the
       test's forbidden-import list if Task 4 didn't include it.
       The test should still discover all sibling files in
       `src/format/` automatically (no hardcoded file list).
-- [ ] CLAUDE.md: under "Test architecture", note that Phase 2
+- [x] CLAUDE.md: under "Test architecture", note that Phase 2
       golden tests use `tests/fixtures/full-payload.json` as the
       standard fixture for placeholder tests.
-- [ ] update `scripts/check-invariants.sh` to ADD greps for
+- [x] update `scripts/check-invariants.sh` to ADD greps for
       `use crate::git` in BOTH `src/format/*.rs` AND
       `src/format/placeholders/*.rs` (the existing Phase-1 grep
       may only cover `src/format/` top-level — verify and extend).
       Mirrors the existing `use crate::config` check pattern.
-- [ ] run all gates: `cargo fmt --check`, `cargo clippy
+- [x] run all gates: `cargo fmt --check`, `cargo clippy
       --all-targets -- -D warnings`, `cargo test`,
       `bash scripts/check-loc.sh`, `bash scripts/check-invariants.sh`,
       `shellcheck scripts/*.sh`
