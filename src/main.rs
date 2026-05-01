@@ -1,7 +1,6 @@
 //! Entry point — orchestrates the render pipeline for cc-myasl.
 //! Hard invariants: exit 0 always in render mode; token never on disk or logged.
 
-use std::path::PathBuf;
 use std::time::SystemTime;
 
 use cc_myasl::api::{self, FetchOutcome};
@@ -16,6 +15,7 @@ use cc_myasl::creds;
 use cc_myasl::debug::Trace;
 use cc_myasl::format::RenderCtx;
 use cc_myasl::payload;
+use cc_myasl::payload_mapping;
 use cc_myasl::time;
 
 // ── constants ─────────────────────────────────────────────────────────────────
@@ -58,25 +58,23 @@ fn main() {
 fn run_render(args: &Args) {
     let started = SystemTime::now();
     let mut trace = Trace::default();
-    let mut ctx = RenderCtx {
-        now_unix: time::now_unix(),
-        ..Default::default()
-    };
+    let now_unix = time::now_unix();
 
     // 1. Parse stdin.
     let payload = match payload::parse(std::io::stdin()) {
         Ok(p) => p,
         Err(e) => {
             trace.error = Some(e.to_string());
+            let ctx = RenderCtx {
+                now_unix,
+                ..Default::default()
+            };
             render_and_emit(&mut trace, args, &ctx, started);
             return;
         }
     };
 
-    ctx.model = payload.model.and_then(|m| m.display_name);
-    ctx.cwd = payload
-        .workspace
-        .and_then(|w| w.current_dir.map(PathBuf::from));
+    let mut ctx = payload_mapping::build_render_ctx(&payload, now_unix);
 
     // 2. Hot path: stdin has rate_limits.
     if let Some(rl) = &payload.rate_limits {
