@@ -514,7 +514,7 @@ standard Rust prompt — uses `gix` for repository discovery.
 - Modify: `src/format/placeholders/tests.rs`
 - Modify: `src/main.rs` (call git module to populate RenderCtx)
 
-- [ ] in `src/git/status.rs`, add:
+- [x] in `src/git/status.rs`, add:
       - `pub fn counts(&Repo) -> Option<StatusCounts>`
       - `StatusCounts { changes, staged, unstaged, untracked,
         insertions, deletions }` — each `u64`
@@ -523,28 +523,33 @@ standard Rust prompt — uses `gix` for repository discovery.
         traversal that's expensive, START with just changes/
         staged/unstaged/untracked counts and defer
         insertions/deletions to a follow-up.
-- [ ] in `format/placeholders`, add match arms for:
+      ⚠️ Shell-out to `git status --porcelain=2` used instead of gix
+         status API — the `status` gix feature requires `blob-diff`,
+         `dirwalk`, `index` which pull in heavy deps violating the
+         slim-build constraint. Insertions/deletions deferred.
+- [x] in `format/placeholders`, add match arms for:
       `git_branch`, `git_root` (with HOME-tilde),
       `git_changes`, `git_staged`, `git_unstaged`, `git_untracked`,
       `git_status_clean` (returns "clean" or None — convenience
       flag for templates)
-- [ ] in `main.rs` (or the new `payload_mapping.rs` from Task 3 —
+- [x] in `main.rs` (or the new `payload_mapping.rs` from Task 3 —
       pick whichever fits the LOC ceiling), add a function
       `populate_git_ctx(ctx: &mut RenderCtx, cwd: &Path)` that
       calls `git::discover` once and, if Some, populates every
       git-related RenderCtx field.
-- [ ] **Path discipline:** ALWAYS pass the cwd (=
+      → placed in `payload_mapping.rs` (main.rs already at 449 LOC)
+- [x] **Path discipline:** ALWAYS pass the cwd (=
       `payload.workspace.current_dir`, falling back to
       `payload.cwd`). NEVER pass `worktree.path` — gix discovery
       walks parents, so cwd is correct in both worktree and
       non-worktree cases. Note this in a docstring on
       `populate_git_ctx`.
-- [ ] **Lazy gating:** only call this function when the resolved
+- [x] **Lazy gating:** only call this function when the resolved
       config references any `{git_*}` placeholder. Implementation:
       scan the config's segment templates for the substring
       `{git_` before deciding whether to spawn discovery. No new
       git work if no template uses it.
-- [ ] **Escape edge case:** the format parser supports `{{`/`}}` as
+- [x] **Escape edge case:** the format parser supports `{{`/`}}` as
       literal braces. A user template containing `{{git_lol}}`
       renders as the literal text `{git_lol}` and SHOULD NOT
       trigger gix discovery. The plain-substring scan
@@ -552,13 +557,13 @@ standard Rust prompt — uses `gix` for repository discovery.
       this is a small wasted call (gix discovery is ~1-5ms) and
       acceptable for Phase 2. Document the false-positive in
       the function's docstring; do not over-engineer the scan.
-- [ ] write unit tests for placeholders: each git_* returns Some
+- [x] write unit tests for placeholders: each git_* returns Some
       when ctx field is set; None when absent
-- [ ] write unit tests for `populate_git_ctx`: when config has no
+- [x] write unit tests for `populate_git_ctx`: when config has no
       git_* placeholder, function is not called (or returns early)
-- [ ] write a unit test that populates a tempdir repo and asserts
+- [x] write a unit test that populates a tempdir repo and asserts
       `git_branch == Some("main")` after `populate_git_ctx`
-- [ ] run `cargo test` — must pass before next task
+- [x] run `cargo test` — must pass before next task
 
 ### Task 11: Add `rich` built-in template
 
