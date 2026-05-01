@@ -85,6 +85,22 @@ pub struct RenderCtx {
     pub git_untracked_count: Option<u64>,
 }
 
+/// Compress a path by replacing a leading HOME prefix with `~`.
+///
+/// Returns `None` for empty or non-UTF-8 paths.
+fn compress_home(path: &std::path::Path) -> Option<String> {
+    let s = path.to_str()?;
+    if s.is_empty() {
+        return None;
+    }
+    let home = std::env::var("HOME").unwrap_or_default();
+    if !home.is_empty() && s.starts_with(&home) {
+        Some(format!("~{}", &s[home.len()..]))
+    } else {
+        Some(s.to_owned())
+    }
+}
+
 /// Render a single placeholder `name` against `ctx`.
 ///
 /// Returns `None` when the placeholder is unknown or the required
@@ -96,16 +112,7 @@ pub fn render_placeholder(name: &str, ctx: &RenderCtx) -> Option<String> {
 
         "cwd" => {
             let path = ctx.cwd.as_ref()?;
-            let s = path.to_str()?;
-            if s.is_empty() {
-                return None;
-            }
-            let home = std::env::var("HOME").unwrap_or_default();
-            if !home.is_empty() && s.starts_with(&home) {
-                Some(format!("~{}", &s[home.len()..]))
-            } else {
-                Some(s.to_owned())
-            }
+            compress_home(path)
         }
 
         "cwd_basename" => {
@@ -241,6 +248,27 @@ pub fn render_placeholder(name: &str, ctx: &RenderCtx) -> Option<String> {
             .exceeds_200k
             .and_then(|b| if b { Some("!".to_owned()) } else { None }),
 
+        // ── workspace placeholders ────────────────────────────────────────────
+        //
+        // `workspace_git_worktree`: comes from `payload.workspace.git_worktree`.
+        //   Populated for ANY git worktree Claude Code detects (including
+        //   non-managed ones).  This is the worktree NAME string from the
+        //   workspace object.
+        //
+        // `worktree_name`: comes from `payload.worktree.name`.
+        //   Populated ONLY during `--worktree` sessions where Claude Code itself
+        //   manages the worktree lifecycle.  Different source, different scope.
+        "project_dir" => ctx.project_dir.as_deref().and_then(compress_home),
+        "added_dirs_count" => ctx.added_dirs_count.map(|n| n.to_string()),
+        "workspace_git_worktree" => ctx.workspace_git_worktree.clone(),
+
+        // ── worktree placeholders (--worktree sessions only) ──────────────────
+        "worktree_name" => ctx.worktree_name.clone(),
+        "worktree_path" => ctx.worktree_path.as_deref().and_then(compress_home),
+        "worktree_branch" => ctx.worktree_branch.clone(),
+        "worktree_original_cwd" => ctx.worktree_original_cwd.as_deref().and_then(compress_home),
+        "worktree_original_branch" => ctx.worktree_original_branch.clone(),
+
         // ── ANSI reset ────────────────────────────────────────────────────────
         "reset" => Some("\x1b[0m".to_owned()),
 
@@ -268,6 +296,10 @@ mod tokens_tests;
 #[cfg(test)]
 #[path = "context_tests.rs"]
 mod context_tests;
+
+#[cfg(test)]
+#[path = "workspace_tests.rs"]
+mod workspace_tests;
 
 #[cfg(test)]
 mod phase2_struct_tests {
