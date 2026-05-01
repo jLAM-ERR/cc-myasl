@@ -342,7 +342,7 @@ standard Rust prompt — uses `gix` for repository discovery.
 - Modify: `src/format/placeholders/tests.rs` (FIRST — invariant rewrite)
 - Modify: `src/format/placeholders/mod.rs` (THEN — placeholder additions)
 
-- [ ] **FIRST** (before any other change in this task): rewrite
+- [x] **FIRST** (before any other change in this task): rewrite
       the `format::placeholders::tests` invariant test that
       currently hardcodes a list of files (~6 entries) to instead
       use a directory walk: `std::fs::read_dir` (or
@@ -353,21 +353,21 @@ standard Rust prompt — uses `gix` for repository discovery.
       NOW, before Tasks 4-10 split `format/placeholders/` into
       sibling files — so new siblings are covered automatically
       from the moment they're created.
-- [ ] verify the rewritten test still passes against the existing
+- [x] verify the rewritten test still passes against the existing
       file tree (no new files yet)
-- [ ] add match arms in `format/placeholders/mod.rs` for:
+- [x] add match arms in `format/placeholders/mod.rs` for:
       `model_id`, `version`, `session_id`, `session_name`,
       `output_style`, `effort` (level), `thinking_enabled`
       (returns "thinking" or None — caller decides display),
       `vim_mode`, `agent_name`
-- [ ] write unit tests: each placeholder returns Some when
+- [x] write unit tests: each placeholder returns Some when
       corresponding ctx field is set; None when absent
-- [ ] LOC check on `format/placeholders/mod.rs`. Currently small;
+- [x] LOC check on `format/placeholders/mod.rs`. Currently small;
       should still fit. Split into
       `format/placeholders/{mod, session, ...}.rs` if approaching
       500 LOC. The new directory-walk test covers any siblings
       automatically.
-- [ ] run `cargo test format::placeholders` — must pass before next task
+- [x] run `cargo test format::placeholders` — must pass before next task
 
 ### Task 5: Add cost / session-clock placeholders
 
