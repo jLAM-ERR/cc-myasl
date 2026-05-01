@@ -321,14 +321,14 @@ locked in, so a clean break is cheap now and expensive later.
 **Files:**
 - Modify: `src/main.rs`
 
-- [ ] in `run_render`: replace template-string resolution path with `let config = config::resolve(&args, &env);`
-- [ ] replace existing `format::render(template, &ctx)` call with `config::render::render(&config, &ctx)`
-- [ ] remove all references to `STATUSLINE_FORMAT` env var
-- [ ] handle `--print-config` mode: load resolved config, print as pretty JSON via `config::print_config`, exit 0 (still in render-mode constraints — don't error on missing data; print whatever resolved)
-- [ ] update `Trace` struct fields if needed (drop `template_source` if it referred to format-string resolution; add `config_source` enum: `CliPath`, `CliTemplate`, `Env`, `DefaultFile`, `Embedded`)
-- [ ] write adversarial test: render mode with corrupt config file does not exit non-zero (exit code 0); add to existing `main::tests`
-- [ ] write test: `--print-config` outputs valid JSON parseable back into `Config`; output contains `$schema` field
-- [ ] run `cargo test`; all pass; verify `main.rs` LOC under 500
+- [x] in `run_render`: replace template-string resolution path with `let config = config::resolve(&args, &env);`
+- [x] replace existing `format::render(template, &ctx)` call with `config::render::render(&config, &ctx)`
+- [x] remove all references to `STATUSLINE_FORMAT` env var
+- [x] handle `--print-config` mode: load resolved config, print as pretty JSON via `config::print_config`, exit 0 (still in render-mode constraints — don't error on missing data; print whatever resolved)
+- [x] update `Trace` struct fields if needed (drop `template_source` if it referred to format-string resolution; add `config_source` enum: `CliPath`, `CliTemplate`, `Env`, `DefaultFile`, `Embedded`)
+- [x] write adversarial test: render mode with corrupt config file does not exit non-zero (exit code 0); add to existing `main::tests`
+- [x] write test: `--print-config` outputs valid JSON parseable back into `Config`; output contains `$schema` field
+- [x] run `cargo test`; all pass; verify `main.rs` LOC under 500
 
 ### Task 9: Add `cc-myasl.schema.json` at repo root
 

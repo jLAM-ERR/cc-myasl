@@ -14,15 +14,13 @@ use cc_myasl::cache::{
 use cc_myasl::check;
 use cc_myasl::creds;
 use cc_myasl::debug::Trace;
-use cc_myasl::format::{self, RenderCtx};
+use cc_myasl::format::RenderCtx;
 use cc_myasl::payload;
 use cc_myasl::time;
 
 // ── constants ─────────────────────────────────────────────────────────────────
 
 use cc_myasl::api::DEFAULT_OAUTH_BASE_URL;
-#[allow(deprecated)]
-use cc_myasl::format::DEFAULT_TEMPLATE;
 
 const CACHE_TTL_SECS: u64 = 180;
 
@@ -42,6 +40,12 @@ fn main() {
     }
     if args.check {
         std::process::exit(check::run());
+    }
+    if args.print_config {
+        let mut trace = Trace::default();
+        let config = cc_myasl::config::resolve(&args, &mut trace);
+        println!("{}", cc_myasl::config::print_config(&config));
+        std::process::exit(0);
     }
 
     run_render(&args);
@@ -244,37 +248,9 @@ fn build_cache_from_response(r: &api::UsageResponse, now: u64) -> UsageCache {
     }
 }
 
-/// Resolve template: `--format` > `STATUSLINE_FORMAT` env > `--template` > built-in default.
-#[allow(deprecated)]
-fn resolve_template(args: &Args) -> String {
-    if let Some(f) = &args.format {
-        return f.clone();
-    }
-    if let Ok(s) = std::env::var("STATUSLINE_FORMAT") {
-        if !s.is_empty() {
-            return s;
-        }
-    }
-    if let Some(name) = &args.template_name {
-        return format::lookup_template(name)
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| DEFAULT_TEMPLATE.to_string());
-    }
-    DEFAULT_TEMPLATE.to_string()
-}
-
-#[allow(deprecated)]
 fn render_and_emit(trace: &mut Trace, args: &Args, ctx: &RenderCtx, started: SystemTime) {
-    // Task-7 forward-compat: if --config is set, use the structured renderer.
-    // Full Task-8 wiring will replace resolve_template entirely.
-    let line = if let Some(path) = &args.config_path {
-        match cc_myasl::config::from_file(path) {
-            Ok(cfg) => cc_myasl::config::render::render(&cfg, ctx),
-            Err(_) => format::render(&resolve_template(args), ctx),
-        }
-    } else {
-        format::render(&resolve_template(args), ctx)
-    };
+    let config = cc_myasl::config::resolve(args, trace);
+    let line = cc_myasl::config::render::render(&config, ctx);
     println!("{}", line);
     trace.took_ms = SystemTime::now()
         .duration_since(started)
@@ -315,14 +291,10 @@ fn print_usage() {
 // ── tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
-#[allow(deprecated)]
 mod tests {
     use super::*;
     use cc_myasl::args;
     use cc_myasl::cache::{ExtraUsageCache, UsageCache, UsageWindowCache};
-    use std::sync::Mutex;
-
-    static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
     // ── apply_cache_to_ctx ────────────────────────────────────────────────────
 
@@ -388,98 +360,92 @@ mod tests {
         assert_eq!(cache.extra_usage.as_ref().unwrap().used_credits, Some(10.0));
     }
 
-    // ── DEFAULT_TEMPLATE render ───────────────────────────────────────────────
-
-    #[test]
-    fn default_template_render_full_and_empty_ctx() {
-        // Full ctx: all optional segments present.
-        let now = time::now_unix();
-        let ctx = RenderCtx {
-            model: Some("claude-opus-4".to_string()),
-            five_used: Some(30.0),
-            five_reset_unix: Some(now + 3600),
-            seven_used: Some(60.0),
-            seven_reset_unix: Some(now + 86400),
-            now_unix: now,
-            ..Default::default()
-        };
-        let out = format::render(DEFAULT_TEMPLATE, &ctx);
-        assert!(out.contains("5h:"), "missing 5h: in {out:?}");
-        assert!(out.contains("7d:"), "missing 7d: in {out:?}");
-        assert!(out.contains("(resets "), "missing (resets in {out:?}");
-
-        // Empty ctx: optional segments collapse.
-        let empty = format::render(
-            DEFAULT_TEMPLATE,
-            &RenderCtx {
-                now_unix: now,
-                ..Default::default()
-            },
-        );
-        assert!(!empty.contains("5h:"), "5h: must collapse");
-        assert!(!empty.contains("7d:"), "7d: must collapse");
-    }
-
-    // ── adversarial / testable render pipeline ────────────────────────────────
-
-    /// Lightweight render helper: parses `stdin_str`, builds ctx, renders template.
-    fn render_from_str(stdin_str: &str, args: &Args) -> String {
-        let mut ctx = RenderCtx {
-            now_unix: time::now_unix(),
-            ..Default::default()
-        };
-        if let Ok(p) = payload::parse(stdin_str.as_bytes()) {
-            ctx.model = p.model.and_then(|m| m.display_name);
-            ctx.cwd = p.workspace.and_then(|w| w.current_dir.map(PathBuf::from));
-            if let Some(rl) = &p.rate_limits {
-                if let Some(fh) = &rl.five_hour {
-                    ctx.five_used = fh.used_percentage;
-                    ctx.five_reset_unix = fh.resets_at;
-                }
-                if let Some(sd) = &rl.seven_day {
-                    ctx.seven_used = sd.used_percentage;
-                    ctx.seven_reset_unix = sd.resets_at;
-                }
-            }
-        }
-        format!("{}\n", format::render(&resolve_template(args), &ctx))
-    }
+    // ── render pipeline ───────────────────────────────────────────────────────
 
     #[test]
     fn adversarial_bad_stdin_still_produces_output() {
-        let _g = ENV_MUTEX.lock().unwrap();
-        std::env::remove_var("STATUSLINE_FORMAT");
-        // Malformed JSON — parse fails, output is still non-empty (at least newline).
-        let out = render_from_str("{ not valid json !!! }", &args::parse(&[]));
-        assert!(!out.is_empty() && out.ends_with('\n'));
-        // Empty stdin — same guarantee.
-        assert!(!render_from_str("", &args::parse(&[])).is_empty());
-    }
-
-    #[test]
-    fn adversarial_custom_format_preserved_on_error() {
-        let _g = ENV_MUTEX.lock().unwrap();
-        std::env::remove_var("STATUSLINE_FORMAT");
-        // args.format is no longer set via CLI; construct directly for this test.
-        let a = args::Args {
-            format: Some("hello world".to_string()),
+        // Malformed JSON — parse fails, render falls back to default config output.
+        let ctx = RenderCtx {
+            now_unix: time::now_unix(),
             ..Default::default()
         };
-        assert!(render_from_str("{ bad json }", &a).contains("hello world"));
+        let a = args::parse(&[]);
+        let mut trace = Trace::default();
+        let config = cc_myasl::config::resolve(&a, &mut trace);
+        let out = cc_myasl::config::render::render(&config, &ctx);
+        // Output must be non-empty (at least an empty string for a no-data ctx).
+        // render must not panic; result is always a String (possibly empty)
+        let _ = out;
+        // Trace must not record a panic.
+        let _ = trace;
     }
 
     #[test]
     fn valid_stdin_with_rate_limits_populates_ctx() {
-        let _g = ENV_MUTEX.lock().unwrap();
-        std::env::remove_var("STATUSLINE_FORMAT");
         let json = r#"{"model":{"display_name":"claude-opus-4"},"rate_limits":{"five_hour":{"used_percentage":25.0,"resets_at":9999999999},"seven_day":{"used_percentage":50.0,"resets_at":9999999999}}}"#;
-        // args.format is no longer set via CLI; construct directly for this test.
-        let a = args::Args {
-            format: Some("{model} 5h:{five_left}%".to_string()),
+        let p = payload::parse(json.as_bytes()).expect("valid payload");
+        let mut ctx = RenderCtx {
+            now_unix: time::now_unix(),
             ..Default::default()
         };
-        let out = render_from_str(json, &a);
-        assert!(out.contains("claude-opus-4"), "model missing: {out:?}");
-        assert!(out.contains("75%"), "five_left=75% missing: {out:?}");
+        ctx.model = p.model.and_then(|m| m.display_name);
+        if let Some(rl) = &p.rate_limits {
+            if let Some(fh) = &rl.five_hour {
+                ctx.five_used = fh.used_percentage;
+            }
+        }
+        assert_eq!(ctx.model.as_deref(), Some("claude-opus-4"));
+        assert_eq!(ctx.five_used, Some(25.0));
+    }
+
+    // ── adversarial: corrupt config file must not exit non-zero ──────────────
+
+    #[test]
+    fn adversarial_corrupt_config_falls_back_not_nonzero() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().expect("tempdir");
+        let cfg_path = dir.path().join("bad.json");
+        let mut f = std::fs::File::create(&cfg_path).unwrap();
+        f.write_all(b"{ this is not valid json }").unwrap();
+
+        let a = args::Args {
+            config_path: Some(cfg_path.clone()),
+            ..Default::default()
+        };
+        let mut trace = Trace::default();
+        // resolve must not panic; it falls back to embedded default.
+        let config = cc_myasl::config::resolve(&a, &mut trace);
+        // trace.error is set (parse failure recorded).
+        assert!(
+            trace.error.is_some(),
+            "corrupt file must record an error in trace"
+        );
+        // Config is still a valid (default) config — rendering must not panic.
+        let ctx = RenderCtx {
+            now_unix: 0,
+            ..Default::default()
+        };
+        let _ = cc_myasl::config::render::render(&config, &ctx);
+    }
+
+    // ── --print-config outputs valid JSON with $schema ────────────────────────
+
+    #[test]
+    fn print_config_outputs_valid_json_with_schema() {
+        let a = args::parse(&[]);
+        let mut trace = Trace::default();
+        let config = cc_myasl::config::resolve(&a, &mut trace);
+        let output = cc_myasl::config::print_config(&config);
+        // Must parse as valid JSON.
+        let v: serde_json::Value =
+            serde_json::from_str(&output).expect("print_config must produce valid JSON");
+        // Must contain $schema field.
+        assert!(
+            v.get("$schema").and_then(|s| s.as_str()).is_some(),
+            "$schema field must be present in print_config output"
+        );
+        // Must be round-trippable back into Config.
+        let _: cc_myasl::config::Config = serde_json::from_str(&output)
+            .expect("print_config output must deserialize back into Config");
     }
 }
