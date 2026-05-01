@@ -10,5 +10,7 @@ pub mod creds;
 pub mod debug;
 pub mod error;
 pub mod format;
+pub mod git;
 pub mod payload;
+pub mod payload_mapping;
 pub mod time;

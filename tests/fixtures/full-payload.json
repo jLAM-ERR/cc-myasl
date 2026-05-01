@@ -1,0 +1,70 @@
+{
+  "model": {
+    "id": "claude-sonnet-4-6",
+    "display_name": "claude-sonnet-4-6"
+  },
+  "cwd": "/Users/test/myproject",
+  "workspace": {
+    "current_dir": "/Users/test/myproject",
+    "project_dir": "/Users/test/myproject",
+    "added_dirs": ["/Users/test/extra1", "/Users/test/extra2"],
+    "git_worktree": "feature-branch"
+  },
+  "transcript_path": "/tmp/transcripts/session-abc123.jsonl",
+  "session_id": "session-abc123",
+  "session_name": "My Project Session",
+  "version": "1.2.3",
+  "output_style": {
+    "name": "verbose"
+  },
+  "cost": {
+    "total_cost_usd": 0.42,
+    "total_duration_ms": 7380000,
+    "total_api_duration_ms": 6900000,
+    "total_lines_added": 150,
+    "total_lines_removed": 30
+  },
+  "context_window": {
+    "total_input_tokens": 12345,
+    "total_output_tokens": 6789,
+    "context_window_size": 200000,
+    "used_percentage": 23.5,
+    "remaining_percentage": 76.5,
+    "current_usage": {
+      "input_tokens": 4096,
+      "output_tokens": 512,
+      "cache_creation_input_tokens": 1024,
+      "cache_read_input_tokens": 2048
+    }
+  },
+  "exceeds_200k_tokens": false,
+  "effort": {
+    "level": "high"
+  },
+  "thinking": {
+    "enabled": true
+  },
+  "vim": {
+    "mode": "normal"
+  },
+  "agent": {
+    "name": "code-agent"
+  },
+  "worktree": {
+    "name": "feature-branch",
+    "path": "/Users/test/worktrees/feature-branch",
+    "branch": "feature/add-placeholders",
+    "original_cwd": "/Users/test/myproject",
+    "original_branch": "main"
+  },
+  "rate_limits": {
+    "five_hour": {
+      "used_percentage": 23.5,
+      "resets_at": 1746000000
+    },
+    "seven_day": {
+      "used_percentage": 41.0,
+      "resets_at": 1746000000
+    }
+  }
+}

@@ -106,6 +106,64 @@ pub fn countdown(target_unix: u64, now_unix: u64) -> String {
     s
 }
 
+// ── format_duration_ms ───────────────────────────────────────────────────────
+
+/// Format a millisecond duration as a compact human-readable string.
+///
+/// - Sub-second: `"0s"`
+/// - Seconds only (< 60 s): `"Xs"`
+/// - Minutes (< 1 h): `"Xm"` (seconds dropped)
+/// - Hours (< 1 d): `"XhYm"` (always show minutes, even when 0)
+/// - Days: `"XdYh"` (always show hours, even when 0)
+pub fn format_duration_ms(ms: u64) -> String {
+    let total_secs = ms / 1_000;
+    if total_secs == 0 {
+        return "0s".to_owned();
+    }
+    let days = total_secs / 86_400;
+    let hours = (total_secs % 86_400) / 3_600;
+    let mins = (total_secs % 3_600) / 60;
+    let secs = total_secs % 60;
+
+    if days > 0 {
+        format!("{days}d{hours}h")
+    } else if hours > 0 {
+        format!("{hours}h{mins}m")
+    } else if mins > 0 {
+        format!("{mins}m")
+    } else {
+        format!("{secs}s")
+    }
+}
+
+// ── format_count ─────────────────────────────────────────────────────────────
+
+/// Format a token count as a compact human-readable string.
+///
+/// Rounding: values are divided by the unit magnitude and formatted with
+/// `{:.1}`, which uses standard "round half to even" (banker's rounding)
+/// as implemented by Rust's `format!`.  In practice the difference is
+/// only visible at exact .5 boundaries — callers should treat the
+/// displayed value as an approximation.
+///
+/// Thresholds (exclusive lower bound for the *next* suffix):
+/// - `< 1_000` → raw integer (no suffix), e.g. `999` → `"999"`
+/// - `< 1_000_000` → `"X.Xk"`, e.g. `1_234` → `"1.2k"`
+/// - `< 1_000_000_000` → `"X.XM"`, e.g. `1_234_567` → `"1.2M"`
+/// - `≥ 1_000_000_000` → `"X.XG"`, e.g. `1_000_000_000` → `"1.0G"`
+pub fn format_count(n: u64) -> String {
+    if n < 1_000 {
+        return n.to_string();
+    }
+    if n < 1_000_000 {
+        return format!("{:.1}k", n as f64 / 1_000.0);
+    }
+    if n < 1_000_000_000 {
+        return format!("{:.1}M", n as f64 / 1_000_000.0);
+    }
+    format!("{:.1}G", n as f64 / 1_000_000_000.0)
+}
+
 // ── helper: current unix time ────────────────────────────────────────────────
 
 /// Return the current Unix timestamp in seconds (best-effort; 0 on error).
@@ -338,5 +396,88 @@ mod tests {
     fn countdown_only_seconds_shows_0m() {
         // 59 seconds — less than 1 minute → "0m"
         assert_eq!(countdown(159, 100), "0m");
+    }
+
+    // ── format_duration_ms ───────────────────────────────────────────────────
+
+    #[test]
+    fn duration_ms_zero() {
+        assert_eq!(format_duration_ms(0), "0s");
+    }
+
+    #[test]
+    fn duration_ms_999_sub_second() {
+        assert_eq!(format_duration_ms(999), "0s");
+    }
+
+    #[test]
+    fn duration_ms_1000_one_second() {
+        assert_eq!(format_duration_ms(1_000), "1s");
+    }
+
+    #[test]
+    fn duration_ms_4500() {
+        assert_eq!(format_duration_ms(4_500), "4s");
+    }
+
+    #[test]
+    fn duration_ms_59999_just_under_one_minute() {
+        assert_eq!(format_duration_ms(59_999), "59s");
+    }
+
+    #[test]
+    fn duration_ms_60000_one_minute() {
+        assert_eq!(format_duration_ms(60_000), "1m");
+    }
+
+    #[test]
+    fn duration_ms_60500_rounds_down() {
+        assert_eq!(format_duration_ms(60_500), "1m");
+    }
+
+    #[test]
+    fn duration_ms_3599999_just_under_one_hour() {
+        assert_eq!(format_duration_ms(3_599_999), "59m");
+    }
+
+    #[test]
+    fn duration_ms_3600000_one_hour() {
+        assert_eq!(format_duration_ms(3_600_000), "1h0m");
+    }
+
+    #[test]
+    fn duration_ms_3661000_one_hour_one_minute() {
+        assert_eq!(format_duration_ms(3_661_000), "1h1m");
+    }
+
+    #[test]
+    fn duration_ms_86399999_just_under_one_day() {
+        assert_eq!(format_duration_ms(86_399_999), "23h59m");
+    }
+
+    #[test]
+    fn duration_ms_86400000_one_day() {
+        assert_eq!(format_duration_ms(86_400_000), "1d0h");
+    }
+
+    #[test]
+    fn duration_ms_u64_max_does_not_panic() {
+        // Should not panic; exact value not pinned.
+        let _ = format_duration_ms(u64::MAX);
+    }
+
+    // ── format_count (full boundary suite in placeholders::tokens_tests) ────
+
+    #[test]
+    fn count_raw_below_1k() {
+        assert_eq!(format_count(0), "0");
+        assert_eq!(format_count(999), "999");
+    }
+
+    #[test]
+    fn count_suffixes() {
+        assert_eq!(format_count(1_000), "1.0k");
+        assert_eq!(format_count(1_000_000), "1.0M");
+        assert_eq!(format_count(1_000_000_000), "1.0G");
     }
 }

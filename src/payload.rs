@@ -30,6 +30,7 @@ pub struct RateLimits {
 #[serde(default)]
 pub struct Model {
     pub display_name: Option<String>,
+    pub id: Option<String>,
 }
 
 /// Workspace block.
@@ -37,6 +38,88 @@ pub struct Model {
 #[serde(default)]
 pub struct Workspace {
     pub current_dir: Option<String>,
+    pub project_dir: Option<String>,
+    pub added_dirs: Option<Vec<String>>,
+    pub git_worktree: Option<String>,
+}
+
+/// Accumulated cost and timing for the current session.
+#[derive(Debug, Default, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct Cost {
+    pub total_cost_usd: Option<f64>,
+    pub total_duration_ms: Option<u64>,
+    pub total_api_duration_ms: Option<u64>,
+    pub total_lines_added: Option<u64>,
+    pub total_lines_removed: Option<u64>,
+}
+
+/// Per-turn token usage snapshot.
+#[derive(Debug, Default, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct ContextWindowCurrentUsage {
+    pub input_tokens: Option<u64>,
+    pub output_tokens: Option<u64>,
+    pub cache_creation_input_tokens: Option<u64>,
+    pub cache_read_input_tokens: Option<u64>,
+}
+
+/// Context-window utilisation counters.
+#[derive(Debug, Default, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct ContextWindow {
+    pub total_input_tokens: Option<u64>,
+    pub total_output_tokens: Option<u64>,
+    pub context_window_size: Option<u64>,
+    pub used_percentage: Option<f64>,
+    pub remaining_percentage: Option<f64>,
+    pub current_usage: Option<ContextWindowCurrentUsage>,
+}
+
+/// Thinking-effort level (e.g. "high", "medium", "low").
+#[derive(Debug, Default, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct Effort {
+    pub level: Option<String>,
+}
+
+/// Whether extended thinking is enabled.
+#[derive(Debug, Default, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct Thinking {
+    pub enabled: Option<bool>,
+}
+
+/// Active output style (e.g. "verbose", "concise").
+#[derive(Debug, Default, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct OutputStyle {
+    pub name: Option<String>,
+}
+
+/// Vim emulation state.
+#[derive(Debug, Default, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct Vim {
+    pub mode: Option<String>,
+}
+
+/// Sub-agent identity.
+#[derive(Debug, Default, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct Agent {
+    pub name: Option<String>,
+}
+
+/// Git-worktree context as reported by Claude Code.
+#[derive(Debug, Default, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct Worktree {
+    pub name: Option<String>,
+    pub path: Option<String>,
+    pub branch: Option<String>,
+    pub original_cwd: Option<String>,
+    pub original_branch: Option<String>,
 }
 
 /// Top-level payload delivered by Claude Code on stdin.
@@ -47,6 +130,19 @@ pub struct Payload {
     pub workspace: Option<Workspace>,
     pub transcript_path: Option<String>,
     pub session_id: Option<String>,
+    pub session_name: Option<String>,
+    /// Top-level cwd mirrors `workspace.current_dir`; both are sent by Claude Code.
+    pub cwd: Option<String>,
+    pub version: Option<String>,
+    pub output_style: Option<OutputStyle>,
+    pub cost: Option<Cost>,
+    pub context_window: Option<ContextWindow>,
+    pub exceeds_200k_tokens: Option<bool>,
+    pub effort: Option<Effort>,
+    pub thinking: Option<Thinking>,
+    pub vim: Option<Vim>,
+    pub agent: Option<Agent>,
+    pub worktree: Option<Worktree>,
     pub rate_limits: Option<RateLimits>,
 }
 
@@ -56,6 +152,10 @@ pub struct Payload {
 pub fn parse<R: std::io::Read>(reader: R) -> Result<Payload, anyhow::Error> {
     serde_json::from_reader(reader).context("failed to parse Claude Code stdin JSON")
 }
+
+#[cfg(test)]
+#[path = "payload_tests.rs"]
+mod payload_tests;
 
 #[cfg(test)]
 mod tests {
@@ -158,5 +258,58 @@ mod tests {
             .expect("rate_limits should be present");
         assert!(rl.five_hour.is_some());
         assert_eq!(rl.seven_day, None);
+    }
+
+    #[test]
+    fn partial_phase2_payload_parses() {
+        // Most new fields absent — all should be None.
+        let json = r#"{ "session_id": "s42", "version": "1.0.0" }"#;
+        let p = parse_str(json).expect("partial phase2 payload should parse");
+        assert_eq!(p.session_id.as_deref(), Some("s42"));
+        assert_eq!(p.version.as_deref(), Some("1.0.0"));
+        assert!(p.cwd.is_none());
+        assert!(p.session_name.is_none());
+        assert!(p.output_style.is_none());
+        assert!(p.cost.is_none());
+        assert!(p.context_window.is_none());
+        assert!(p.exceeds_200k_tokens.is_none());
+        assert!(p.effort.is_none());
+        assert!(p.thinking.is_none());
+        assert!(p.vim.is_none());
+        assert!(p.agent.is_none());
+        assert!(p.worktree.is_none());
+    }
+
+    #[test]
+    fn unknown_phase2_fields_are_tolerated() {
+        let json = r#"{
+            "cost": { "total_cost_usd": 0.1, "future_field": "ignored" },
+            "effort": { "level": "low", "extra": 99 },
+            "vim": { "mode": "insert", "unknown_key": true }
+        }"#;
+        let p = parse_str(json).expect("unknown nested fields should be tolerated");
+        assert_eq!(p.cost.as_ref().and_then(|c| c.total_cost_usd), Some(0.1));
+        assert_eq!(
+            p.effort.as_ref().and_then(|e| e.level.as_deref()),
+            Some("low")
+        );
+        assert_eq!(
+            p.vim.as_ref().and_then(|v| v.mode.as_deref()),
+            Some("insert")
+        );
+    }
+
+    #[test]
+    fn current_usage_null_handled() {
+        let json = r#"{
+            "context_window": {
+                "context_window_size": 200000,
+                "current_usage": null
+            }
+        }"#;
+        let p = parse_str(json).expect("null current_usage should parse");
+        let cw = p.context_window.as_ref().expect("context_window");
+        assert_eq!(cw.context_window_size, Some(200_000));
+        assert!(cw.current_usage.is_none());
     }
 }

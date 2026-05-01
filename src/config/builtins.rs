@@ -1,118 +1,14 @@
 //! Hardcoded built-in template configs — bit-identical translation of
 //! `templates/<name>.txt`: `{? ... }` → `hide_when_absent: true` segments.
 
-use super::schema::{Config, Line, TemplateSegment};
+mod templates;
+use templates::*;
 
-fn line(segments: Vec<TemplateSegment>) -> Line {
-    Line {
-        separator: String::new(),
-        segments: segments.into_iter().map(Into::into).collect(),
-    }
-}
-
-fn s(tmpl: &str) -> TemplateSegment {
-    TemplateSegment::new(tmpl)
-}
-
-fn opt(tmpl: &str) -> TemplateSegment {
-    TemplateSegment::new(tmpl).with_hide_when_absent()
-}
-
-// default.txt: {model}{? · 5h: {five_left}%}{? · 7d: {seven_left}%}{? (resets {seven_reset_clock})}
-fn default_config() -> Config {
-    Config {
-        schema_url: None,
-        lines: vec![line(vec![
-            s("{model}"),
-            opt(" · 5h: {five_left}%"),
-            opt(" · 7d: {seven_left}%"),
-            opt(" (resets {seven_reset_clock})"),
-        ])],
-    }
-}
-
-// minimal.txt: {model}{? {five_left}%/{seven_left}%}
-fn minimal_config() -> Config {
-    Config {
-        schema_url: None,
-        lines: vec![line(vec![s("{model}"), opt(" {five_left}%/{seven_left}%")])],
-    }
-}
-
-// compact.txt: {model}{? {five_left}/{seven_left}}
-fn compact_config() -> Config {
-    Config {
-        schema_url: None,
-        lines: vec![line(vec![s("{model}"), opt(" {five_left}/{seven_left}")])],
-    }
-}
-
-// bars.txt: {model}{? 5h:{five_bar}}{? 7d:{seven_bar}}
-fn bars_config() -> Config {
-    Config {
-        schema_url: None,
-        lines: vec![line(vec![
-            s("{model}"),
-            opt(" 5h:{five_bar}"),
-            opt(" 7d:{seven_bar}"),
-        ])],
-    }
-}
-
-// colored.txt: {model}{? · 5h: {five_color}{five_left}%{reset}}{? · 7d: {seven_color}{seven_left}%{reset}}
-fn colored_config() -> Config {
-    Config {
-        schema_url: None,
-        lines: vec![line(vec![
-            s("{model}"),
-            opt(" · 5h: {five_color}{five_left}%{reset}"),
-            opt(" · 7d: {seven_color}{seven_left}%{reset}"),
-        ])],
-    }
-}
-
-// emoji.txt: {model}{? · {five_state} 5h {five_left}%}{? · {seven_state} 7d {seven_left}%}
-fn emoji_config() -> Config {
-    Config {
-        schema_url: None,
-        lines: vec![line(vec![
-            s("{model}"),
-            opt(" · {five_state} 5h {five_left}%"),
-            opt(" · {seven_state} 7d {seven_left}%"),
-        ])],
-    }
-}
-
-// emoji_verbose.txt: 🤖 {model}{? · {state_icon} {cwd_basename}}{? · ⏳ {five_left}%/{seven_left}%}{? · ⏰ {seven_reset_clock}}
-fn emoji_verbose_config() -> Config {
-    Config {
-        schema_url: None,
-        lines: vec![line(vec![
-            s("🤖 {model}"),
-            opt(" · {state_icon} {cwd_basename}"),
-            opt(" · ⏳ {five_left}%/{seven_left}%"),
-            opt(" · ⏰ {seven_reset_clock}"),
-        ])],
-    }
-}
-
-// verbose.txt: {model}{? · {cwd_basename}}{? · 5h:{five_bar} {five_left}% (in {five_reset_in})}{? · 7d:{seven_bar} {seven_left}% (in {seven_reset_in})}{? · extra:{extra_left}}
-fn verbose_config() -> Config {
-    Config {
-        schema_url: None,
-        lines: vec![line(vec![
-            s("{model}"),
-            opt(" · {cwd_basename}"),
-            opt(" · 5h:{five_bar} {five_left}% (in {five_reset_in})"),
-            opt(" · 7d:{seven_bar} {seven_left}% (in {seven_reset_in})"),
-            opt(" · extra:{extra_left}"),
-        ])],
-    }
-}
+use crate::config::schema::Config;
 
 /// Look up a built-in template by name.
 ///
-/// Returns `Some(Config)` for one of the 8 shipped templates;
+/// Returns `Some(Config)` for one of the 9 shipped templates;
 /// `None` for any unknown name.
 pub fn lookup(name: &str) -> Option<Config> {
     match name {
@@ -124,18 +20,19 @@ pub fn lookup(name: &str) -> Option<Config> {
         "emoji" => Some(emoji_config()),
         "emoji_verbose" => Some(emoji_verbose_config()),
         "verbose" => Some(verbose_config()),
+        "rich" => Some(rich_config()),
         _ => None,
     }
 }
 
 #[cfg(test)]
-#[path = "builtins_tests.rs"]
+#[path = "builtins/builtins_tests.rs"]
 mod builtins_tests;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::schema::Segment;
+    use crate::config::schema::{Segment, TemplateSegment};
 
     const ALL_NAMES: &[&str] = &[
         "default",
@@ -146,6 +43,7 @@ mod tests {
         "emoji",
         "emoji_verbose",
         "verbose",
+        "rich",
     ];
 
     #[test]
@@ -349,10 +247,7 @@ mod tests {
         }
     }
 
-    // Rendering tests use render_config_manually to simulate Task 4's
-    // config::render collapse semantics. Full byte-exact snapshot match
-    // against tests/snapshots/builtin-outputs.txt is deferred to Task 11.
-
+    // Rendering tests use render_config_manually to simulate config::render collapse semantics.
     #[allow(deprecated)]
     #[test]
     fn default_renders_with_full_ctx() {
@@ -435,8 +330,7 @@ mod tests {
         }
     }
 
-    // Simulates config::render (Task 4): renders each segment template via
-    // format::render, applies hide_when_absent collapse, joins with separator.
+    // Simulates config::render collapse semantics.
     #[allow(deprecated)]
     fn render_config_manually(
         cfg: &Config,
@@ -476,6 +370,7 @@ mod tests {
             extra_limit: None,
             extra_pct: None,
             now_unix: 0,
+            ..Default::default()
         }
     }
 }

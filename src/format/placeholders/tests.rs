@@ -14,6 +14,7 @@ fn ctx_full() -> RenderCtx {
         extra_limit: Some(100.0),
         extra_pct: Some(25.0),
         now_unix: 0,
+        ..Default::default()
     }
 }
 
@@ -23,29 +24,44 @@ fn ctx_empty() -> RenderCtx {
 
 // ── decoupling invariant ─────────────────────────────────────────────────
 
+/// Walk `src/format/` recursively and assert no `.rs` file contains
+/// forbidden imports.  New siblings under `src/format/placeholders/`
+/// are covered automatically without editing this test.
 #[test]
-fn format_module_does_not_depend_on_api_or_cache() {
+fn format_module_does_not_depend_on_api_cache_or_git() {
     use std::fs;
-    let files = [
-        "src/format/mod.rs",
-        "src/format/parser.rs",
-        "src/format/values.rs",
-        "src/format/thresholds.rs",
-        "src/format/placeholders/mod.rs",
-        "src/format/placeholders/tests.rs",
-    ];
+    use std::path::Path;
+
     // Split strings so this test source itself never contains the
     // literal banned patterns as a contiguous byte sequence.
-    let api_import = ["use crate", "::", "api"].concat();
-    let cache_import = ["use crate", "::", "cache"].concat();
-    for f in &files {
-        let src = fs::read_to_string(f).unwrap_or_default();
-        assert!(!src.contains(&api_import), "{f} has forbidden dep on api");
-        assert!(
-            !src.contains(&cache_import),
-            "{f} has forbidden dep on cache"
-        );
+    let forbidden: &[&str] = &[
+        &["use crate", "::", "api"].concat(),
+        &["use crate", "::", "cache"].concat(),
+        &["use crate", "::", "git"].concat(),
+        &["use crate", "::", "config"].concat(),
+    ];
+
+    fn walk(dir: &Path, forbidden: &[&str]) {
+        let entries = fs::read_dir(dir).expect("read_dir failed");
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                walk(&path, forbidden);
+            } else if path.extension().and_then(|e| e.to_str()) == Some("rs") {
+                let src = fs::read_to_string(&path).unwrap_or_default();
+                for pat in forbidden {
+                    assert!(
+                        !src.contains(*pat),
+                        "{} has forbidden import: {}",
+                        path.display(),
+                        pat
+                    );
+                }
+            }
+        }
     }
+
+    walk(Path::new("src/format"), forbidden);
 }
 
 // ── model ────────────────────────────────────────────────────────────────

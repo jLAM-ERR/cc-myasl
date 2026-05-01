@@ -7,7 +7,9 @@
 use std::path::PathBuf;
 
 use crate::format::thresholds::{classify, pick_color, pick_icon};
-use crate::format::values::{bar, clock_local, countdown, percent_decimal, percent_int};
+use crate::format::values::{
+    bar, clock_local, countdown, format_count, format_duration_ms, percent_decimal, percent_int,
+};
 
 /// All data the renderer needs — primitives and stdlib types only.
 ///
@@ -15,6 +17,7 @@ use crate::format::values::{bar, clock_local, countdown, percent_decimal, percen
 /// source was used (stdin `rate_limits`, API response, or cache).
 #[derive(Debug, Default)]
 pub struct RenderCtx {
+    // ── existing Phase-1 fields ───────────────────────────────────────────
     pub model: Option<String>,
     pub cwd: Option<PathBuf>,
     pub five_used: Option<f64>,       // 0..=100
@@ -26,6 +29,76 @@ pub struct RenderCtx {
     pub extra_limit: Option<f64>,
     pub extra_pct: Option<f64>,
     pub now_unix: u64,
+
+    // ── Phase-2: Claude Code session / metadata ───────────────────────────
+    pub model_id: Option<String>,
+    pub version: Option<String>,
+    pub session_id: Option<String>,
+    pub session_name: Option<String>,
+    pub output_style: Option<String>,
+    pub effort_level: Option<String>,
+    pub thinking_enabled: Option<bool>,
+    pub vim_mode: Option<String>,
+    pub agent_name: Option<String>,
+
+    // ── Phase-2: cost / session clock ─────────────────────────────────────
+    pub cost_usd: Option<f64>,
+    pub total_duration_ms: Option<u64>,
+    pub api_duration_ms: Option<u64>,
+    pub lines_added: Option<u64>,
+    pub lines_removed: Option<u64>,
+
+    // ── Phase-2: token counters (session totals) ──────────────────────────
+    pub tokens_input_total: Option<u64>,
+    pub tokens_output_total: Option<u64>,
+
+    // ── Phase-2: token counters (current turn) ────────────────────────────
+    pub tokens_input: Option<u64>,
+    pub tokens_output: Option<u64>,
+    pub tokens_cache_creation: Option<u64>,
+    pub tokens_cache_read: Option<u64>,
+
+    // ── Phase-2: context window ───────────────────────────────────────────
+    pub context_size: Option<u64>,
+    pub context_used_pct: Option<f64>,
+    pub context_remaining_pct: Option<f64>,
+    pub exceeds_200k: Option<bool>,
+
+    // ── Phase-2: workspace ────────────────────────────────────────────────
+    pub project_dir: Option<PathBuf>,
+    pub added_dirs_count: Option<u64>,
+    pub workspace_git_worktree: Option<String>,
+
+    // ── Phase-2: worktree ─────────────────────────────────────────────────
+    pub worktree_name: Option<String>,
+    pub worktree_path: Option<PathBuf>,
+    pub worktree_branch: Option<String>,
+    pub worktree_original_cwd: Option<PathBuf>,
+    pub worktree_original_branch: Option<String>,
+
+    // ── Phase-2: git (populated by git module in Task 10) ─────────────────
+    pub git_branch: Option<String>,
+    pub git_root: Option<PathBuf>,
+    pub git_changes_count: Option<u64>,
+    pub git_staged_count: Option<u64>,
+    pub git_unstaged_count: Option<u64>,
+    pub git_untracked_count: Option<u64>,
+}
+
+/// Compress a path by replacing a leading HOME prefix with `~`.
+///
+/// Returns `None` for empty or non-UTF-8 paths.
+fn compress_home(path: &std::path::Path) -> Option<String> {
+    let s = path.to_str()?;
+    if s.is_empty() {
+        return None;
+    }
+    let home = std::env::var("HOME").unwrap_or_default();
+    if !home.is_empty() && s.starts_with(&home) {
+        Some(format!("~{}", &s[home.len()..]))
+    } else {
+        Some(s.to_owned())
+    }
 }
 
 /// Render a single placeholder `name` against `ctx`.
@@ -39,16 +112,7 @@ pub fn render_placeholder(name: &str, ctx: &RenderCtx) -> Option<String> {
 
         "cwd" => {
             let path = ctx.cwd.as_ref()?;
-            let s = path.to_str()?;
-            if s.is_empty() {
-                return None;
-            }
-            let home = std::env::var("HOME").unwrap_or_default();
-            if !home.is_empty() && s.starts_with(&home) {
-                Some(format!("~{}", &s[home.len()..]))
-            } else {
-                Some(s.to_owned())
-            }
+            compress_home(path)
         }
 
         "cwd_basename" => {
@@ -114,6 +178,117 @@ pub fn render_placeholder(name: &str, ctx: &RenderCtx) -> Option<String> {
             Some(pick_icon(classify(min_left)).to_owned())
         }
 
+        // ── session / Claude metadata ─────────────────────────────────────────
+        "model_id" => ctx.model_id.clone(),
+        "version" => ctx.version.clone(),
+        "session_id" => ctx.session_id.clone(),
+        "session_name" => ctx.session_name.clone(),
+        "output_style" => ctx.output_style.clone(),
+        "effort" => ctx.effort_level.clone(),
+        // "thinking" when enabled, None when disabled or absent — caller
+        // shows/hides the segment rather than rendering a false-y string.
+        "thinking_enabled" => {
+            ctx.thinking_enabled
+                .and_then(|b| if b { Some("thinking".to_owned()) } else { None })
+        }
+        "vim_mode" => ctx.vim_mode.clone(),
+        "agent_name" => ctx.agent_name.clone(),
+
+        // ── cost / session clock ──────────────────────────────────────────────
+        "cost_usd" => ctx.cost_usd.map(|v| format!("{:.2}", v)),
+        "session_clock" => ctx.total_duration_ms.map(format_duration_ms),
+        "api_duration" => ctx.api_duration_ms.map(format_duration_ms),
+        "lines_added" => ctx.lines_added.map(|n| n.to_string()),
+        "lines_removed" => ctx.lines_removed.map(|n| n.to_string()),
+        "lines_changed" => match (ctx.lines_added, ctx.lines_removed) {
+            (Some(a), Some(r)) => Some((a + r).to_string()),
+            _ => None,
+        },
+
+        // ── token counters (current turn) ─────────────────────────────────────
+        "tokens_input" => ctx.tokens_input.map(format_count),
+        "tokens_output" => ctx.tokens_output.map(format_count),
+        "tokens_cached_creation" => ctx.tokens_cache_creation.map(format_count),
+        "tokens_cached_read" => ctx.tokens_cache_read.map(format_count),
+        // cached_total: creation + read; None if either constituent is absent.
+        "tokens_cached_total" => match (ctx.tokens_cache_creation, ctx.tokens_cache_read) {
+            (Some(c), Some(r)) => Some(format_count(c + r)),
+            _ => None,
+        },
+        // tokens_total: all four; None if any constituent is absent.
+        "tokens_total" => {
+            match (
+                ctx.tokens_input,
+                ctx.tokens_output,
+                ctx.tokens_cache_creation,
+                ctx.tokens_cache_read,
+            ) {
+                (Some(i), Some(o), Some(cc), Some(cr)) => Some(format_count(i + o + cc + cr)),
+                _ => None,
+            }
+        }
+
+        // ── token counters (session totals) ───────────────────────────────────
+        "tokens_input_total" => ctx.tokens_input_total.map(format_count),
+        "tokens_output_total" => ctx.tokens_output_total.map(format_count),
+
+        // ── context window ────────────────────────────────────────────────────
+        "context_size" => ctx.context_size.map(|n| n.to_string()),
+        "context_used_pct" => ctx.context_used_pct.map(percent_decimal),
+        "context_remaining_pct" => ctx.context_remaining_pct.map(percent_decimal),
+        // Rounded down (floor), not rounded — so 8.9% shows as "8" not "9".
+        "context_used_pct_int" => ctx
+            .context_used_pct
+            .map(|v| format!("{}", v.floor() as i64)),
+        "context_bar" => ctx.context_used_pct.map(|v| bar(v, 10)),
+        "context_bar_long" => ctx.context_used_pct.map(|v| bar(v, 20)),
+        // "!" when context exceeds 200k tokens; None otherwise — segment collapses
+        // cleanly when within limits (same pattern as `thinking_enabled`).
+        "exceeds_200k" => ctx
+            .exceeds_200k
+            .and_then(|b| if b { Some("!".to_owned()) } else { None }),
+
+        // ── workspace placeholders ────────────────────────────────────────────
+        //
+        // `workspace_git_worktree`: comes from `payload.workspace.git_worktree`.
+        //   Populated for ANY git worktree Claude Code detects (including
+        //   non-managed ones).  This is the worktree NAME string from the
+        //   workspace object.
+        //
+        // `worktree_name`: comes from `payload.worktree.name`.
+        //   Populated ONLY during `--worktree` sessions where Claude Code itself
+        //   manages the worktree lifecycle.  Different source, different scope.
+        "project_dir" => ctx.project_dir.as_deref().and_then(compress_home),
+        "added_dirs_count" => ctx.added_dirs_count.map(|n| n.to_string()),
+        "workspace_git_worktree" => ctx.workspace_git_worktree.clone(),
+
+        // ── worktree placeholders (--worktree sessions only) ──────────────────
+        "worktree_name" => ctx.worktree_name.clone(),
+        "worktree_path" => ctx.worktree_path.as_deref().and_then(compress_home),
+        "worktree_branch" => ctx.worktree_branch.clone(),
+        "worktree_original_cwd" => ctx.worktree_original_cwd.as_deref().and_then(compress_home),
+        "worktree_original_branch" => ctx.worktree_original_branch.clone(),
+
+        // ── git placeholders ─────────────────────────────────────────────────
+        "git_branch" => ctx.git_branch.clone(),
+        "git_root" => ctx.git_root.as_deref().and_then(compress_home),
+        "git_changes" => ctx.git_changes_count.map(|n| n.to_string()),
+        "git_staged" => ctx.git_staged_count.map(|n| n.to_string()),
+        "git_unstaged" => ctx.git_unstaged_count.map(|n| n.to_string()),
+        "git_untracked" => ctx.git_untracked_count.map(|n| n.to_string()),
+        // Returns "clean" when all four counts are Some(0); None otherwise.
+        "git_status_clean" => {
+            match (
+                ctx.git_changes_count,
+                ctx.git_staged_count,
+                ctx.git_unstaged_count,
+                ctx.git_untracked_count,
+            ) {
+                (Some(0), Some(0), Some(0), Some(0)) => Some("clean".to_owned()),
+                _ => None,
+            }
+        }
+
         // ── ANSI reset ────────────────────────────────────────────────────────
         "reset" => Some("\x1b[0m".to_owned()),
 
@@ -125,3 +300,57 @@ pub fn render_placeholder(name: &str, ctx: &RenderCtx) -> Option<String> {
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "session_tests.rs"]
+mod session_tests;
+
+#[cfg(test)]
+#[path = "cost_tests.rs"]
+mod cost_tests;
+
+#[cfg(test)]
+#[path = "tokens_tests.rs"]
+mod tokens_tests;
+
+#[cfg(test)]
+#[path = "context_tests.rs"]
+mod context_tests;
+
+#[cfg(test)]
+#[path = "workspace_tests.rs"]
+mod workspace_tests;
+
+#[cfg(test)]
+#[path = "git_tests.rs"]
+mod git_tests;
+
+#[cfg(test)]
+mod phase2_struct_tests {
+    use super::RenderCtx;
+
+    /// Sanity check: all 38 Phase-2 Option fields default to None.
+    #[test]
+    fn render_ctx_default_all_phase2_option_fields_are_none() {
+        let c = RenderCtx::default();
+        assert!(c.model_id.is_none() && c.version.is_none() && c.session_id.is_none());
+        assert!(c.session_name.is_none() && c.output_style.is_none() && c.effort_level.is_none());
+        assert!(c.thinking_enabled.is_none() && c.vim_mode.is_none() && c.agent_name.is_none());
+        assert!(c.cost_usd.is_none() && c.total_duration_ms.is_none());
+        assert!(
+            c.api_duration_ms.is_none() && c.lines_added.is_none() && c.lines_removed.is_none()
+        );
+        assert!(c.tokens_input_total.is_none() && c.tokens_output_total.is_none());
+        assert!(c.tokens_input.is_none() && c.tokens_output.is_none());
+        assert!(c.tokens_cache_creation.is_none() && c.tokens_cache_read.is_none());
+        assert!(c.context_size.is_none() && c.context_used_pct.is_none());
+        assert!(c.context_remaining_pct.is_none() && c.exceeds_200k.is_none());
+        assert!(c.project_dir.is_none() && c.added_dirs_count.is_none());
+        assert!(c.workspace_git_worktree.is_none() && c.worktree_name.is_none());
+        assert!(c.worktree_path.is_none() && c.worktree_branch.is_none());
+        assert!(c.worktree_original_cwd.is_none() && c.worktree_original_branch.is_none());
+        assert!(c.git_branch.is_none() && c.git_root.is_none());
+        assert!(c.git_changes_count.is_none() && c.git_staged_count.is_none());
+        assert!(c.git_unstaged_count.is_none() && c.git_untracked_count.is_none());
+    }
+}

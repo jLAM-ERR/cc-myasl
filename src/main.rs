@@ -1,7 +1,6 @@
 //! Entry point — orchestrates the render pipeline for cc-myasl.
 //! Hard invariants: exit 0 always in render mode; token never on disk or logged.
 
-use std::path::PathBuf;
 use std::time::SystemTime;
 
 use cc_myasl::api::{self, FetchOutcome};
@@ -16,6 +15,7 @@ use cc_myasl::creds;
 use cc_myasl::debug::Trace;
 use cc_myasl::format::RenderCtx;
 use cc_myasl::payload;
+use cc_myasl::payload_mapping;
 use cc_myasl::time;
 
 // ── constants ─────────────────────────────────────────────────────────────────
@@ -58,25 +58,23 @@ fn main() {
 fn run_render(args: &Args) {
     let started = SystemTime::now();
     let mut trace = Trace::default();
-    let mut ctx = RenderCtx {
-        now_unix: time::now_unix(),
-        ..Default::default()
-    };
+    let now_unix = time::now_unix();
 
     // 1. Parse stdin.
     let payload = match payload::parse(std::io::stdin()) {
         Ok(p) => p,
         Err(e) => {
             trace.error = Some(e.to_string());
-            render_and_emit(&mut trace, args, &ctx, started);
+            let mut ctx = RenderCtx {
+                now_unix,
+                ..Default::default()
+            };
+            render_and_emit(&mut trace, args, &mut ctx, started);
             return;
         }
     };
 
-    ctx.model = payload.model.and_then(|m| m.display_name);
-    ctx.cwd = payload
-        .workspace
-        .and_then(|w| w.current_dir.map(PathBuf::from));
+    let mut ctx = payload_mapping::build_render_ctx(&payload, now_unix);
 
     // 2. Hot path: stdin has rate_limits.
     if let Some(rl) = &payload.rate_limits {
@@ -89,7 +87,7 @@ fn run_render(args: &Args) {
             ctx.seven_reset_unix = sd.resets_at;
         }
         trace.path = Some("stdin-rate-limits".into());
-        render_and_emit(&mut trace, args, &ctx, started);
+        render_and_emit(&mut trace, args, &mut ctx, started);
         return;
     }
 
@@ -103,7 +101,7 @@ fn run_render(args: &Args) {
         if cache::is_fresh(&c, CACHE_TTL_SECS, ctx.now_unix) {
             apply_cache_to_ctx(&c, &mut ctx);
             trace.cache = Some("hit".into());
-            render_and_emit(&mut trace, args, &ctx, started);
+            render_and_emit(&mut trace, args, &mut ctx, started);
             return;
         }
     }
@@ -117,7 +115,7 @@ fn run_render(args: &Args) {
                 apply_cache_to_ctx(&c, &mut ctx);
                 trace.cache = Some("stale".into());
             }
-            render_and_emit(&mut trace, args, &ctx, started);
+            render_and_emit(&mut trace, args, &mut ctx, started);
             return;
         }
     }
@@ -127,7 +125,7 @@ fn run_render(args: &Args) {
         Ok(t) => t,
         Err(e) => {
             trace.error = Some(creds::redact_home(&e.to_string()));
-            render_and_emit(&mut trace, args, &ctx, started);
+            render_and_emit(&mut trace, args, &mut ctx, started);
             return;
         }
     };
@@ -207,7 +205,7 @@ fn run_render(args: &Args) {
         }
     }
 
-    render_and_emit(&mut trace, args, &ctx, started);
+    render_and_emit(&mut trace, args, &mut ctx, started);
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -249,8 +247,31 @@ fn build_cache_from_response(r: &api::UsageResponse, now: u64) -> UsageCache {
     }
 }
 
-fn render_and_emit(trace: &mut Trace, args: &Args, ctx: &RenderCtx, started: SystemTime) {
+/// Returns `true` when any segment template in `config` references a `{git_` placeholder.
+///
+/// The plain-substring scan will also match `{{git_` (escaped brace, renders as
+/// literal `{git_`), causing a false-positive that wastes ~5ms on gix discovery.
+/// This is accepted for Phase 2 rather than over-engineering the scan.
+fn config_uses_git(config: &cc_myasl::config::Config) -> bool {
+    for line in &config.lines {
+        for seg in &line.segments {
+            if let cc_myasl::config::Segment::Template(t) = seg {
+                if t.template.contains("{git_") {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+fn render_and_emit(trace: &mut Trace, args: &Args, ctx: &mut RenderCtx, started: SystemTime) {
     let config = cc_myasl::config::resolve(args, trace);
+    if config_uses_git(&config) {
+        if let Some(cwd) = ctx.cwd.clone() {
+            cc_myasl::payload_mapping::populate_git_ctx(ctx, &cwd);
+        }
+    }
     let line = cc_myasl::config::render::render(&config, ctx);
     println!("{}", line);
     trace.took_ms = SystemTime::now()
@@ -385,18 +406,13 @@ mod tests {
     fn valid_stdin_with_rate_limits_populates_ctx() {
         let json = r#"{"model":{"display_name":"claude-opus-4"},"rate_limits":{"five_hour":{"used_percentage":25.0,"resets_at":9999999999},"seven_day":{"used_percentage":50.0,"resets_at":9999999999}}}"#;
         let p = payload::parse(json.as_bytes()).expect("valid payload");
-        let mut ctx = RenderCtx {
-            now_unix: time::now_unix(),
-            ..Default::default()
-        };
-        ctx.model = p.model.and_then(|m| m.display_name);
-        if let Some(rl) = &p.rate_limits {
-            if let Some(fh) = &rl.five_hour {
-                ctx.five_used = fh.used_percentage;
-            }
-        }
+        let ctx = payload_mapping::build_render_ctx(&p, 0);
+        // model is mapped by build_render_ctx; rate_limits fields left None (caller fills them)
         assert_eq!(ctx.model.as_deref(), Some("claude-opus-4"));
-        assert_eq!(ctx.five_used, Some(25.0));
+        assert!(
+            ctx.five_used.is_none(),
+            "rate-limit fields must not be pre-populated by build_render_ctx"
+        );
     }
 
     // ── adversarial: corrupt config file must not exit non-zero ──────────────
