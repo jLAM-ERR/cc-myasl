@@ -503,6 +503,8 @@ standard Rust prompt — uses `gix` for repository discovery.
 - [x] run `cargo build`, `cargo tree`, `cargo test git` — all pass
 - [x] LOC check: `src/git/mod.rs` < 500
 
+⚠️ Followup commit b298d03: fix(git): test isolation + remove phantom dep + invariant checks (Task 9 followup) — (1) `discover_returns_none_outside_repo` now acquires `GIT_ENV_MUTEX` and sets `GIT_CEILING_DIRECTORIES` to prevent false-PASS when tempdir parent is a git repo; (2) `git checkout -b` in `init_repo` uses `.expect()` instead of `.ok()` so setup failures are loud; (3) phantom `clru`/`idna_adapter` direct deps removed from `Cargo.toml` — `Cargo.lock` is the correct pin mechanism; (4) `scripts/check-invariants.sh` + string-scan unit test added for `src/git/` decoupling invariant; (5) `git checkout <sha>` in detached-HEAD test uses `--quiet` to suppress stderr noise; (6) CLAUDE.md updated with git invariant (Hard Invariant 9) and phantom-dep note.
+
 ### Task 10: Add git-status counters + new placeholders
 
 **Files:**
