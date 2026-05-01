@@ -309,7 +309,10 @@ fn git_unstaged_zero_renders_as_zero_string() {
         git_unstaged_count: Some(0),
         ..Default::default()
     };
-    assert_eq!(render_placeholder("git_unstaged", &ctx), Some("0".to_owned()));
+    assert_eq!(
+        render_placeholder("git_unstaged", &ctx),
+        Some("0".to_owned())
+    );
 }
 
 #[test]
@@ -318,7 +321,10 @@ fn git_untracked_zero_renders_as_zero_string() {
         git_untracked_count: Some(0),
         ..Default::default()
     };
-    assert_eq!(render_placeholder("git_untracked", &ctx), Some("0".to_owned()));
+    assert_eq!(
+        render_placeholder("git_untracked", &ctx),
+        Some("0".to_owned())
+    );
 }
 
 // ── git_status_clean: unstaged-only dirty still returns None ─────────────

@@ -565,6 +565,8 @@ standard Rust prompt — uses `gix` for repository discovery.
       `git_branch == Some("main")` after `populate_git_ctx`
 - [x] run `cargo test` — must pass before next task
 
+⚠️ Followup commit 786bf7b: fix(git): distinct-file count for changes + use -z for safe filename parsing — switched `git status --porcelain=2` to `-z` (NUL-delimited) for safe parsing of filenames with newlines; changed `changes` from `staged+unstaged+untracked` sum to a `HashSet`-based distinct-file count so a file appearing in both staged and unstaged slots counts once.
+
 ### Task 11: Add `rich` built-in template
 
 **Files:**

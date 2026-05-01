@@ -265,8 +265,10 @@ fn config_uses_git_escaped_brace_is_false_positive_accepted() {
     // The plain-substring scan sees `{git_` inside `{{git_` and returns true.
     // This is a known, documented false-positive (accepted for Phase 2).
     let cfg = make_config_with_template("{{git_branch}}");
-    assert!(config_uses_git(&cfg),
-        "escaped brace is a known false-positive; scan must still return true");
+    assert!(
+        config_uses_git(&cfg),
+        "escaped brace is a known false-positive; scan must still return true"
+    );
 }
 
 #[test]
@@ -295,8 +297,10 @@ fn config_uses_git_git_underscore_only_matches() {
     // `{git_}` contains the substring `{git_` so the scan returns true.
     // The placeholder itself renders to None (unrecognised); but the gate fires.
     let cfg = make_config_with_template("{git_}");
-    assert!(config_uses_git(&cfg),
-        "{{git_}} contains the substring so the gate must fire (cheap false-positive)");
+    assert!(
+        config_uses_git(&cfg),
+        "{{git_}} contains the substring so the gate must fire (cheap false-positive)"
+    );
 }
 
 #[test]

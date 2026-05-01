@@ -69,8 +69,14 @@ fn populate_git_ctx_nonexistent_cwd_returns_all_none() {
     let mut ctx = crate::format::RenderCtx::default();
     populate_git_ctx(&mut ctx, &gone);
     std::env::remove_var("GIT_CEILING_DIRECTORIES");
-    assert!(ctx.git_branch.is_none(), "nonexistent cwd must yield None branch");
-    assert!(ctx.git_root.is_none(), "nonexistent cwd must yield None root");
+    assert!(
+        ctx.git_branch.is_none(),
+        "nonexistent cwd must yield None branch"
+    );
+    assert!(
+        ctx.git_root.is_none(),
+        "nonexistent cwd must yield None root"
+    );
 }
 
 #[test]
@@ -83,8 +89,11 @@ fn populate_git_ctx_subdir_discovers_repo() {
     let mut ctx = crate::format::RenderCtx::default();
     populate_git_ctx(&mut ctx, &subdir);
     // gix walks parent directories, so branch must still be found.
-    assert_eq!(ctx.git_branch.as_deref(), Some("main"),
-        "gix must discover repo from subdirectory");
+    assert_eq!(
+        ctx.git_branch.as_deref(),
+        Some("main"),
+        "gix must discover repo from subdirectory"
+    );
     assert!(ctx.git_root.is_some());
 }
 
@@ -96,8 +105,11 @@ fn populate_git_ctx_path_with_spaces_and_unicode() {
     init_git_repo_with_commit(&fancy);
     let mut ctx = crate::format::RenderCtx::default();
     populate_git_ctx(&mut ctx, &fancy);
-    assert_eq!(ctx.git_branch.as_deref(), Some("main"),
-        "paths with spaces/unicode must work");
+    assert_eq!(
+        ctx.git_branch.as_deref(),
+        Some("main"),
+        "paths with spaces/unicode must work"
+    );
 }
 
 #[test]
@@ -112,14 +124,26 @@ fn populate_git_ctx_detached_head_branch_is_none() {
         .expect("rev-parse");
     let sha = String::from_utf8_lossy(&out.stdout).trim().to_owned();
     Command::new("git")
-        .args(["-C", dir.path().to_str().unwrap(), "checkout", "--quiet", &sha])
+        .args([
+            "-C",
+            dir.path().to_str().unwrap(),
+            "checkout",
+            "--quiet",
+            &sha,
+        ])
         .status()
         .expect("git checkout sha");
     let mut ctx = crate::format::RenderCtx::default();
     populate_git_ctx(&mut ctx, dir.path());
-    assert!(ctx.git_branch.is_none(), "detached HEAD must yield None branch");
+    assert!(
+        ctx.git_branch.is_none(),
+        "detached HEAD must yield None branch"
+    );
     // root and counts must still be populated.
-    assert!(ctx.git_root.is_some(), "root must be Some even in detached HEAD");
+    assert!(
+        ctx.git_root.is_some(),
+        "root must be Some even in detached HEAD"
+    );
     assert!(ctx.git_staged_count.is_some());
 }
 
@@ -127,11 +151,16 @@ fn populate_git_ctx_detached_head_branch_is_none() {
 fn populate_git_ctx_does_not_overwrite_pre_existing_non_git_fields() {
     let dir = tempfile::tempdir().expect("tempdir");
     init_git_repo_with_commit(dir.path());
-    let mut ctx = crate::format::RenderCtx::default();
-    ctx.model = Some("claude-3".to_owned());
-    ctx.five_used = Some(42.0);
+    let mut ctx = crate::format::RenderCtx {
+        model: Some("claude-3".to_owned()),
+        five_used: Some(42.0),
+        ..Default::default()
+    };
     populate_git_ctx(&mut ctx, dir.path());
-    assert_eq!(ctx.model.as_deref(), Some("claude-3"),
-        "populate_git_ctx must not clobber unrelated fields");
+    assert_eq!(
+        ctx.model.as_deref(),
+        Some("claude-3"),
+        "populate_git_ctx must not clobber unrelated fields"
+    );
     assert_eq!(ctx.five_used, Some(42.0));
 }
