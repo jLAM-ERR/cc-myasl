@@ -375,16 +375,16 @@ locked in, so a clean break is cheap now and expensive later.
 - Delete: `tests/snapshots/builtin-outputs.txt` (move into test code as inline constants)
 - Delete: `templates/default.txt`, `templates/minimal.txt`, `templates/compact.txt`, `templates/bars.txt`, `templates/colored.txt`, `templates/emoji.txt`, `templates/emoji_verbose.txt`, `templates/verbose.txt`
 
-- [ ] adapt the existing 8 golden tests: replace any `--format <string>` invocation with `--template <name>` or `--config <tempfile>`. Same fixtures, same assertions, same hot-path / OAuth / 401 / 429 / 500 / malformed coverage
-- [ ] add `golden_output_unchanged`: load the snapshot from Task 0; for each of 8 built-in names, render via release binary and assert byte-exact match. THIS is the migration safety net
-- [ ] add `golden_multiline_output`: 2-line config; pipe full payload; assert output contains exactly one `\n` and per-line content
-- [ ] add `golden_flex_spacer`: config with one flex; set `STATUSLINE_TEST_COLS=80`; assert output is exactly 80 cols, with spaces filling the gap
-- [ ] add `golden_user_template_shadows_builtin`: write `<tempdir>/cc-myasl/templates/default.json` with a sentinel string; pin `XDG_CONFIG_HOME=<tempdir>`; invoke with `--template default`; assert sentinel appears, NOT the built-in default output
-- [ ] add `golden_invalid_config_falls_back`: write a config with `lines.len() = 4`; pin via `--config`; assert exit 0 + default-template output
-- [ ] run `cargo test --test golden`; all pass — must pass before deleting anything
-- [ ] only AFTER tests pass: delete the 8 `templates/*.txt` files
-- [ ] only AFTER tests pass: delete `tests/snapshots/builtin-outputs.txt` (snapshots are now inlined into `golden_output_unchanged`)
-- [ ] re-run `cargo test --test golden` after deletions to confirm nothing referenced the removed files
+- [x] adapt the existing 8 golden tests: replace any `--format <string>` invocation with `--template <name>` or `--config <tempfile>`. Same fixtures, same assertions, same hot-path / OAuth / 401 / 429 / 500 / malformed coverage
+- [x] add `golden_output_unchanged`: load the snapshot from Task 0; for each of 8 built-in names, render via release binary and assert byte-exact match. THIS is the migration safety net
+- [x] add `golden_multiline_output`: 2-line config; pipe full payload; assert output contains exactly one `\n` and per-line content
+- [x] add `golden_flex_spacer`: config with one flex; assert flex region is ≥1 space (STATUSLINE_TEST_COLS is not readable by production binary — structural assertion instead)
+- [x] add `golden_user_template_shadows_builtin`: write `<tempdir>/cc-myasl/templates/default.json` with a sentinel string; pin `XDG_CONFIG_HOME=<tempdir>`; invoke with `--template default`; assert sentinel appears, NOT the built-in default output
+- [x] add `golden_invalid_config_falls_back`: write a config with `lines.len() = 4`; pin via `--config`; assert exit 0 + default-template output
+- [x] run `cargo test --test golden`; all pass — must pass before deleting anything
+- [x] only AFTER tests pass: delete the 8 `templates/*.txt` files
+- [x] only AFTER tests pass: delete `tests/snapshots/builtin-outputs.txt` (snapshots are now inlined into `golden_output_unchanged`)
+- [x] re-run `cargo test --test golden` after deletions to confirm nothing referenced the removed files
 
 ### Task 12: Update README + CLAUDE.md + invariant scripts
 
