@@ -1,5 +1,5 @@
 use super::*;
-use crate::config::schema::{Segment, MAX_PADDING};
+use crate::config::schema::{Segment, TemplateSegment, MAX_PADDING};
 
 // ---------------------------------------------------------------------------
 // lookup: boundary and edge-case names
@@ -329,7 +329,7 @@ fn rich_validates_without_errors() {
 #[test]
 fn rich_renders_non_empty_against_full_payload() {
     use crate::config::render;
-    let src = include_str!("../../tests/fixtures/full-payload.json");
+    let src = include_str!("../../../tests/fixtures/full-payload.json");
     let payload = crate::payload::parse(src.as_bytes()).expect("full-payload fixture");
     let ctx = crate::payload_mapping::build_render_ctx(&payload, 0);
     let out = render::render(&lookup("rich").unwrap(), &ctx);
