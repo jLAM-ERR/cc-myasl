@@ -1,4 +1,5 @@
 pub mod builtins;
+pub mod named_color;
 pub mod render;
 pub mod render_powerline;
 pub mod schema;

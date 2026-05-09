@@ -4,6 +4,7 @@ pub mod app_color;
 pub mod app_editor;
 pub mod app_picker;
 pub mod app_save;
+pub mod catalog;
 pub mod draw;
 pub mod preview;
 pub mod save;
