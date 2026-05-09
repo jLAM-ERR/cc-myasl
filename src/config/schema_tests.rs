@@ -17,6 +17,8 @@ fn padding_zero_is_valid_and_no_warning() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(TemplateSegment::new("x"))],
@@ -32,6 +34,8 @@ fn padding_exactly_max_no_warning() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(TemplateSegment::new("x").with_padding(8))],
@@ -48,6 +52,8 @@ fn padding_one_over_max_is_clamped() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(TemplateSegment::new("x").with_padding(9))],
@@ -71,6 +77,8 @@ fn padding_u8_max_255_is_clamped_to_max_padding() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(
@@ -96,6 +104,8 @@ fn padding_warning_carries_correct_line_and_segment_index() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![
@@ -131,6 +141,8 @@ fn empty_lines_array_is_valid() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![],
     };
     let warnings = cfg
@@ -144,6 +156,8 @@ fn empty_segments_on_a_line_is_valid() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: " | ".to_owned(),
             segments: vec![],
@@ -194,6 +208,8 @@ fn very_long_template_string_round_trips() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(TemplateSegment::new(&long))],
@@ -214,6 +230,8 @@ fn unicode_multibyte_template_string_round_trips() {
     let orig = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "→".to_owned(),
             segments: vec![Segment::Template(TemplateSegment::new(&unicode))],

@@ -20,6 +20,8 @@ fn one_line(separator: &str, segments: Vec<Segment>) -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: separator.to_owned(),
             segments,
@@ -102,6 +104,8 @@ fn render_empty_config_returns_empty_string() {
     let config = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![],
     };
     assert_eq!(render(&config, &RenderCtx::default()), "");
@@ -212,6 +216,8 @@ fn render_exactly_max_lines_renders_all() {
     let config = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![line.clone(), line.clone(), line.clone()],
     };
     let out = render(&config, &RenderCtx::default());
@@ -232,6 +238,8 @@ fn render_multi_line_joined_with_newline_not_crlf() {
     let config = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![mk("line1"), mk("line2")],
     };
     let out = render(&config, &RenderCtx::default());

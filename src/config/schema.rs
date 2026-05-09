@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::config::named_color::NamedColor;
+
 pub const MAX_LINES: usize = 3;
 pub const MAX_PADDING: u8 = 8;
 
@@ -17,6 +19,12 @@ pub struct Config {
     /// When true, render segments as Powerline blocks with chevron transitions.
     #[serde(default)]
     pub powerline: bool,
+    /// Default foreground color applied to all segments without an explicit color.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_fg: Option<NamedColor>,
+    /// Default background color applied to all segments without an explicit bg.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_bg: Option<NamedColor>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -230,6 +238,8 @@ mod tests {
         let mut cfg = Config {
             schema_url: None,
             powerline: false,
+            default_fg: None,
+            default_bg: None,
             lines: vec![Line {
                 separator: " | ".to_owned(),
                 segments: vec![Segment::Template(TemplateSegment::new("{five_left}%"))],
@@ -249,6 +259,8 @@ mod tests {
                     .to_owned(),
             ),
             powerline: false,
+            default_fg: None,
+            default_bg: None,
             lines: vec![],
         };
         let json = serde_json::to_string(&orig).expect("serialize");
@@ -265,6 +277,8 @@ mod tests {
         let orig = Config {
             schema_url: None,
             powerline: false,
+            default_fg: None,
+            default_bg: None,
             lines: vec![],
         };
         let json = serde_json::to_string(&orig).expect("serialize");
@@ -332,5 +346,43 @@ mod tests {
         } else {
             panic!("expected Template segment");
         }
+    }
+
+    // --- default_fg / default_bg serde ---
+
+    #[test]
+    fn default_fg_cyan_deserializes_and_serializes() {
+        let json = r#"{"lines":[],"default_fg":"cyan"}"#;
+        let cfg: Config = serde_json::from_str(json).expect("default_fg:cyan must deserialize");
+        assert_eq!(
+            cfg.default_fg,
+            Some(NamedColor::Cyan),
+            "default_fg must parse to NamedColor::Cyan"
+        );
+        let out = serde_json::to_string(&cfg).expect("serialize");
+        assert!(
+            out.contains("\"default_fg\":\"cyan\""),
+            "default_fg must serialize as lowercase 'cyan': {out}"
+        );
+    }
+
+    #[test]
+    fn default_fg_none_omitted_from_json() {
+        let cfg = Config {
+            schema_url: None,
+            powerline: false,
+            default_fg: None,
+            default_bg: None,
+            lines: vec![],
+        };
+        let out = serde_json::to_string(&cfg).expect("serialize");
+        assert!(
+            !out.contains("default_fg"),
+            "None default_fg must be omitted: {out}"
+        );
+        assert!(
+            !out.contains("default_bg"),
+            "None default_bg must be omitted: {out}"
+        );
     }
 }

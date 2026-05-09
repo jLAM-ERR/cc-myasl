@@ -10,6 +10,8 @@ fn multiple_errors_collected_too_many_lines_and_multi_flex() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![
             Line {
                 separator: "".to_owned(),
@@ -48,6 +50,8 @@ fn multiple_flex_false_errors_all_collected() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![
@@ -76,6 +80,8 @@ fn padding_clamped_even_when_hard_errors_present() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![
@@ -125,6 +131,8 @@ fn schema_url_is_preserved_through_serialize_deserialize() {
     let orig = Config {
         schema_url: Some(url.to_owned()),
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![],
     };
     let json = serde_json::to_string(&orig).expect("serialize");
@@ -173,6 +181,8 @@ fn validate_one_over_max_lines_produces_exactly_one_too_many_lines_error() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: (0..MAX_LINES + 1).map(|_| make_line()).collect(),
     };
     let errors = cfg.validate_and_clamp().expect_err("must error");
@@ -195,6 +205,8 @@ fn flex_true_alone_on_line_is_valid() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![flex_seg()],
@@ -215,6 +227,8 @@ fn flex_on_different_lines_is_valid() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![
             Line {
                 separator: "".to_owned(),
@@ -242,6 +256,8 @@ fn padding_clamp_warning_reports_original_value_not_clamped_value() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(
@@ -268,6 +284,8 @@ fn validate_and_clamp_is_idempotent() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(

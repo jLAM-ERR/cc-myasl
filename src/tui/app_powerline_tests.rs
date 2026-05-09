@@ -10,6 +10,8 @@ fn minimal_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: String::new(),
             segments: vec![Segment::Template(TemplateSegment::new("{model}"))],
@@ -36,6 +38,8 @@ fn shift_p_toggles_powerline_on_to_off() {
         Config {
             schema_url: None,
             powerline: true,
+            default_fg: None,
+            default_bg: None,
             lines: vec![Line {
                 separator: String::new(),
                 segments: vec![Segment::Template(TemplateSegment::new("{model}"))],
@@ -66,6 +70,8 @@ fn powerline_toggle_round_trip_serde() {
     let config = Config {
         schema_url: None,
         powerline: true,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: String::new(),
             segments: vec![Segment::Template(TemplateSegment::new("{model}"))],

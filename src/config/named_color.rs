@@ -2,7 +2,8 @@
 ///
 /// Matches the string values in `schema::NAMED_COLORS`.  Used by the
 /// catalog and (Task 3) as `Option<NamedColor>` on `Config`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum NamedColor {
     Red,
     Green,

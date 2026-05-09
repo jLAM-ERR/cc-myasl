@@ -53,6 +53,8 @@ mod tests {
         let config = Config {
             schema_url: None,
             powerline: false,
+            default_fg: None,
+            default_bg: None,
             lines: vec![Line {
                 separator: " | ".to_owned(),
                 segments: vec![

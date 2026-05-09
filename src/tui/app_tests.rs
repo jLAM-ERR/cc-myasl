@@ -10,6 +10,8 @@ fn one_line_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: String::new(),
             segments: vec![Segment::Template(TemplateSegment::new("{model}"))],
@@ -21,6 +23,8 @@ fn multi_seg_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: String::new(),
             segments: vec![
@@ -36,6 +40,8 @@ fn three_line_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![
             Line {
                 separator: String::new(),
@@ -57,6 +63,8 @@ fn minimal_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: String::new(),
             segments: vec![Segment::Template(TemplateSegment::new("{model}"))],
@@ -99,6 +107,8 @@ fn app_initial_selection_empty_config() {
         Config {
             schema_url: None,
             powerline: false,
+            default_fg: None,
+            default_bg: None,
             lines: vec![],
         },
         PathBuf::from("/tmp/out.json"),
@@ -160,6 +170,8 @@ fn j_moves_selection_down_in_line_list() {
         Config {
             schema_url: None,
             powerline: false,
+            default_fg: None,
+            default_bg: None,
             lines: vec![
                 Line {
                     separator: String::new(),
@@ -411,6 +423,8 @@ fn flex_segment_editor_shows_no_editable_fields() {
         Config {
             schema_url: None,
             powerline: false,
+            default_fg: None,
+            default_bg: None,
             lines: vec![Line {
                 separator: String::new(),
                 segments: vec![Segment::Flex(FlexSegment { flex: true })],

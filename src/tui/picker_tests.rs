@@ -10,6 +10,8 @@ fn minimal_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: String::new(),
             segments: vec![Segment::Template(TemplateSegment::new("{model}"))],

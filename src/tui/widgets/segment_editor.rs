@@ -136,6 +136,8 @@ mod tests {
             Config {
                 schema_url: None,
                 powerline: false,
+                default_fg: None,
+                default_bg: None,
                 lines: vec![Line {
                     separator: String::new(),
                     segments: vec![Segment::Flex(FlexSegment { flex: true })],
@@ -152,6 +154,8 @@ mod tests {
             Config {
                 schema_url: None,
                 powerline: false,
+                default_fg: None,
+                default_bg: None,
                 lines: vec![Line {
                     separator: String::new(),
                     segments: vec![Segment::Template(TemplateSegment::new(tmpl))],

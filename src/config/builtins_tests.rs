@@ -104,6 +104,9 @@ fn with_padding_at_max_boundary_no_warning() {
     let seg: Segment = TemplateSegment::new("z").with_padding(MAX_PADDING).into();
     let mut cfg = crate::config::schema::Config {
         schema_url: None,
+        powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![crate::config::schema::Line {
             separator: String::new(),
             segments: vec![seg],

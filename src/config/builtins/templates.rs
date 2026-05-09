@@ -22,6 +22,8 @@ pub(super) fn default_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![line(vec![
             s("{model}"),
             opt(" · 5h: {five_left}%"),
@@ -36,6 +38,8 @@ pub(super) fn minimal_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![line(vec![s("{model}"), opt(" {five_left}%/{seven_left}%")])],
     }
 }
@@ -45,6 +49,8 @@ pub(super) fn compact_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![line(vec![s("{model}"), opt(" {five_left}/{seven_left}")])],
     }
 }
@@ -54,6 +60,8 @@ pub(super) fn bars_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![line(vec![
             s("{model}"),
             opt(" 5h:{five_bar}"),
@@ -67,6 +75,8 @@ pub(super) fn colored_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![line(vec![
             s("{model}"),
             opt(" · 5h: {five_color}{five_left}%{reset}"),
@@ -80,6 +90,8 @@ pub(super) fn emoji_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![line(vec![
             s("{model}"),
             opt(" · {five_state} 5h {five_left}%"),
@@ -93,6 +105,8 @@ pub(super) fn emoji_verbose_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![line(vec![
             s("🤖 {model}"),
             opt(" · {state_icon} {cwd_basename}"),
@@ -107,6 +121,8 @@ pub(super) fn verbose_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![line(vec![
             s("{model}"),
             opt(" · {cwd_basename}"),
@@ -122,6 +138,8 @@ pub(super) fn rich_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![
             line(vec![
                 s("{model}"),

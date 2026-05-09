@@ -14,6 +14,8 @@ fn app_in_fg_picker() -> App {
         Config {
             schema_url: None,
             powerline: false,
+            default_fg: None,
+            default_bg: None,
             lines: vec![Line {
                 separator: String::new(),
                 segments: vec![Segment::Template(TemplateSegment::new("{model}"))],
@@ -35,6 +37,8 @@ fn app_in_bg_picker() -> App {
         Config {
             schema_url: None,
             powerline: false,
+            default_fg: None,
+            default_bg: None,
             lines: vec![Line {
                 separator: String::new(),
                 segments: vec![Segment::Template(TemplateSegment::new("{model}"))],
@@ -57,6 +61,8 @@ fn enter_fg_picker_resets_selection_to_zero() {
         Config {
             schema_url: None,
             powerline: false,
+            default_fg: None,
+            default_bg: None,
             lines: vec![Line {
                 separator: String::new(),
                 segments: vec![Segment::Template(TemplateSegment::new("{model}"))],

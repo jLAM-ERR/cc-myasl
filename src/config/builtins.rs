@@ -6,6 +6,19 @@ use templates::*;
 
 use crate::config::schema::Config;
 
+/// All shipped built-in template names, in canonical order.
+pub const ALL_NAMES: &[&str] = &[
+    "default",
+    "minimal",
+    "compact",
+    "bars",
+    "colored",
+    "emoji",
+    "emoji_verbose",
+    "verbose",
+    "rich",
+];
+
 /// Look up a built-in template by name.
 ///
 /// Returns `Some(Config)` for one of the 9 shipped templates;

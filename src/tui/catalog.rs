@@ -442,10 +442,16 @@ pub const PRESETS: &[Preset] = &[
 ];
 
 static LOOKUP: OnceLock<HashMap<&'static str, &'static Preset>> = OnceLock::new();
+static LOOKUP_BY_ID: OnceLock<HashMap<&'static str, &'static Preset>> = OnceLock::new();
 
 pub fn lookup(template: &str) -> Option<&'static Preset> {
     let map = LOOKUP.get_or_init(|| PRESETS.iter().map(|p| (p.template, p)).collect());
     map.get(template).copied()
+}
+
+pub fn lookup_by_id(id: &str) -> Option<&'static Preset> {
+    let map = LOOKUP_BY_ID.get_or_init(|| PRESETS.iter().map(|p| (p.id, p)).collect());
+    map.get(id).copied()
 }
 
 pub fn by_category(c: Category) -> impl Iterator<Item = &'static Preset> {

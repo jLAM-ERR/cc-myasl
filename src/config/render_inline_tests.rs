@@ -41,6 +41,8 @@ fn two_line_config_renders_with_newline() {
     let config = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![
             Line {
                 separator: "".to_owned(),
@@ -67,6 +69,8 @@ fn hidden_middle_segment_drops_separator() {
     let config = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "|".to_owned(),
             segments: vec![
@@ -90,6 +94,8 @@ fn no_trailing_separator_when_last_segment_hidden() {
     let config = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "|".to_owned(),
             segments: vec![tmpl_seg("A", 0, false), tmpl_seg("{model}", 0, true)],
@@ -120,6 +126,8 @@ fn segment_with_padding_in_render() {
     let config = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![tmpl_seg("{model}", 2, false)],
@@ -160,6 +168,8 @@ fn flex_with_test_cols_80_fills_to_width() {
     let config = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![
@@ -191,6 +201,8 @@ fn flex_with_test_cols_10_content_5_filler_5() {
     let config = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![
@@ -223,6 +235,8 @@ fn flex_without_width_set_degrades_to_one_space() {
     let config = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![tmpl_seg("A", 0, false), flex_seg(), tmpl_seg("B", 0, false)],
@@ -256,6 +270,8 @@ fn max_lines_truncation_no_panic() {
     let config = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![
             line.clone(),
             line.clone(),

@@ -20,6 +20,8 @@ fn one_line_config(segments: Vec<Segment>, powerline: bool) -> Config {
     Config {
         schema_url: None,
         powerline,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: " · ".to_owned(),
             segments,
@@ -104,6 +106,8 @@ fn golden_save_validates_before_write() {
     let invalid_cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![
             base_line.clone(),
             base_line.clone(),

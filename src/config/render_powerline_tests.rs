@@ -10,6 +10,8 @@ fn pl_line(segments: Vec<Segment>) -> Config {
     Config {
         schema_url: None,
         powerline: true,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "|".to_owned(), // must be overridden by Powerline mode
             segments,
@@ -257,6 +259,8 @@ fn powerline_false_uses_separator_not_chevrons() {
     let config = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "|".to_owned(),
             segments: vec![tmpl("A"), tmpl("B")],

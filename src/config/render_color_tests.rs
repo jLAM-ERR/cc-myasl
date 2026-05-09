@@ -8,6 +8,8 @@ fn one_line(separator: &str, segments: Vec<Segment>) -> Config {
     Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: separator.to_owned(),
             segments,

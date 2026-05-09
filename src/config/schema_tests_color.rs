@@ -12,6 +12,8 @@ fn serde_round_trip_segment_with_color_and_bg() {
     let orig = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(seg)],
@@ -32,6 +34,8 @@ fn serde_round_trip_segment_without_color_or_bg() {
     let orig = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(TemplateSegment::new("{model}"))],
@@ -75,6 +79,8 @@ fn validate_rejects_invalid_color_purple() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(seg)],
@@ -103,6 +109,8 @@ fn validate_rejects_empty_string_color() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(seg)],
@@ -127,6 +135,8 @@ fn validate_accepts_all_named_colors_for_fg() {
         let mut cfg = Config {
             schema_url: None,
             powerline: false,
+            default_fg: None,
+            default_bg: None,
             lines: vec![Line {
                 separator: "".to_owned(),
                 segments: vec![Segment::Template(seg)],
@@ -148,6 +158,8 @@ fn validate_accepts_all_named_colors_for_bg() {
         let mut cfg = Config {
             schema_url: None,
             powerline: false,
+            default_fg: None,
+            default_bg: None,
             lines: vec![Line {
                 separator: "".to_owned(),
                 segments: vec![Segment::Template(seg)],
@@ -164,6 +176,8 @@ fn validate_accepts_none_color_and_bg() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(seg)],
@@ -180,6 +194,8 @@ fn validate_rejects_invalid_bg_value() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(seg)],
@@ -210,6 +226,8 @@ fn serde_round_trip_config_with_powerline_true() {
     let orig = Config {
         schema_url: None,
         powerline: true,
+        default_fg: None,
+        default_bg: None,
         lines: vec![],
     };
     let json = serde_json::to_string(&orig).expect("serialize");
@@ -227,6 +245,8 @@ fn serde_round_trip_config_with_powerline_false() {
     let orig = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![],
     };
     let json = serde_json::to_string(&orig).expect("serialize");
@@ -240,6 +260,8 @@ fn validate_accepts_powerline_true() {
     let mut cfg = Config {
         schema_url: None,
         powerline: true,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(TemplateSegment::new("{model}"))],
@@ -254,6 +276,8 @@ fn validate_accepts_powerline_false() {
     let mut cfg = Config {
         schema_url: None,
         powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: "".to_owned(),
             segments: vec![Segment::Template(TemplateSegment::new("{model}"))],
