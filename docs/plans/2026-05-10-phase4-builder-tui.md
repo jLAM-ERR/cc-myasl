@@ -294,38 +294,38 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 - Create: `src/tui/panes/top.rs`
 - Create: `src/tui/panes/top_tests.rs`
 
-- [ ] in `panes/mod.rs` declare `pub mod top; pub mod middle;
+- [x] in `panes/mod.rs` declare `pub mod top; pub mod middle;
       pub mod bottom; pub mod appearance;`.
-- [ ] in `panes/top.rs` implement `pub fn render(frame: &mut Frame,
+- [x] in `panes/top.rs` implement `pub fn render(frame: &mut Frame,
       area: Rect, app: &App)` — lays out N real lines + virtual
       `+ new line` row when applicable.
-- [ ] for each line, render **per-segment** to avoid post-hoc span
+- [x] for each line, render **per-segment** to avoid post-hoc span
       identification: call `config::render::render(&one_segment_config,
       &fixture_ctx)` for each `BuilderSegment` in turn, run each
       through `ansi::ansi_to_lines`, and concatenate the resulting
       `Span`s with separator spans between them.  Per-segment
       rendering lets us apply `Modifier` per segment cleanly.
-- [ ] apply `Modifier::DIM` (mutating `Span::style` in place) to
+- [x] apply `Modifier::DIM` (mutating `Span::style` in place) to
       every span produced by a `BuilderSegment::Custom`.
-- [ ] apply `Modifier::REVERSED` (mutating `Span::style` in place)
+- [x] apply `Modifier::REVERSED` (mutating `Span::style` in place)
       to every span produced by the cursor segment (when
       `Focus::Top` and `Cursor::Segment(i)`).
-- [ ] render `>` in gutter column for active line; blank otherwise.
-- [ ] render virtual `+ new line` row when cursor reachable; reverse
+- [x] render `>` in gutter column for active line; blank otherwise.
+- [x] render virtual `+ new line` row when cursor reachable; reverse
       when cursor on it.
-- [ ] honor active-pane visual: `border_style(Color::Cyan)` + bold
+- [x] honor active-pane visual: `border_style(Color::Cyan)` + bold
       `▶ Preview ` title when `focus == Top`; `Color::DarkGray` +
       `  Preview ` otherwise.
-- [ ] write test: with `Focus::Top, Cursor::Segment(1)` the second
+- [x] write test: with `Focus::Top, Cursor::Segment(1)` the second
       segment of the active line has `Modifier::REVERSED`.
-- [ ] write test: a `BuilderSegment::Custom` segment renders with
+- [x] write test: a `BuilderSegment::Custom` segment renders with
       `Modifier::DIM`.
-- [ ] write test: virtual `+ new line` row visible iff
+- [x] write test: virtual `+ new line` row visible iff
       `lines.len() < 3`.
-- [ ] write test: gutter `>` only on the active line.
-- [ ] write test: active-pane border color toggles when `focus`
+- [x] write test: gutter `>` only on the active line.
+- [x] write test: active-pane border color toggles when `focus`
       changes.
-- [ ] run `cargo test panes::top::` — must pass before Task 6.
+- [x] run `cargo test panes::top::` — must pass before Task 6.
 
 ### Task 6: Middle pane — tabs + preset checkboxes
 
