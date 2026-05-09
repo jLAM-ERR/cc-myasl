@@ -8,6 +8,7 @@ pub mod app_save;
 pub mod builder;
 pub mod catalog;
 pub mod draw;
+pub mod panes;
 pub mod preview;
 pub mod save;
 pub mod widgets;
