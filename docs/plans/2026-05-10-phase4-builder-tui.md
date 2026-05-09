@@ -161,34 +161,34 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 - Create: `src/tui/catalog.rs`
 - Create: `src/tui/catalog_tests.rs`
 
-- [ ] define `pub enum Category { Workspace, Git, SessionModel,
+- [x] define `pub enum Category { Workspace, Git, SessionModel,
       Context, Tokens, Cost, Rates, Appearance }` with `pub fn
       ordered() -> &'static [Category]` returning the 8 in tab order
       (workspace → git → session_model → context → tokens → cost →
       rates → appearance).
-- [ ] define `pub struct Preset { id: &'static str, category:
+- [x] define `pub struct Preset { id: &'static str, category:
       Category, label: &'static str, template: &'static str,
       hide_when_absent: bool, default_color: Option<NamedColor>,
       default_bg: Option<NamedColor> }`.
-- [ ] define `pub const PRESETS: &[Preset]` with the 43 entries from
+- [x] define `pub const PRESETS: &[Preset]` with the 43 entries from
       the brainstorm: workspace 6, git 5, session_model 8, context 5,
       tokens 6, cost 5, rates 8.
-- [ ] add `pub fn lookup(template: &str) -> Option<&'static Preset>`
+- [x] add `pub fn lookup(template: &str) -> Option<&'static Preset>`
       backed by a `OnceLock<HashMap<&'static str, &'static Preset>>`.
-- [ ] add `pub fn by_category(c: Category) -> impl Iterator<Item =
+- [x] add `pub fn by_category(c: Category) -> impl Iterator<Item =
       &'static Preset>`.
-- [ ] write test asserting no duplicate `id`s across the catalog.
-- [ ] write test asserting no duplicate `template`s (lookup table
+- [x] write test asserting no duplicate `id`s across the catalog.
+- [x] write test asserting no duplicate `template`s (lookup table
       collision-free).
-- [ ] write test (invariant 12) — for every preset, call
+- [x] write test (invariant 12) — for every preset, call
       `format::placeholders::render_placeholder(name, &fixture_ctx)`
       for every placeholder name appearing in the template; assert
       no panic and (for non-`hide_when_absent` presets) that
       `config::render::render(&single_segment_config, &fixture_ctx)`
       returns non-empty.
-- [ ] write test asserting catalog tab counts match brainstorm: 6, 5,
+- [x] write test asserting catalog tab counts match brainstorm: 6, 5,
       8, 5, 6, 5, 8.
-- [ ] run `cargo test catalog::` — must pass before Task 3.
+- [x] run `cargo test catalog::` — must pass before Task 3.
 
 ### Task 3: Builder state + Config conversion + schema additive fields
 
