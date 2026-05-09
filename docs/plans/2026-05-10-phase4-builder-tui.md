@@ -247,45 +247,45 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 - Create: `src/tui/app.rs`
 - Create: `src/tui/app_tests.rs`
 
-- [ ] define `pub enum Focus { Top, Middle, Bottom }`.
-- [ ] define `pub enum Mode { Browsing, Filter, EditingSeparator,
+- [x] define `pub enum Focus { Top, Middle, Bottom }`.
+- [x] define `pub enum Mode { Browsing, Filter, EditingSeparator,
       PickingFgColor, PickingBgColor, Saving, Help, ConfirmDelete,
       ConfirmQuit }`.
-- [ ] define `pub enum Cursor { Gutter, Segment(usize), VirtualNewLine }`
+- [x] define `pub enum Cursor { Gutter, Segment(usize), VirtualNewLine }`
       and `pub struct App { builder: BuilderState, output_path:
       PathBuf, active_line: usize, cursor: Cursor, focus: Focus,
       mode: Mode, active_tab: Category, picker_filter: String,
       picker_selected: usize, color_picker_selected: usize, dirty:
       bool, status_message: Option<(String, u64)>, last_save_errors:
       Vec<ValidationError>, should_quit: bool }`.
-- [ ] implement `pub fn new(config: Config, output_path: PathBuf) ->
+- [x] implement `pub fn new(config: Config, output_path: PathBuf) ->
       App` — initial focus = Top, cursor = Gutter on line 0, active
       tab = Workspace.
-- [ ] implement cursor walks: `cursor_left`, `cursor_right`,
+- [x] implement cursor walks: `cursor_left`, `cursor_right`,
       `cursor_up_line`, `cursor_down_line` (cycles through real lines
       + virtual `+ new line` row when `lines.len() < MAX_LINES`).
-- [ ] implement focus cycle: `Tab` Top→Middle→Bottom→Top;
+- [x] implement focus cycle: `Tab` Top→Middle→Bottom→Top;
       `Shift+Tab` reverse.
-- [ ] implement tab cycle: `[` previous Category, `]` next Category;
+- [x] implement tab cycle: `[` previous Category, `]` next Category;
       wraps Workspace ↔ Appearance.
-- [ ] implement line ops: `add_line()` on virtual row Enter,
+- [x] implement line ops: `add_line()` on virtual row Enter,
       `delete_line()` (with ConfirmDelete prompt if segments ≥ 1,
       floor 1), `move_line_up/down()`, `duplicate_line()`,
       `edit_separator()` (enters EditingSeparator mode).
-- [ ] implement segment ops: `delete_segment()`, `reorder_left/right()`,
+- [x] implement segment ops: `delete_segment()`, `reorder_left/right()`,
       `toggle_preset(category, preset_index)` — adds preset to active
       line if not present, removes if present (matches by `id`).
-- [ ] write tests for every state-machine transition: focus cycle,
+- [x] write tests for every state-machine transition: focus cycle,
       tab cycle, cursor walks (including virtual row hide when 3
       lines), add/delete/reorder/duplicate line, toggle preset on
       empty/full line, custom-segment-protection (toggle preset
       when matching custom exists adds preset as new segment, doesn't
       replace custom).
-- [ ] write tests for ConfirmDelete flow and ConfirmQuit-on-dirty.
-- [ ] write test: pressing `x` on Gutter when `lines.len() == 1`
+- [x] write tests for ConfirmDelete flow and ConfirmQuit-on-dirty.
+- [x] write test: pressing `x` on Gutter when `lines.len() == 1`
       sets `status_message = "cannot remove last line"` and does
       not mutate state.
-- [ ] run `cargo test app::` — must pass before Task 5.
+- [x] run `cargo test app4::` — must pass before Task 5.
 
 ### Task 5: Top pane rendering
 
