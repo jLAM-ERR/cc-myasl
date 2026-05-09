@@ -197,48 +197,48 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 - Create: `src/tui/builder.rs`
 - Create: `src/tui/builder_tests.rs`
 
-- [ ] add to `Config` two new fields:
+- [x] add to `Config` two new fields:
       `default_fg: Option<NamedColor>` and `default_bg:
       Option<NamedColor>`, both `#[serde(default,
       skip_serializing_if = "Option::is_none")]`.  Backward-compat:
       old configs without these fields parse cleanly to `None`.
-- [ ] define `pub enum BuilderSegment { Preset { id: &'static str,
+- [x] define `pub enum BuilderSegment { Preset { id: &'static str,
       color, bg }, Custom { template, color, bg, padding,
       hide_when_absent } }`.
-- [ ] define `pub struct BuilderLine { separator: String, segments:
+- [x] define `pub struct BuilderLine { separator: String, segments:
       Vec<BuilderSegment> }` and `pub struct BuilderState { lines:
       Vec<BuilderLine>, powerline: bool, default_fg:
       Option<NamedColor>, default_bg: Option<NamedColor>, schema_url:
       Option<String> }`.
-- [ ] implement `pub fn from_config(c: &Config) -> BuilderState` —
+- [x] implement `pub fn from_config(c: &Config) -> BuilderState` —
       walks each `Segment::Template`, calls `catalog::lookup(template)`,
       maps to `Preset` on hit or `Custom` on miss.  Preserves user's
       color/bg overrides (ignores preset defaults if user customized).
       Copies `c.default_fg`/`default_bg` into `BuilderState`.
-- [ ] implement `pub fn to_config(b: &BuilderState) -> Config` —
+- [x] implement `pub fn to_config(b: &BuilderState) -> Config` —
       project `Preset` back via catalog template + preserved color/bg;
       project `Custom` 1:1; copy `BuilderState.default_fg`/`default_bg`
       back into `Config`.
-- [ ] write test: round-trip every entry in `config::builtins::all()`
+- [x] write test: round-trip every entry in `config::builtins::all()`
       — `to_config(from_config(c))` is **structurally identical** via
       `serde_json::from_str::<serde_json::Value>(&serialized)`
       equality (NOT byte-identity — the schema uses struct-only
       types so byte-identity holds today, but `Value` equality is
       the contract we test against to insulate from future
       `HashMap`-bearing changes).
-- [ ] write test: a custom template (`${cost_usd}` with `$` prefix)
+- [x] write test: a custom template (`${cost_usd}` with `$` prefix)
       becomes `BuilderSegment::Custom`, survives round-trip exactly.
-- [ ] write test: a preset segment with a non-default color override
+- [x] write test: a preset segment with a non-default color override
       preserves that color across `to_config(from_config(...))`.
-- [ ] write test: `default_fg`/`default_bg` round-trip both as
+- [x] write test: `default_fg`/`default_bg` round-trip both as
       `None` (omitted from JSON) and `Some(NamedColor::Cyan)`
       (serialized as a key).
-- [ ] write test: a config WITHOUT the new fields (legacy JSON)
+- [x] write test: a config WITHOUT the new fields (legacy JSON)
       deserializes with `default_fg=None`, `default_bg=None` —
       serializing back omits the keys entirely (no clutter for
       users who don't use them).
-- [ ] write test: empty config → empty BuilderState → empty config.
-- [ ] run `cargo test builder:: && cargo test config::schema::`
+- [x] write test: empty config → empty BuilderState → empty config.
+- [x] run `cargo test builder:: && cargo test config::schema::`
       — must pass before Task 4.
 
 ### Task 4: App state machine
