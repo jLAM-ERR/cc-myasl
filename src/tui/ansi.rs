@@ -23,9 +23,14 @@
 //! - 49 → default bg
 //! - 90-97 → fg bright (DarkGray…White)
 //! - 100-107 → bg bright
+//! - 38;5;N → 256-color fg (`Color::Indexed(N)`)
+//! - 48;5;N → 256-color bg (`Color::Indexed(N)`)
+//! - 38;2;R;G;B → RGB fg (`Color::Rgb(R,G,B)`)
+//! - 48;2;R;G;B → RGB bg (`Color::Rgb(R,G,B)`)
 //!
 //! Unknown CSI commands and non-`[` ESC continuations are silently skipped.
-//! Unterminated CSI sequences (no final byte before end-of-string) are dropped.
+//! If a CSI sequence is unterminated (no command byte before EOF), parsing
+//! stops at the unterminated escape and the rest of the input is dropped.
 
 use ratatui::{
     style::{Color, Modifier, Style},
@@ -55,6 +60,75 @@ const BRIGHT: [Color; 8] = [
     Color::LightCyan,
     Color::White,
 ];
+
+/// Apply SGR codes from a parsed slice, handling 256-color and RGB sub-sequences.
+fn apply_sgr_params(style: &mut Style, params: &str) {
+    if params.is_empty() {
+        // `\x1b[m` or `\x1b[;m` with only empty parts → reset.
+        *style = Style::default();
+        return;
+    }
+
+    let parts: Vec<&str> = params.split(';').collect();
+    let mut idx = 0;
+    while idx < parts.len() {
+        let code: u32 = match parts[idx].parse() {
+            Ok(n) => n,
+            Err(_) => {
+                // Parse failure (empty part, overflow, garbage) — skip silently.
+                idx += 1;
+                continue;
+            }
+        };
+
+        match code {
+            38 | 48 => {
+                // 256-color: 38;5;N  or  RGB: 38;2;R;G;B
+                if idx + 2 < parts.len() {
+                    let sub: u32 = match parts[idx + 1].parse() {
+                        Ok(n) => n,
+                        Err(_) => {
+                            idx += 1;
+                            continue;
+                        }
+                    };
+                    if sub == 5 {
+                        if let Ok(n) = parts[idx + 2].parse::<u8>() {
+                            let color = Color::Indexed(n);
+                            if code == 38 {
+                                *style = style.fg(color);
+                            } else {
+                                *style = style.bg(color);
+                            }
+                        }
+                        idx += 3;
+                        continue;
+                    } else if sub == 2 && idx + 4 < parts.len() {
+                        let r = parts[idx + 2].parse::<u8>();
+                        let g = parts[idx + 3].parse::<u8>();
+                        let b = parts[idx + 4].parse::<u8>();
+                        if let (Ok(r), Ok(g), Ok(b)) = (r, g, b) {
+                            let color = Color::Rgb(r, g, b);
+                            if code == 38 {
+                                *style = style.fg(color);
+                            } else {
+                                *style = style.bg(color);
+                            }
+                        }
+                        idx += 5;
+                        continue;
+                    }
+                }
+                // Truncated sub-sequence — drop silently.
+                idx += 1;
+            }
+            n => {
+                apply_code(style, n as u16);
+                idx += 1;
+            }
+        }
+    }
+}
 
 /// Apply a single SGR numeric code to `style`.
 fn apply_code(style: &mut Style, code: u16) {
@@ -86,21 +160,31 @@ pub fn ansi_to_lines(s: &str) -> Vec<Line<'static>> {
     let mut lines: Vec<Line<'static>> = Vec::new();
     let mut spans: Vec<Span<'static>> = Vec::new();
     let mut current_style = Style::default();
-    let mut buf = String::new();
+    // Byte offset of the start of the current plain-text run in `s`.
+    let mut text_start: usize = 0;
+    // Byte offset of the end of the current plain-text run (exclusive).
+    let mut text_end: usize = 0;
     let mut i = 0;
 
-    // Flush `buf` as a span with `current_style` into `spans`.
-    macro_rules! flush {
-        () => {
-            if !buf.is_empty() {
-                let text = std::mem::take(&mut buf);
+    // push_span emits the current text slice as a span; resets text_start to text_end.
+    // The trailing `let _ = text_start;` suppresses unused-assignment when the
+    // caller reassigns text_start immediately after (ESC/newline branches).
+    macro_rules! push_span {
+        () => {{
+            if text_end > text_start {
+                let text = s[text_start..text_end].to_owned();
                 spans.push(Span::styled(text, current_style));
             }
-        };
+            #[allow(unused_assignments)]
+            {
+                text_start = text_end;
+            }
+        }};
     }
 
     while i < len {
         if bytes[i] == b'\x1b' {
+            push_span!();
             // ESC found — peek at next byte.
             if i + 1 < len && bytes[i + 1] == b'[' {
                 // CSI sequence: accumulate until we hit a letter (command byte).
@@ -110,46 +194,59 @@ pub fn ansi_to_lines(s: &str) -> Vec<Line<'static>> {
                     i += 1;
                 }
                 if i >= len {
-                    // Unterminated CSI — drop silently, stop parsing.
+                    // Unterminated CSI — stop parsing.
                     break;
                 }
                 let command = bytes[i];
                 i += 1;
                 if command == b'm' {
-                    // SGR: parse semicolon-separated codes.
                     let params = &s[csi_start..i - 1]; // everything between '[' and 'm'
-                    flush!();
-                    if params.is_empty() {
-                        // `\x1b[m` is equivalent to reset.
-                        apply_code(&mut current_style, 0);
-                    } else {
-                        for part in params.split(';') {
-                            let code: u16 = part.parse().unwrap_or(0);
-                            apply_code(&mut current_style, code);
-                        }
-                    }
+                    apply_sgr_params(&mut current_style, params);
                 }
                 // Non-'m' CSI commands are skipped (i already advanced past them).
             } else {
                 // Standalone ESC not followed by '[': skip just the ESC byte.
                 i += 1;
             }
+            text_start = i;
+            text_end = i;
         } else if bytes[i] == b'\n' {
-            flush!();
+            push_span!();
             lines.push(Line::from(std::mem::take(&mut spans)));
             i += 1;
+            text_start = i;
+            text_end = i;
         } else {
-            buf.push(bytes[i] as char);
-            i += 1;
+            // Advance text_end by the full UTF-8 char length.
+            let ch_len = char_len_at(bytes, i);
+            i += ch_len;
+            text_end += ch_len;
         }
     }
 
     // Flush any remaining buffered text.
-    flush!();
+    push_span!();
     // Always emit a final line (even if empty, to represent the last segment).
     lines.push(Line::from(spans));
 
     lines
+}
+
+/// Return the byte length of the UTF-8 character starting at `bytes[i]`.
+/// Falls back to 1 for continuation bytes or lone bytes (best-effort).
+fn char_len_at(bytes: &[u8], i: usize) -> usize {
+    let b = bytes[i];
+    if b < 0x80 {
+        1
+    } else if b & 0xE0 == 0xC0 {
+        2
+    } else if b & 0xF0 == 0xE0 {
+        3
+    } else if b & 0xF8 == 0xF0 {
+        4
+    } else {
+        1 // continuation byte or lone byte
+    }
 }
 
 #[cfg(test)]
