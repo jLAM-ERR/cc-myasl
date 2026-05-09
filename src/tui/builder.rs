@@ -3,6 +3,11 @@
 //! `from_config` walks a Config, resolving each template to a catalog Preset
 //! on hit or a Custom segment on miss.  `to_config` projects back to a
 //! serializable Config.  FlexSpacer (`{"flex":true}`) is preserved verbatim.
+//!
+//! Round-trip contract: a `Preset` segment round-trips losslessly only for
+//! color/bg overrides.  Padding and hide_when_absent on a `Preset` are always
+//! sourced from the catalog on the way out; user edits to those fields on a
+//! preset become a `Custom` segment at the next edit cycle.
 
 use crate::config::named_color::NamedColor;
 use crate::config::schema::{Config, FlexSegment, Line, Segment, TemplateSegment};
@@ -46,24 +51,8 @@ pub struct BuilderState {
     pub schema_url: Option<String>,
 }
 
-/// Convert a `NamedColor` to its lowercase string for use in `TemplateSegment`.
 fn named_color_to_str(c: NamedColor) -> String {
     c.as_str().to_owned()
-}
-
-/// Parse a `TemplateSegment` color string to `NamedColor`, silently dropping unknown values.
-fn str_to_named_color(s: &str) -> Option<NamedColor> {
-    match s {
-        "red" => Some(NamedColor::Red),
-        "green" => Some(NamedColor::Green),
-        "yellow" => Some(NamedColor::Yellow),
-        "blue" => Some(NamedColor::Blue),
-        "magenta" => Some(NamedColor::Magenta),
-        "cyan" => Some(NamedColor::Cyan),
-        "white" => Some(NamedColor::White),
-        "default" => Some(NamedColor::Default),
-        _ => None,
-    }
 }
 
 /// Build a `BuilderState` from a `Config`.
@@ -83,8 +72,8 @@ pub fn from_config(c: &Config) -> BuilderState {
                 .map(|seg| match seg {
                     Segment::Flex(_) => BuilderSegment::FlexSpacer,
                     Segment::Template(t) => {
-                        let color = t.color.as_deref().and_then(str_to_named_color);
-                        let bg = t.bg.as_deref().and_then(str_to_named_color);
+                        let color = t.color.as_deref().and_then(|s| s.parse().ok());
+                        let bg = t.bg.as_deref().and_then(|s| s.parse().ok());
                         if let Some(preset) = catalog::lookup(&t.template) {
                             BuilderSegment::Preset {
                                 id: preset.id,
@@ -148,12 +137,16 @@ pub fn to_config(b: &BuilderState) -> Config {
                         bg: bg.map(named_color_to_str),
                     }),
                     BuilderSegment::Preset { id, color, bg } => {
-                        let preset =
-                            catalog::lookup_by_id(id).expect("Preset id must exist in catalog");
+                        // preset round-trip uses canonical formatting; user-customized padding/hide_when_absent on a preset segment becomes Custom on next edit
+                        debug_assert!(catalog::lookup_by_id(id).is_some(), "stale preset id: {id}");
+                        let (template, hide_when_absent) = catalog::lookup_by_id(id).map_or_else(
+                            || (format!("{{{{{id}}}}}"), false),
+                            |p| (p.template.to_owned(), p.hide_when_absent),
+                        );
                         Segment::Template(TemplateSegment {
-                            template: preset.template.to_owned(),
+                            template,
                             padding: 0,
-                            hide_when_absent: preset.hide_when_absent,
+                            hide_when_absent,
                             color: color.map(named_color_to_str),
                             bg: bg.map(named_color_to_str),
                         })

@@ -7,7 +7,7 @@ use crate::format::placeholders::render_placeholder;
 use crate::payload::Payload;
 use crate::payload_mapping::build_render_ctx;
 
-use super::{Category, PRESETS, by_category, lookup};
+use super::{Category, PRESETS, by_category, lookup, lookup_by_id};
 
 const NOW: u64 = 1_700_000_000;
 const FIXTURE_JSON: &str = include_str!("preview_fixture.json");
@@ -159,6 +159,39 @@ fn no_duplicate_templates() {
             preset.id,
             preset.template
         );
+    }
+}
+
+/// Both lookup tables are injective: distinct inputs map to distinct outputs.
+/// Size equality catches collisions that per-entry asserts might miss on panic.
+#[test]
+fn lookup_tables_are_injective() {
+    let id_set: HashSet<&'static str> = PRESETS.iter().map(|p| p.id).collect();
+    assert_eq!(
+        id_set.len(),
+        PRESETS.len(),
+        "id table has collisions: {} unique ids for {} presets",
+        id_set.len(),
+        PRESETS.len()
+    );
+    let tmpl_set: HashSet<&'static str> = PRESETS.iter().map(|p| p.template).collect();
+    assert_eq!(
+        tmpl_set.len(),
+        PRESETS.len(),
+        "template table has collisions: {} unique templates for {} presets",
+        tmpl_set.len(),
+        PRESETS.len()
+    );
+    // Every id in the id-set resolves via lookup_by_id.
+    for &id in &id_set {
+        assert!(
+            lookup_by_id(id).is_some(),
+            "lookup_by_id({id:?}) returned None"
+        );
+    }
+    // Every template in the tmpl-set resolves via lookup.
+    for &tmpl in &tmpl_set {
+        assert!(lookup(tmpl).is_some(), "lookup({tmpl:?}) returned None");
     }
 }
 

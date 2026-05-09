@@ -30,3 +30,55 @@ impl NamedColor {
         }
     }
 }
+
+impl std::str::FromStr for NamedColor {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "red" => Ok(NamedColor::Red),
+            "green" => Ok(NamedColor::Green),
+            "yellow" => Ok(NamedColor::Yellow),
+            "blue" => Ok(NamedColor::Blue),
+            "magenta" => Ok(NamedColor::Magenta),
+            "cyan" => Ok(NamedColor::Cyan),
+            "white" => Ok(NamedColor::White),
+            "default" => Ok(NamedColor::Default),
+            _ => Err(()),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every variant round-trips through as_str → parse. Catches drift when
+    /// a new variant is added without updating FromStr.
+    #[test]
+    fn from_str_round_trips_every_variant() {
+        let variants = [
+            NamedColor::Red,
+            NamedColor::Green,
+            NamedColor::Yellow,
+            NamedColor::Blue,
+            NamedColor::Magenta,
+            NamedColor::Cyan,
+            NamedColor::White,
+            NamedColor::Default,
+        ];
+        for v in variants {
+            let s = v.as_str();
+            let parsed: NamedColor = s.parse().unwrap_or_else(|_| panic!("{s:?} did not parse"));
+            assert_eq!(parsed, v, "round-trip failed for {s:?}");
+        }
+    }
+
+    #[test]
+    fn from_str_rejects_unknown() {
+        assert!("".parse::<NamedColor>().is_err());
+        assert!("RED".parse::<NamedColor>().is_err());
+        assert!("black".parse::<NamedColor>().is_err());
+        assert!("Default".parse::<NamedColor>().is_err());
+    }
+}

@@ -44,20 +44,8 @@ mod builtins_tests;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{ALL_NAMES, *};
     use crate::config::schema::{Segment, TemplateSegment};
-
-    const ALL_NAMES: &[&str] = &[
-        "default",
-        "minimal",
-        "compact",
-        "bars",
-        "colored",
-        "emoji",
-        "emoji_verbose",
-        "verbose",
-        "rich",
-    ];
 
     #[test]
     fn lookup_returns_some_for_every_name() {
