@@ -97,8 +97,9 @@ impl App {
                 }
             }
             Cursor::Segment(i) => {
-                // no-op at last segment
-                let _ = i;
+                if i + 1 < seg_count {
+                    self.cursor = Cursor::Segment(i + 1);
+                }
             }
             Cursor::VirtualNewLine => {}
         }
@@ -351,6 +352,7 @@ impl App {
     }
 
     pub fn confirm_quit_yes(&mut self) {
+        self.mode = Mode::Browsing;
         self.should_quit = true;
     }
 

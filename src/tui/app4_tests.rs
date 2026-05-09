@@ -305,6 +305,49 @@ fn cursor_down_walks_real_lines() {
     assert_eq!(a.cursor, Cursor::Gutter);
 }
 
+#[test]
+fn cursor_right_advances_through_multi_segment_line() {
+    // 2 segments: Gutter → Seg(0) → Seg(1) → no-op at Seg(1)
+    let mut a = mk_app();
+    a.toggle_preset(Category::Workspace, 0); // cwd_basename
+    a.toggle_preset(Category::SessionModel, 0); // model_name
+    assert_eq!(a.builder.lines[0].segments.len(), 2);
+    a.cursor = Cursor::Gutter;
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(0));
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(1));
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(1), "no-op at last segment");
+
+    // cursor_left walks back: Seg(1) → Seg(0) → Gutter → no-op
+    a.cursor_left();
+    assert_eq!(a.cursor, Cursor::Segment(0));
+    a.cursor_left();
+    assert_eq!(a.cursor, Cursor::Gutter);
+    a.cursor_left();
+    assert_eq!(a.cursor, Cursor::Gutter, "no-op at Gutter");
+}
+
+#[test]
+fn cursor_right_advances_through_three_segment_line() {
+    // 3 segments: confirm correct boundary at Seg(2)
+    let mut a = mk_app();
+    a.toggle_preset(Category::Workspace, 0);
+    a.toggle_preset(Category::SessionModel, 0);
+    a.toggle_preset(Category::SessionModel, 1);
+    assert_eq!(a.builder.lines[0].segments.len(), 3);
+    a.cursor = Cursor::Gutter;
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(0));
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(1));
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(2));
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(2), "no-op at last segment");
+}
+
 // ── add_line ──────────────────────────────────────────────────────────────────
 
 #[test]
@@ -357,6 +400,7 @@ fn confirm_quit_yes() {
     a.mode = Mode::ConfirmQuit;
     a.confirm_quit_yes();
     assert!(a.should_quit);
+    assert_eq!(a.mode, Mode::Browsing);
 }
 
 #[test]
