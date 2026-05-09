@@ -3,6 +3,13 @@
 //! Renders each real line segment-by-segment, then an optional virtual
 //! `+ new line` row.  Applies Modifier::DIM to Custom segments and
 //! Modifier::REVERSED to the cursor segment.
+//!
+//! Powerline mode trade-off: when `app.builder.powerline == true`, the
+//! preview pane shows segments WITHOUT chevron transitions because we
+//! render per-segment to apply per-segment Modifier::DIM/REVERSED
+//! cleanly. The actual cc-myasl render at runtime DOES show chevrons —
+//! it's only the in-TUI preview that simplifies. A status hint in the
+//! bottom pane reminds the user.
 
 use ratatui::{
     Frame,
@@ -12,7 +19,7 @@ use ratatui::{
     widgets::{Block, Paragraph},
 };
 
-use crate::config::schema::{Config, Line as ConfigLine, Segment, TemplateSegment};
+use crate::config::schema::{Config, FlexSegment, Line as ConfigLine, Segment, TemplateSegment};
 use crate::format::RenderCtx;
 use crate::tui::ansi::ansi_to_lines;
 use crate::tui::app4::{App, Cursor, Focus};
@@ -25,7 +32,8 @@ const FIXTURE_JSON: &str = include_str!("../preview_fixture.json");
 const FIXTURE_NOW: u64 = 1_700_000_000;
 
 fn fixture_ctx() -> RenderCtx {
-    let payload: crate::payload::Payload = serde_json::from_str(FIXTURE_JSON).unwrap_or_default();
+    let payload: crate::payload::Payload = serde_json::from_str(FIXTURE_JSON)
+        .expect("preview_fixture.json must be valid JSON — repo invariant");
     let mut ctx = crate::payload_mapping::build_render_ctx(&payload, FIXTURE_NOW);
     // Map rate_limits → five_used / seven_used (mirrors main.rs hot path).
     if let Some(rl) = &payload.rate_limits {
@@ -70,13 +78,18 @@ fn segment_to_config(seg: &BuilderSegment) -> Config {
             color: color.map(|c| c.as_str().to_owned()),
             bg: bg.map(|c| c.as_str().to_owned()),
         },
-        BuilderSegment::FlexSpacer => TemplateSegment {
-            template: String::new(),
-            padding: 0,
-            hide_when_absent: false,
-            color: None,
-            bg: None,
-        },
+        BuilderSegment::FlexSpacer => {
+            return Config {
+                schema_url: None,
+                lines: vec![ConfigLine {
+                    separator: String::new(),
+                    segments: vec![Segment::Flex(FlexSegment { flex: true })],
+                }],
+                powerline: false,
+                default_fg: None,
+                default_bg: None,
+            };
+        }
     };
 
     Config {

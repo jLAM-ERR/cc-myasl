@@ -281,3 +281,179 @@ fn virtual_new_line_reversed_when_cursor_on_it() {
     let found = (0..80u16).any(|x| has_modifier_at(&buf, x, 2, Modifier::REVERSED));
     assert!(found, "virtual row must be REVERSED when cursor is on it");
 }
+
+#[test]
+fn custom_segment_cursor_has_dim_and_reversed() {
+    // Custom segment at cursor position must carry BOTH DIM and REVERSED.
+    let state = BuilderState {
+        lines: vec![BuilderLine {
+            separator: " | ".into(),
+            segments: vec![BuilderSegment::Custom {
+                template: "hello".into(),
+                color: None,
+                bg: None,
+                padding: 0,
+                hide_when_absent: false,
+            }],
+        }],
+        powerline: false,
+        default_fg: None,
+        default_bg: None,
+        schema_url: None,
+    };
+    let mut app = app_with_state(state);
+    app.focus = Focus::Top;
+    app.cursor = Cursor::Segment(0);
+    app.active_line = 0;
+
+    let buf = render_to_buffer(&app);
+
+    // Row 1 = first content row (after border).
+    let row = 1u16;
+    let found = (2..80u16).any(|x| {
+        has_modifier_at(&buf, x, row, Modifier::DIM)
+            && has_modifier_at(&buf, x, row, Modifier::REVERSED)
+    });
+    assert!(
+        found,
+        "cursor on Custom segment must have both DIM and REVERSED modifiers"
+    );
+}
+
+#[test]
+fn non_active_line_has_no_reversed_on_segments() {
+    // REVERSED must only appear on the active line's cursor segment, not on line 1.
+    let state = BuilderState {
+        lines: vec![
+            BuilderLine {
+                separator: " | ".into(),
+                segments: vec![BuilderSegment::Preset {
+                    id: "model_name",
+                    color: None,
+                    bg: None,
+                }],
+            },
+            BuilderLine {
+                separator: " | ".into(),
+                segments: vec![
+                    BuilderSegment::Preset {
+                        id: "cost_usd",
+                        color: None,
+                        bg: None,
+                    },
+                    BuilderSegment::Preset {
+                        id: "model_name",
+                        color: None,
+                        bg: None,
+                    },
+                ],
+            },
+        ],
+        powerline: false,
+        default_fg: None,
+        default_bg: None,
+        schema_url: None,
+    };
+    let mut app = app_with_state(state);
+    app.active_line = 0;
+    app.focus = Focus::Top;
+    app.cursor = Cursor::Segment(0);
+
+    let buf = render_to_buffer(&app);
+
+    // Row 2 = line 1 (inactive) — no cell should be REVERSED.
+    let row = 2u16;
+    let any_reversed = (2..80u16).any(|x| has_modifier_at(&buf, x, row, Modifier::REVERSED));
+    assert!(
+        !any_reversed,
+        "non-active line segments must not have REVERSED modifier"
+    );
+}
+
+#[test]
+fn flex_spacer_renders_without_panic() {
+    // FlexSpacer projected to correct Segment::Flex variant; must not panic.
+    let state = BuilderState {
+        lines: vec![BuilderLine {
+            separator: "".into(),
+            segments: vec![
+                BuilderSegment::Preset {
+                    id: "model_name",
+                    color: None,
+                    bg: None,
+                },
+                BuilderSegment::FlexSpacer,
+                BuilderSegment::Preset {
+                    id: "cost_usd",
+                    color: None,
+                    bg: None,
+                },
+            ],
+        }],
+        powerline: false,
+        default_fg: None,
+        default_bg: None,
+        schema_url: None,
+    };
+    let app = app_with_state(state);
+    // Must not panic.
+    let _buf = render_to_buffer(&app);
+}
+
+#[test]
+fn powerline_mode_does_not_panic() {
+    // Smoke: powerline=true with a preset segment must not panic in render.
+    let state = BuilderState {
+        lines: vec![BuilderLine {
+            separator: " | ".into(),
+            segments: vec![BuilderSegment::Preset {
+                id: "model_name",
+                color: None,
+                bg: None,
+            }],
+        }],
+        powerline: true,
+        default_fg: None,
+        default_bg: None,
+        schema_url: None,
+    };
+    let app = app_with_state(state);
+    let _buf = render_to_buffer(&app);
+}
+
+#[test]
+fn empty_line_gutter_only() {
+    // A line with 0 segments: gutter shows `>` on active, no further content.
+    // Cursor on Gutter highlights the `>` cell with REVERSED.
+    let state = BuilderState {
+        lines: vec![BuilderLine {
+            separator: " | ".into(),
+            segments: vec![],
+        }],
+        powerline: false,
+        default_fg: None,
+        default_bg: None,
+        schema_url: None,
+    };
+    let mut app = app_with_state(state);
+    app.focus = Focus::Top;
+    app.cursor = Cursor::Gutter;
+    app.active_line = 0;
+
+    let buf = render_to_buffer(&app);
+
+    // Row 1 = first content row (after border).
+    // Cell (1, 1) is the `>` gutter character.
+    let gutter_cell = buf.cell((1, 1)).expect("gutter cell must exist");
+    assert_eq!(gutter_cell.symbol(), ">", "gutter must show `>`");
+    assert!(
+        gutter_cell.modifier.contains(Modifier::REVERSED),
+        "gutter `>` must be REVERSED when cursor=Gutter and focus=Top"
+    );
+    // Cells after the gutter (x >= 3) must not be REVERSED.
+    let any_segment_reversed = (3..80u16).any(|x| has_modifier_at(&buf, x, 1, Modifier::REVERSED));
+    assert!(
+        !any_segment_reversed,
+        "no cells beyond gutter should be REVERSED for an empty line"
+    );
+}
