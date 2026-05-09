@@ -1,9 +1,11 @@
+//! 43-entry preset catalog for the TUI segment picker.
+
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
 use crate::config::named_color::NamedColor;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Category {
     Workspace,
     Git,
@@ -30,6 +32,7 @@ impl Category {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Preset {
     pub id: &'static str,
     pub category: Category,
@@ -192,7 +195,7 @@ pub const PRESETS: &[Preset] = &[
         id: "thinking",
         category: Category::SessionModel,
         label: "Thinking indicator",
-        template: "\u{1f4ad} thinking",
+        template: "\u{1f4ad} {thinking_enabled}",
         hide_when_absent: true,
         default_color: None,
         default_bg: None,

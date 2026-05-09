@@ -46,7 +46,7 @@ fn single_segment_config(preset_template: &str) -> Config {
     }
 }
 
-/// Collect all placeholder names from a template string.
+/// Collect all placeholder names from a template string, handling multiple per template.
 fn placeholder_names(template: &str) -> Vec<String> {
     fn collect(tokens: &[Token], out: &mut Vec<String>) {
         for tok in tokens {
@@ -60,6 +60,83 @@ fn placeholder_names(template: &str) -> Vec<String> {
     let mut names = Vec::new();
     collect(&tokenize(template), &mut names);
     names
+}
+
+/// Every placeholder name known to `render_placeholder`.
+fn known_placeholder_names() -> HashSet<&'static str> {
+    [
+        "model",
+        "cwd",
+        "cwd_basename",
+        "five_used",
+        "five_left",
+        "five_bar",
+        "five_bar_long",
+        "five_reset_clock",
+        "five_reset_in",
+        "five_color",
+        "five_state",
+        "seven_used",
+        "seven_left",
+        "seven_bar",
+        "seven_bar_long",
+        "seven_reset_clock",
+        "seven_reset_in",
+        "seven_color",
+        "seven_state",
+        "extra_left",
+        "extra_used",
+        "extra_pct",
+        "state_icon",
+        "model_id",
+        "version",
+        "session_id",
+        "session_name",
+        "output_style",
+        "effort",
+        "thinking_enabled",
+        "vim_mode",
+        "agent_name",
+        "cost_usd",
+        "session_clock",
+        "api_duration",
+        "lines_added",
+        "lines_removed",
+        "lines_changed",
+        "tokens_input",
+        "tokens_output",
+        "tokens_cached_creation",
+        "tokens_cached_read",
+        "tokens_cached_total",
+        "tokens_total",
+        "tokens_input_total",
+        "tokens_output_total",
+        "context_size",
+        "context_used_pct",
+        "context_remaining_pct",
+        "context_used_pct_int",
+        "context_bar",
+        "context_bar_long",
+        "exceeds_200k",
+        "project_dir",
+        "added_dirs_count",
+        "workspace_git_worktree",
+        "worktree_name",
+        "worktree_path",
+        "worktree_branch",
+        "worktree_original_cwd",
+        "worktree_original_branch",
+        "git_branch",
+        "git_root",
+        "git_changes",
+        "git_staged",
+        "git_unstaged",
+        "git_untracked",
+        "git_status_clean",
+        "reset",
+    ]
+    .into_iter()
+    .collect()
 }
 
 #[test]
@@ -128,21 +205,53 @@ fn lookup_unknown_template_returns_none() {
     assert!(lookup("completely_unknown_template_xyz").is_none());
 }
 
-/// Invariant 12: every placeholder in every preset template renders without panic;
-/// non-hide presets produce non-empty output.
+/// Invariant 12: every placeholder name in every preset template is known;
+/// non-hide-when-absent presets must resolve to Some for all their placeholders;
+/// hide-when-absent presets must not panic.
 #[test]
 fn invariant_12_all_presets_render_without_panic() {
     let ctx = fixture_ctx();
+    let known = known_placeholder_names();
+
+    // Sanity: at least one multi-placeholder preset exists (git_branch_path has 2).
+    let multi = PRESETS
+        .iter()
+        .filter(|p| placeholder_names(p.template).len() >= 2)
+        .count();
+    assert!(
+        multi >= 1,
+        "expected at least one preset with >=2 placeholders, found none"
+    );
 
     for preset in PRESETS {
-        // Each placeholder name in the template must not panic.
-        for name in placeholder_names(preset.template) {
-            // render_placeholder returning None is fine — it just means
-            // the value is absent in the fixture; the call must not panic.
-            let _ = render_placeholder(&name, &ctx);
+        let names = placeholder_names(preset.template);
+
+        for name in &names {
+            // Every placeholder name must be in the known set — catches typos.
+            assert!(
+                known.contains(name.as_str()),
+                "preset '{}': placeholder '{{{}}}' is not in the known placeholder catalogue",
+                preset.id,
+                name
+            );
+
+            // render_placeholder must not panic regardless of hide_when_absent.
+            let result = render_placeholder(name, &ctx);
+
+            // Non-hide-when-absent presets: every constituent placeholder must
+            // resolve to Some in the fixture (the fixture is designed to be rich).
+            if !preset.hide_when_absent {
+                assert!(
+                    result.is_some(),
+                    "non-hide preset '{}': placeholder '{{{}}}' returned None against fixture",
+                    preset.id,
+                    name
+                );
+            }
+            // hide_when_absent presets: None is allowed (field may not be set in fixture).
         }
 
-        // For non-hide presets, the rendered segment must be non-empty.
+        // For non-hide presets, the fully-rendered segment must also be non-empty.
         if !preset.hide_when_absent {
             let cfg = single_segment_config(preset.template);
             let out = render(&cfg, &ctx);
@@ -172,4 +281,14 @@ fn by_category_returns_correct_presets() {
 #[test]
 fn category_ordered_has_8_entries() {
     assert_eq!(Category::ordered().len(), 8);
+}
+
+/// Appearance is settings-only — no presets belong to it.
+#[test]
+fn appearance_has_no_presets() {
+    assert_eq!(
+        by_category(Category::Appearance).count(),
+        0,
+        "Appearance category must have 0 presets (settings-only)"
+    );
 }

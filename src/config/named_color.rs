@@ -2,7 +2,7 @@
 ///
 /// Matches the string values in `schema::NAMED_COLORS`.  Used by the
 /// catalog and (Task 3) as `Option<NamedColor>` on `Config`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NamedColor {
     Red,
     Green,
