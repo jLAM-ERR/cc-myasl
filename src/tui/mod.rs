@@ -1,3 +1,4 @@
+pub mod ansi;
 pub mod app;
 pub mod app_color;
 pub mod app_editor;
