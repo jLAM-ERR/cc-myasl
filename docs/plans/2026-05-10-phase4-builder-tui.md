@@ -136,24 +136,24 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 - Create: `src/tui/ansi.rs`
 - Create: `src/tui/ansi_tests.rs`
 
-- [ ] create `src/tui/ansi.rs` exporting `pub fn ansi_to_lines(s: &str)
+- [x] create `src/tui/ansi.rs` exporting `pub fn ansi_to_lines(s: &str)
       -> Vec<ratatui::text::Line<'static>>` where every `Span` holds
       `Cow::Owned(String)` content (no borrows of the input — input
       can be discarded after the call).
-- [ ] hand-roll a CSI parser that walks `\x1b[...m` sequences and
+- [x] hand-roll a CSI parser that walks `\x1b[...m` sequences and
       maps numeric codes to ratatui `Style` (fg colors 30-37, 90-97;
       bg 40-47, 100-107; reset 0; dim 2; reverse 7; bold 1).
-- [ ] **No** `StyledText` helper type — callers mutate
+- [x] **No** `StyledText` helper type — callers mutate
       `Span::style` directly via `&mut Vec<Line<'static>>` after
       receipt.  `Span<'static>` carries `Style` as an owned field;
       mutation is lifetime-safe.  Document this contract in a
       module-level rustdoc.
-- [ ] write tests for fg color (`\x1b[31m`), bg color (`\x1b[44m`),
+- [x] write tests for fg color (`\x1b[31m`), bg color (`\x1b[44m`),
       reset, dim, reverse, bold, plain text, multi-line input,
       malformed escape (no `[` after ESC), unterminated CSI.
-- [ ] write test asserting `Span::style` can be mutated post-parse
+- [x] write test asserting `Span::style` can be mutated post-parse
       and the result renders correctly (smoke against a `Frame`).
-- [ ] run `cargo test ansi::` — must pass before Task 2.
+- [x] run `cargo test ansi::` — must pass before Task 2.
 
 ### Task 2: Preset catalog
 
