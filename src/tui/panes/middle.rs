@@ -236,3 +236,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
 #[cfg(test)]
 #[path = "middle_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "middle_tests_b.rs"]
+mod tests_b;
