@@ -29,7 +29,7 @@ cargo build
 # Build release (≤ 1.5 MB stripped binary on macOS-arm64)
 cargo build --release
 
-# Run the full test suite (940 tests, 1 ignored real-HTTPS smoke)
+# Run the full test suite (≥ 1100 tests, 1 ignored real-HTTPS smoke)
 cargo test
 
 # Run only the integration suite

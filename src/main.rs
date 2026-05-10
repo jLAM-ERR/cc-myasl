@@ -48,11 +48,6 @@ fn main() {
         std::process::exit(0);
     }
     if args.configure {
-        use std::io::IsTerminal;
-        if !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
-            eprintln!("cc-myasl --configure requires an interactive terminal");
-            std::process::exit(1);
-        }
         let mut trace = Trace::default();
         let config = cc_myasl::config::resolve(&args, &mut trace);
         let output_path = args.output.clone().unwrap_or_else(|| {

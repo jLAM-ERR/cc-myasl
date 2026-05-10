@@ -23,50 +23,66 @@ use draw::draw;
 ///
 /// Exposed for integration testing via `run_with_app` below.
 pub fn run(config: Config, output_path: PathBuf) -> Result<(), Error> {
-    if !io::stdout().is_terminal() {
+    if !io::stdin().is_terminal() || !io::stdout().is_terminal() {
         return Err(Error::NotATty);
     }
-    let app = App::new(config, output_path);
-    run_with_app(app)
-}
 
-/// Headless-testable event loop. Callers may construct any `App` state.
-pub fn run_with_app(mut app: App) -> Result<(), Error> {
-    use crossterm::event::{DisableBracketedPaste, EnableBracketedPaste, KeyEventKind};
-    use crossterm::terminal::{EnterAlternateScreen as Enter, LeaveAlternateScreen as Leave};
+    struct TerminalGuard;
+    impl Drop for TerminalGuard {
+        fn drop(&mut self) {
+            let mut stdout = io::stdout();
+            let _ = crossterm::execute!(
+                stdout,
+                crossterm::event::DisableBracketedPaste,
+                crossterm::terminal::LeaveAlternateScreen,
+            );
+            let _ = crossterm::terminal::disable_raw_mode();
+        }
+    }
 
     crossterm::terminal::enable_raw_mode().map_err(Error::Io)?;
     let mut stdout = io::stdout();
-    crossterm::execute!(stdout, Enter, EnableBracketedPaste).map_err(Error::Io)?;
+    crossterm::execute!(
+        stdout,
+        crossterm::terminal::EnterAlternateScreen,
+        crossterm::event::EnableBracketedPaste,
+    )
+    .map_err(|e| {
+        let _ = crossterm::terminal::disable_raw_mode();
+        Error::Io(e)
+    })?;
+
+    let _guard = TerminalGuard;
+
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend).map_err(Error::Io)?;
+    let app = App::new(config, output_path);
+    run_with_app(&mut terminal, app)
+}
 
-    let result = (|| -> Result<(), Error> {
-        loop {
-            terminal.draw(|f| draw(f, &app)).map_err(Error::Io)?;
-            if app.should_quit {
-                break;
-            }
-            if let crossterm::event::Event::Key(key) =
-                crossterm::event::read().map_err(Error::Io)?
-            {
-                if key.kind == KeyEventKind::Press {
-                    app.handle(key);
-                }
-            }
-            // Saving is synchronous — handle here so the loop sees updated state.
-            if app.mode == app::Mode::Saving {
-                process_save_if_needed(&mut app);
+/// Headless-testable event loop. Callers supply an already-initialised terminal.
+pub fn run_with_app(
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    mut app: App,
+) -> Result<(), Error> {
+    use crossterm::event::KeyEventKind;
+
+    loop {
+        terminal.draw(|f| draw(f, &app)).map_err(Error::Io)?;
+        if app.should_quit {
+            break;
+        }
+        if let crossterm::event::Event::Key(key) = crossterm::event::read().map_err(Error::Io)? {
+            if key.kind == KeyEventKind::Press {
+                app.handle(key);
             }
         }
-        Ok(())
-    })();
-
-    crossterm::execute!(terminal.backend_mut(), DisableBracketedPaste, Leave,)
-        .map_err(Error::Io)?;
-    crossterm::terminal::disable_raw_mode().map_err(Error::Io)?;
-
-    result
+        // Saving is synchronous — handle here so the loop sees updated state.
+        if app.mode == app::Mode::Saving {
+            process_save_if_needed(&mut app);
+        }
+    }
+    Ok(())
 }
 
 /// Execute the save block once.  Sets status, clears dirty on success only.
