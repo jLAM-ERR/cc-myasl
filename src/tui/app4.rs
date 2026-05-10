@@ -341,6 +341,30 @@ impl App {
         self.dirty = true;
     }
 
+    // ── appearance settings mutations ────────────────────────────────────────
+
+    pub fn toggle_powerline(&mut self) {
+        self.builder.powerline = !self.builder.powerline;
+        self.dirty = true;
+    }
+
+    pub fn set_default_fg(&mut self, c: Option<crate::config::named_color::NamedColor>) {
+        self.builder.default_fg = c;
+        self.dirty = true;
+    }
+
+    pub fn set_default_bg(&mut self, c: Option<crate::config::named_color::NamedColor>) {
+        self.builder.default_bg = c;
+        self.dirty = true;
+    }
+
+    pub fn set_separator(&mut self, line_idx: usize, sep: String) {
+        if let Some(line) = self.builder.lines.get_mut(line_idx) {
+            line.separator = sep;
+            self.dirty = true;
+        }
+    }
+
     // ── confirm quit ──────────────────────────────────────────────────────────
 
     pub fn request_quit(&mut self) {
