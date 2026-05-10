@@ -1,13 +1,13 @@
 //! KeyEvent → App method dispatcher for Phase 4.
 //!
-//! Kept separate from app4.rs to stay within the 500-LOC invariant.
-//! Declared as `pub mod app4_handle` in tui/mod.rs.
+//! Kept separate from app.rs to stay within the 500-LOC invariant.
+//! Declared as `pub mod app_handle` in tui/mod.rs.
 
-use crate::tui::app4::{App, Cursor, Focus, Mode};
+use crate::tui::app::{App, Cursor, Focus, Mode};
 use crate::tui::builder::BuilderSegment;
 
 impl App {
-    /// Top-level event dispatcher — called once per key press in the run4 loop.
+    /// Top-level event dispatcher — called once per key press in the run loop.
     pub fn handle(&mut self, event: crossterm::event::KeyEvent) {
         match self.mode {
             Mode::Browsing => self.handle_browsing(event),
@@ -19,7 +19,7 @@ impl App {
             Mode::Help => {
                 self.mode = Mode::Browsing;
             }
-            Mode::Saving => {} // no input during save (synchronous in run4)
+            Mode::Saving => {} // no input during save (synchronous in run)
         }
     }
 

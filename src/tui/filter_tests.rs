@@ -228,7 +228,7 @@ fn filter_survives_focus_change_but_clears_on_tab_change() {
 fn typing_into_filter_narrows_rows_live() {
     let mut app = fresh_app();
     app.active_tab = Category::Workspace;
-    app.focus = crate::tui::app4::Focus::Middle;
+    app.focus = crate::tui::app::Focus::Middle;
     // No filter: all workspace rows visible.
     let unfiltered = render_middle(&app);
     let unfiltered_count = unfiltered.matches("[ ]").count() + unfiltered.matches("[x]").count();
@@ -255,7 +255,7 @@ fn typing_into_filter_narrows_rows_live() {
 fn committed_filter_keeps_rows_narrowed() {
     let mut app = fresh_app();
     app.active_tab = Category::Workspace;
-    app.focus = crate::tui::app4::Focus::Middle;
+    app.focus = crate::tui::app::Focus::Middle;
 
     // Unfiltered count.
     let unfiltered = render_middle(&app);
@@ -282,7 +282,7 @@ fn committed_filter_keeps_rows_narrowed() {
 #[test]
 fn bottom_pane_shows_filter_hint_on_committed_filter() {
     let mut app = fresh_app();
-    app.focus = crate::tui::app4::Focus::Middle;
+    app.focus = crate::tui::app::Focus::Middle;
     app.open_filter();
     app.filter_type('m');
     app.filter_type('o');
@@ -302,7 +302,7 @@ fn bottom_pane_shows_filter_hint_on_committed_filter() {
 #[test]
 fn bottom_pane_no_filter_hint_when_filter_is_empty() {
     let mut app = fresh_app();
-    app.focus = crate::tui::app4::Focus::Middle;
+    app.focus = crate::tui::app::Focus::Middle;
     // No filter active.
     let output = render_bottom(&app);
     assert!(
@@ -315,7 +315,7 @@ fn bottom_pane_no_filter_hint_when_filter_is_empty() {
 fn bottom_pane_no_filter_hint_in_filter_mode() {
     // During active typing (Filter mode) the hint is not shown — just the edit keymap.
     let mut app = fresh_app();
-    app.focus = crate::tui::app4::Focus::Middle;
+    app.focus = crate::tui::app::Focus::Middle;
     app.open_filter();
     app.filter_type('m');
     let output = render_bottom(&app);
@@ -365,7 +365,7 @@ fn filter_hint_hidden_on_appearance_tab() {
     app.filter_type('t');
     app.filter_type('e');
     app.commit_filter();
-    app.focus = crate::tui::app4::Focus::Middle;
+    app.focus = crate::tui::app::Focus::Middle;
     let output = render_bottom(&app);
     assert!(
         !output.contains("filter:"),

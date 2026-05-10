@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
 
 use crate::config::schema::{Config, Line};
-use crate::tui::app4::{App, Focus, Mode};
+use crate::tui::app::{App, Focus, Mode};
 use crate::tui::builder::BuilderSegment;
 use crate::tui::catalog::Category;
 
@@ -86,7 +86,7 @@ fn navigate_and_save() {
     app.handle(press_mod(KeyCode::Char('s'), KeyModifiers::CONTROL));
     assert_eq!(app.mode, Mode::Saving);
 
-    // Drive the save via the shared helper (same logic as run4_with_app).
+    // Drive the save via the shared helper (same logic as run_with_app).
     crate::tui::process_save_if_needed(&mut app);
     assert_eq!(app.mode, Mode::Browsing);
     assert!(!app.dirty, "dirty must be false after successful save");
@@ -107,17 +107,17 @@ fn non_tty_returns_not_a_tty() {
     use crate::error::Error;
     use std::io::IsTerminal;
 
-    // In cargo test, stdout is not a TTY — run4 should return Err(NotATty).
+    // In cargo test, stdout is not a TTY — run should return Err(NotATty).
     // If somehow stdout IS a TTY in this environment, skip the assertion
     // (this can happen when tests run inside a PTY emulator).
     if std::io::stdout().is_terminal() {
-        // Can't assert NotATty if stdout actually is a TTY; just verify run4 is callable.
+        // Can't assert NotATty if stdout actually is a TTY; just verify run is callable.
         return;
     }
 
     let tmp = tempfile::tempdir().unwrap();
     let out_path = tmp.path().join("config.json");
-    let result = crate::tui::run4(fresh_config(), out_path);
+    let result = crate::tui::run(fresh_config(), out_path);
     assert!(
         matches!(result, Err(Error::NotATty)),
         "expected NotATty, got: {:?}",
@@ -338,9 +338,9 @@ fn dirty_stays_true_on_save_failure() {
 #[test]
 fn help_from_all_foci() {
     for focus in [
-        crate::tui::app4::Focus::Top,
-        crate::tui::app4::Focus::Middle,
-        crate::tui::app4::Focus::Bottom,
+        crate::tui::app::Focus::Top,
+        crate::tui::app::Focus::Middle,
+        crate::tui::app::Focus::Bottom,
     ] {
         let mut app = fresh_app();
         app.focus = focus;
@@ -353,7 +353,7 @@ fn help_from_all_foci() {
 
 #[test]
 fn confirm_delete_line_flow() {
-    use crate::tui::app4::Cursor;
+    use crate::tui::app::Cursor;
 
     // Build app with 2 lines, first line has 1 segment.
     let mut cfg = fresh_config();
@@ -371,7 +371,7 @@ fn confirm_delete_line_flow() {
     // Go to Top, make sure cursor is on Gutter of line 0.
     app.handle(press(KeyCode::Tab)); // Middle → Bottom
     app.handle(press(KeyCode::Tab)); // Bottom → Top
-    assert_eq!(app.focus, crate::tui::app4::Focus::Top);
+    assert_eq!(app.focus, crate::tui::app::Focus::Top);
     app.cursor = Cursor::Gutter;
     app.active_line = 0;
 
@@ -404,7 +404,7 @@ fn confirm_delete_line_flow() {
 #[test]
 fn color_picker_fg_flow() {
     use crate::config::named_color::NamedColor;
-    use crate::tui::app4::Cursor;
+    use crate::tui::app::Cursor;
     use crate::tui::overlays::color_picker::ENTRY_COUNT;
 
     let mut app = fresh_app();
@@ -441,7 +441,7 @@ fn color_picker_fg_flow() {
 #[test]
 fn color_picker_bg_flow() {
     use crate::config::named_color::NamedColor;
-    use crate::tui::app4::Cursor;
+    use crate::tui::app::Cursor;
 
     let mut app = fresh_app();
     app.handle(press(KeyCode::Tab));
@@ -468,7 +468,7 @@ fn color_picker_bg_flow() {
 
 #[test]
 fn color_picker_cancel_no_change() {
-    use crate::tui::app4::Cursor;
+    use crate::tui::app::Cursor;
 
     let mut app = fresh_app();
     app.handle(press(KeyCode::Tab));

@@ -1,10 +1,11 @@
 //! Phase-3 golden tests: save flow, color rendering, Powerline rendering.
+//! Updated for Phase 4: save module moved to tui::overlays::save.
 
 use cc_myasl::config;
 use cc_myasl::config::render::render;
 use cc_myasl::config::schema::{Config, Line, Segment, TemplateSegment};
 use cc_myasl::format::placeholders::RenderCtx;
-use cc_myasl::tui::save::{SaveError, save};
+use cc_myasl::tui::overlays::save::save;
 use tempfile::tempdir;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -41,7 +42,7 @@ fn golden_save_writes_valid_json() {
         true,
     );
 
-    save(&cfg, &path).expect("save must succeed");
+    save(&path, &cfg).expect("save must succeed");
 
     assert!(path.exists(), "output file must exist after save");
 
@@ -75,7 +76,7 @@ fn golden_save_creates_backup() {
         vec![make_colored_segment("{model}", Some("cyan"), None)],
         false,
     );
-    save(&new_cfg, &path).expect("save must succeed");
+    save(&path, &new_cfg).expect("save must succeed");
 
     assert!(bak_path.exists(), ".bak file must exist");
     let bak_content = std::fs::read_to_string(&bak_path).unwrap();
@@ -91,41 +92,38 @@ fn golden_save_creates_backup() {
     );
 }
 
-// ── golden_save_validates_before_write ───────────────────────────────────────
+// ── golden_save_subsequent_saves_preserve_bak ────────────────────────────────
 
 #[test]
-fn golden_save_validates_before_write() {
+fn golden_save_subsequent_saves_preserve_bak() {
     let dir = tempdir().unwrap();
     let path = dir.path().join("config.json");
+    let bak_path = dir.path().join("config.json.bak");
 
-    let base_line = Line {
-        separator: String::new(),
-        segments: vec![Segment::Template(TemplateSegment::new("{model}"))],
-    };
-    // Bypass the validator by constructing directly with 4 lines (MAX_LINES = 3).
-    let invalid_cfg = Config {
-        schema_url: None,
-        powerline: false,
-        default_fg: None,
-        default_bg: None,
-        lines: vec![
-            base_line.clone(),
-            base_line.clone(),
-            base_line.clone(),
-            base_line.clone(),
-        ],
-    };
-    assert_eq!(invalid_cfg.lines.len(), 4);
-
-    let result = save(&invalid_cfg, &path);
-    assert!(
-        matches!(result, Err(SaveError::Validation(_))),
-        "expected Validation error, got {:?}",
-        result
+    let orig = one_line_config(
+        vec![Segment::Template(TemplateSegment::new("{five_left}%"))],
+        false,
     );
-    assert!(
-        !path.exists(),
-        "target file must NOT be written on validation error"
+    std::fs::write(&path, config::print_config(&orig).as_bytes()).unwrap();
+
+    let second = one_line_config(
+        vec![make_colored_segment("{model}", Some("cyan"), None)],
+        false,
+    );
+    save(&path, &second).expect("first save");
+    assert!(bak_path.exists(), ".bak must exist after first save");
+    let bak_after_first = std::fs::read_to_string(&bak_path).unwrap();
+
+    let third = one_line_config(
+        vec![make_colored_segment("{seven_left}%", None, None)],
+        false,
+    );
+    save(&path, &third).expect("second save");
+    let bak_after_second = std::fs::read_to_string(&bak_path).unwrap();
+
+    assert_eq!(
+        bak_after_first, bak_after_second,
+        "subsequent saves must NOT overwrite the .bak"
     );
 }
 

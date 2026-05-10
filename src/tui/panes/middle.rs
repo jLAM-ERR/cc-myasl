@@ -24,7 +24,7 @@ use crate::format::RenderCtx;
 use crate::payload::Payload;
 use crate::payload_mapping;
 use crate::tui::ansi::ansi_to_lines;
-use crate::tui::app4::{App, Focus};
+use crate::tui::app::{App, Focus};
 use crate::tui::builder::BuilderSegment;
 use crate::tui::catalog::{Category, by_category};
 

@@ -64,6 +64,13 @@ if grep -r "use crate::api\|use crate::cache\|use crate::git" src/tui/ 2>/dev/nu
     FAILED=1
 fi
 
+# Invariant 12: every preset template references valid placeholder names.
+# Enforced by the Rust unit test `catalog::tests::invariant_12` (in src/tui/catalog_tests.rs).
+# That test renders every preset against the fixture and asserts no panic + non-empty output.
+# No shell grep here — extracting placeholder names from catalog.rs via regex is brittle;
+# the Rust test is the CI-gated gate for this invariant.
+echo "Invariant 12 enforced by catalog::tests::invariant_12 unit test (run via cargo test)."
+
 if [ "$FAILED" -eq 1 ]; then
     exit 1
 fi

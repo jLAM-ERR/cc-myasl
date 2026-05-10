@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use ratatui::{backend::TestBackend, style::Modifier};
 
 use crate::config::schema::{Config, Line, MAX_LINES};
-use crate::tui::app4::{App, Cursor, Focus};
+use crate::tui::app::{App, Cursor, Focus};
 use crate::tui::builder::{BuilderLine, BuilderSegment, BuilderState};
 
 use super::render;

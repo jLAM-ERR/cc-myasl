@@ -58,7 +58,7 @@ STATUSLINE_DEBUG=1 ./target/release/cc-myasl < some-stdin.json
 
 ## Big-picture architecture
 
-### Module tree (locked in v0.1)
+### Module tree (v1.1 — Phase 4 builder TUI)
 
 ```
 src/
@@ -76,11 +76,15 @@ src/
 ├── format/{mod,parser,placeholders,values,thresholds}.rs   Template engine (segment rendering)
 ├── config/{mod,schema,builtins,render}.rs      Structured JSON config + 9 built-ins + multi-line renderer
 ├── git/{mod,status}.rs               gix-based git discovery + branch/root + status counters
-└── tui/{mod,app,draw,save,preview}.rs +        Interactive config editor (--configure); ratatui/crossterm;
-    tui/widgets/{line_list,segment_list,        pure-state widgets + tests. MUST NOT import crate::api,
-    segment_editor,placeholder_picker,          crate::cache, or crate::git — invariant 11.
-    color_picker,help,status}.rs +
-    tui/tests.rs + tui/preview_fixture.json
+└── tui/{mod,app,app_handle,draw}.rs +          Interactive config editor (--configure) v1.1;
+    tui/{ansi,builder,catalog}.rs +             3-pane preset-driven builder; ratatui/crossterm.
+    tui/panes/{mod,top,middle,bottom,           MUST NOT import crate::api, crate::cache, or
+    appearance}.rs +                            crate::git — invariant 11.
+    tui/overlays/{mod,color_picker,help,        Invariant 12: every preset template references
+    save,confirm}.rs +                          a valid placeholder name (catalog_tests).
+    tui/{integration_tests,filter_tests,
+    ansi_tests,catalog_tests,builder_tests}.rs +
+    tui/preview_fixture.json
 ```
 
 ### Three-stage render flow (`main.rs`)
@@ -127,6 +131,9 @@ only paths that may exit non-zero.
     `crate::git`** — the TUI consumes `Config` and `Payload` via existing
     modules; it never reaches backend or git layers directly. Verified by
     string-scan test in `tui::tests` and by `scripts/check-invariants.sh`.
+12. **Every preset template references a valid placeholder name** —
+    enforced by `catalog::tests::invariant_12`; new presets that
+    use unknown placeholder names fail the test at CI time.
 
 ### Format engine decoupling invariant
 
@@ -265,3 +272,5 @@ acquire the appropriate mutex and restore prior values before releasing.
   Implementation complete.
 - `docs/plans/completed/2026-05-01-phase3-interactive-tui.md` — Phase 3
   interactive TUI (`--configure`, colors, Powerline). Implementation complete.
+- `docs/plans/2026-05-10-phase4-builder-tui.md` — Phase 4 builder TUI
+  (3-pane preset-driven `--configure` editor, v1.1). Tasks 1-12 complete.

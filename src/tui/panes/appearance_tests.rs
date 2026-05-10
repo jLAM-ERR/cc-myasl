@@ -4,7 +4,7 @@ use ratatui::backend::TestBackend;
 
 use crate::config::named_color::NamedColor;
 use crate::config::schema::{Config, Line};
-use crate::tui::app4::{App, Focus};
+use crate::tui::app::{App, Focus};
 use crate::tui::builder::{BuilderLine, BuilderState};
 
 use super::{AppearanceRow, render, rows};

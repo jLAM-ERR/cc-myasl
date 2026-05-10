@@ -4,7 +4,7 @@ use ratatui::backend::TestBackend;
 use ratatui::style::Modifier;
 
 use crate::config::schema::{Config, Line};
-use crate::tui::app4::{App, Focus, Mode};
+use crate::tui::app::{App, Focus, Mode};
 use crate::tui::builder::{BuilderLine, BuilderSegment, BuilderState};
 use crate::tui::catalog::Category;
 

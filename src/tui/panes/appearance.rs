@@ -19,7 +19,7 @@ use ratatui::{
     widgets::Paragraph,
 };
 
-use crate::tui::app4::{App, Focus};
+use crate::tui::app::{App, Focus};
 
 /// Identifies a row in the appearance settings form.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

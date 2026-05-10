@@ -22,7 +22,7 @@ use ratatui::{
 use crate::config::schema::{Config, FlexSegment, Line as ConfigLine, Segment, TemplateSegment};
 use crate::format::RenderCtx;
 use crate::tui::ansi::ansi_to_lines;
-use crate::tui::app4::{App, Cursor, Focus};
+use crate::tui::app::{App, Cursor, Focus};
 use crate::tui::builder::BuilderSegment;
 use crate::tui::catalog::lookup_by_id;
 

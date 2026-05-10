@@ -19,7 +19,7 @@ use ratatui::{
     widgets::{Block, Paragraph},
 };
 
-use crate::tui::app4::{App, Cursor, Focus, Mode};
+use crate::tui::app::{App, Cursor, Focus, Mode};
 use crate::tui::builder::BuilderSegment;
 use crate::tui::catalog::Category;
 

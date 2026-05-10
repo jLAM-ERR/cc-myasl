@@ -1,473 +1,487 @@
 use std::path::PathBuf;
 
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crate::config::schema::{Config, Line, MAX_LINES};
+use crate::tui::builder::{BuilderLine, BuilderSegment, BuilderState};
+use crate::tui::catalog::Category;
 
-use crate::config::schema::{Config, FlexSegment, Line, Segment, TemplateSegment};
+use super::{App, Cursor, Focus, Mode};
 
-use super::{App, EditorField, Focus, Mode};
+// ── helpers ───────────────────────────────────────────────────────────────────
 
-fn one_line_config() -> Config {
+pub(super) fn empty_config() -> Config {
     Config {
         schema_url: None,
         powerline: false,
         default_fg: None,
         default_bg: None,
         lines: vec![Line {
-            separator: String::new(),
-            segments: vec![Segment::Template(TemplateSegment::new("{model}"))],
+            separator: " | ".into(),
+            segments: vec![],
         }],
     }
 }
 
-fn multi_seg_config() -> Config {
-    Config {
-        schema_url: None,
-        powerline: false,
-        default_fg: None,
-        default_bg: None,
-        lines: vec![Line {
-            separator: String::new(),
-            segments: vec![
-                Segment::Template(TemplateSegment::new("{model}")),
-                Segment::Template(TemplateSegment::new("{five_left}")),
-                Segment::Flex(FlexSegment { flex: true }),
-            ],
-        }],
-    }
+pub(super) fn mk_app() -> App {
+    App::new(empty_config(), PathBuf::from("/tmp/test.json"))
 }
 
-fn three_line_config() -> Config {
-    Config {
-        schema_url: None,
-        powerline: false,
-        default_fg: None,
-        default_bg: None,
+pub(super) fn app_with_builder(state: BuilderState) -> App {
+    let mut a = mk_app();
+    a.builder = state;
+    a
+}
+
+pub(super) fn three_line_state() -> BuilderState {
+    BuilderState {
         lines: vec![
-            Line {
-                separator: String::new(),
+            BuilderLine {
+                separator: " | ".into(),
                 segments: vec![],
             },
-            Line {
-                separator: String::new(),
+            BuilderLine {
+                separator: " | ".into(),
                 segments: vec![],
             },
-            Line {
-                separator: String::new(),
+            BuilderLine {
+                separator: " | ".into(),
                 segments: vec![],
             },
         ],
-    }
-}
-
-fn minimal_config() -> Config {
-    Config {
-        schema_url: None,
         powerline: false,
         default_fg: None,
         default_bg: None,
-        lines: vec![Line {
-            separator: String::new(),
-            segments: vec![Segment::Template(TemplateSegment::new("{model}"))],
-        }],
+        schema_url: None,
     }
 }
 
-fn key(code: KeyCode) -> KeyEvent {
-    KeyEvent::new(code, KeyModifiers::NONE)
-}
-
-fn shift_key(code: KeyCode) -> KeyEvent {
-    KeyEvent::new(code, KeyModifiers::SHIFT)
-}
-
-// --- original Task 4 tests (preserved) ---
-
-#[test]
-fn app_new_starts_in_browsing_mode() {
-    let app = App::new(minimal_config(), PathBuf::from("/tmp/out.json"));
-    assert_eq!(app.mode, Mode::Browsing);
-}
-
-#[test]
-fn app_dirty_starts_false() {
-    let app = App::new(minimal_config(), PathBuf::from("/tmp/out.json"));
-    assert!(!app.dirty);
-}
-
-#[test]
-fn app_initial_selection() {
-    let app = App::new(minimal_config(), PathBuf::from("/tmp/out.json"));
-    assert_eq!(app.selected_line, 0);
-    assert_eq!(app.selected_segment, Some(0));
-}
-
-#[test]
-fn app_initial_selection_empty_config() {
-    let app = App::new(
-        Config {
-            schema_url: None,
-            powerline: false,
-            default_fg: None,
-            default_bg: None,
-            lines: vec![],
-        },
-        PathBuf::from("/tmp/out.json"),
-    );
-    assert_eq!(app.selected_line, 0);
-    assert_eq!(app.selected_segment, None);
-}
-
-#[test]
-fn app_handle_q_in_non_browsing_mode_no_quit() {
-    let mut app = App::new(minimal_config(), PathBuf::from("/tmp/out.json"));
-    app.mode = Mode::EditingTemplate;
-    app.handle(key(KeyCode::Char('q')));
-    assert!(!app.should_quit);
-}
-
-// --- Task 5 tests ---
-
-#[test]
-fn add_line_below_max_inserts() {
-    let mut app = App::new(one_line_config(), PathBuf::from("/tmp/out.json"));
-    assert_eq!(app.config.lines.len(), 1);
-    app.handle(key(KeyCode::Char('n')));
-    assert_eq!(app.config.lines.len(), 2);
-}
-
-#[test]
-fn add_line_at_max_no_op() {
-    let mut app = App::new(three_line_config(), PathBuf::from("/tmp/out.json"));
-    assert_eq!(app.config.lines.len(), 3);
-    app.handle(key(KeyCode::Char('n')));
-    assert_eq!(app.config.lines.len(), 3);
-}
-
-#[test]
-fn delete_line_with_one_remaining_no_op() {
-    let mut app = App::new(one_line_config(), PathBuf::from("/tmp/out.json"));
-    app.handle(shift_key(KeyCode::Char('D')));
-    assert_eq!(app.config.lines.len(), 1);
-}
-
-#[test]
-fn tab_switches_focus() {
-    let mut app = App::new(minimal_config(), PathBuf::from("/tmp/out.json"));
-    assert_eq!(app.focus, Focus::LineList);
-    app.handle(key(KeyCode::Tab));
-    assert_eq!(app.focus, Focus::SegmentList);
-    app.handle(key(KeyCode::Tab));
-    assert_eq!(app.focus, Focus::Editor);
-    app.handle(key(KeyCode::Tab));
-    // In Editor focus, Tab cycles editor fields, not focus.
-    assert_eq!(app.focus, Focus::Editor);
-    assert_eq!(app.editor_field, EditorField::Padding);
-}
-
-#[test]
-fn j_moves_selection_down_in_line_list() {
-    let mut app = App::new(
-        Config {
-            schema_url: None,
-            powerline: false,
-            default_fg: None,
-            default_bg: None,
-            lines: vec![
-                Line {
-                    separator: String::new(),
-                    segments: vec![],
-                },
-                Line {
-                    separator: String::new(),
-                    segments: vec![],
-                },
-            ],
-        },
-        PathBuf::from("/tmp/out.json"),
-    );
-    assert_eq!(app.selected_line, 0);
-    app.handle(key(KeyCode::Char('j')));
-    assert_eq!(app.selected_line, 1);
-}
-
-#[test]
-fn j_caps_at_max_in_line_list() {
-    let mut app = App::new(one_line_config(), PathBuf::from("/tmp/out.json"));
-    app.handle(key(KeyCode::Char('j')));
-    assert_eq!(app.selected_line, 0);
-}
-
-#[test]
-fn j_in_segment_list_moves_segment_selection() {
-    let mut app = App::new(multi_seg_config(), PathBuf::from("/tmp/out.json"));
-    app.focus = Focus::SegmentList;
-    assert_eq!(app.selected_segment, Some(0));
-    app.handle(key(KeyCode::Char('j')));
-    assert_eq!(app.selected_segment, Some(1));
-}
-
-#[test]
-fn capital_j_reorders_segment_down() {
-    let mut app = App::new(multi_seg_config(), PathBuf::from("/tmp/out.json"));
-    app.focus = Focus::SegmentList;
-    app.selected_segment = Some(0);
-    app.handle(shift_key(KeyCode::Char('J')));
-    assert_eq!(app.selected_segment, Some(1));
-    let seg = &app.config.lines[0].segments[1];
-    assert!(matches!(seg, Segment::Template(t) if t.template == "{model}"));
-    assert!(app.dirty);
-}
-
-#[test]
-fn capital_k_reorders_segment_up() {
-    let mut app = App::new(multi_seg_config(), PathBuf::from("/tmp/out.json"));
-    app.focus = Focus::SegmentList;
-    app.selected_segment = Some(1);
-    app.handle(shift_key(KeyCode::Char('K')));
-    assert_eq!(app.selected_segment, Some(0));
-    let seg = &app.config.lines[0].segments[0];
-    assert!(matches!(seg, Segment::Template(t) if t.template == "{five_left}"));
-    assert!(app.dirty);
-}
-
-#[test]
-fn enter_on_segment_transitions_to_editing_template() {
-    let mut app = App::new(multi_seg_config(), PathBuf::from("/tmp/out.json"));
-    app.focus = Focus::SegmentList;
-    app.selected_segment = Some(0);
-    app.handle(key(KeyCode::Enter));
-    assert_eq!(app.mode, Mode::EditingTemplate);
-}
-
-#[test]
-fn enter_on_add_segment_inserts_default() {
-    let mut app = App::new(multi_seg_config(), PathBuf::from("/tmp/out.json"));
-    app.focus = Focus::SegmentList;
-    let seg_count = app.config.lines[0].segments.len();
-    app.selected_segment = Some(seg_count);
-    app.handle(key(KeyCode::Enter));
-    assert_eq!(app.config.lines[0].segments.len(), seg_count + 1);
-    assert_eq!(app.mode, Mode::EditingTemplate);
-}
-
-#[test]
-fn dirty_set_after_add_segment() {
-    let mut app = App::new(multi_seg_config(), PathBuf::from("/tmp/out.json"));
-    app.focus = Focus::SegmentList;
-    let seg_count = app.config.lines[0].segments.len();
-    app.selected_segment = Some(seg_count);
-    app.handle(key(KeyCode::Enter));
-    assert!(app.dirty);
-}
-
-#[test]
-fn q_when_dirty_enters_confirm_quit() {
-    let mut app = App::new(minimal_config(), PathBuf::from("/tmp/out.json"));
-    app.dirty = true;
-    app.handle(key(KeyCode::Char('q')));
-    assert_eq!(app.mode, Mode::ConfirmQuit);
-    assert!(!app.should_quit);
-}
-
-#[test]
-fn q_when_clean_quits() {
-    let mut app = App::new(minimal_config(), PathBuf::from("/tmp/out.json"));
-    assert!(!app.dirty);
-    app.handle(key(KeyCode::Char('q')));
-    assert!(app.should_quit);
-}
-
-// --- Task 6 tests ---
-
-fn editor_focused_app() -> App {
-    let mut app = App::new(minimal_config(), PathBuf::from("/tmp/out.json"));
-    app.focus = Focus::Editor;
-    app.selected_segment = Some(0);
-    app
-}
-
-#[test]
-fn tab_in_editor_cycles_fields() {
-    let mut app = editor_focused_app();
-    assert_eq!(app.editor_field, EditorField::Template);
-    app.handle(key(KeyCode::Tab));
-    assert_eq!(app.editor_field, EditorField::Padding);
-    app.handle(key(KeyCode::Tab));
-    assert_eq!(app.editor_field, EditorField::HideWhenAbsent);
-    app.handle(key(KeyCode::Tab));
-    assert_eq!(app.editor_field, EditorField::Color);
-    app.handle(key(KeyCode::Tab));
-    assert_eq!(app.editor_field, EditorField::Bg);
-    app.handle(key(KeyCode::Tab));
-    assert_eq!(app.editor_field, EditorField::Template);
-}
-
-#[test]
-fn enter_on_template_field_enters_editing_template() {
-    let mut app = editor_focused_app();
-    assert_eq!(app.editor_field, EditorField::Template);
-    app.handle(key(KeyCode::Enter));
-    assert_eq!(app.mode, Mode::EditingTemplate);
-    assert!(app.editing_buf.is_some());
-}
-
-#[test]
-fn editing_template_appends_char() {
-    let mut app = editor_focused_app();
-    app.handle(key(KeyCode::Enter)); // enter EditingTemplate
-    app.editing_buf = Some(String::new());
-    app.handle(key(KeyCode::Char('a')));
-    app.handle(key(KeyCode::Char('b')));
-    assert_eq!(app.editing_buf.as_deref(), Some("ab"));
-}
-
-#[test]
-fn editing_template_backspace_removes_char() {
-    let mut app = editor_focused_app();
-    app.handle(key(KeyCode::Enter));
-    app.editing_buf = Some("hello".into());
-    app.handle(key(KeyCode::Backspace));
-    assert_eq!(app.editing_buf.as_deref(), Some("hell"));
-}
-
-#[test]
-fn editing_template_enter_commits_and_dirties() {
-    let mut app = editor_focused_app();
-    app.handle(key(KeyCode::Enter)); // enter EditingTemplate
-    app.editing_buf = Some("new_template".into());
-    app.handle(key(KeyCode::Enter)); // commit
-    assert_eq!(app.mode, Mode::Browsing);
-    assert!(app.dirty);
-    let Segment::Template(t) = &app.config.lines[0].segments[0] else {
-        panic!("expected Template");
-    };
-    assert_eq!(t.template, "new_template");
-}
-
-#[test]
-fn editing_template_esc_aborts_no_dirty() {
-    let mut app = editor_focused_app();
-    app.handle(key(KeyCode::Enter)); // enter EditingTemplate
-    app.editing_buf = Some("discarded".into());
-    app.handle(key(KeyCode::Esc)); // abort
-    assert_eq!(app.mode, Mode::Browsing);
-    assert!(!app.dirty);
-    let Segment::Template(t) = &app.config.lines[0].segments[0] else {
-        panic!("expected Template");
-    };
-    assert_eq!(t.template, "{model}"); // unchanged
-}
-
-#[test]
-fn padding_increment_clamps_at_8() {
-    let mut app = editor_focused_app();
-    app.editor_field = EditorField::Padding;
-    // Set padding to 8 manually.
-    if let Segment::Template(t) = &mut app.config.lines[0].segments[0] {
-        t.padding = 8;
+pub(super) fn two_line_state(sep_a: &str, sep_b: &str) -> BuilderState {
+    BuilderState {
+        lines: vec![
+            BuilderLine {
+                separator: sep_a.into(),
+                segments: vec![],
+            },
+            BuilderLine {
+                separator: sep_b.into(),
+                segments: vec![],
+            },
+        ],
+        powerline: false,
+        default_fg: None,
+        default_bg: None,
+        schema_url: None,
     }
-    app.handle(key(KeyCode::Char('+')));
-    let Segment::Template(t) = &app.config.lines[0].segments[0] else {
-        panic!("expected Template");
-    };
-    assert_eq!(t.padding, 8); // still 8
+}
+
+// ── App::new ──────────────────────────────────────────────────────────────────
+
+#[test]
+fn new_initial_focus_top() {
+    assert_eq!(mk_app().focus, Focus::Top);
 }
 
 #[test]
-fn padding_decrement_clamps_at_0() {
-    let mut app = editor_focused_app();
-    app.editor_field = EditorField::Padding;
-    // padding starts at 0.
-    app.handle(key(KeyCode::Char('-')));
-    let Segment::Template(t) = &app.config.lines[0].segments[0] else {
-        panic!("expected Template");
-    };
-    assert_eq!(t.padding, 0);
+fn new_initial_cursor_gutter() {
+    assert_eq!(mk_app().cursor, Cursor::Gutter);
 }
 
 #[test]
-fn hide_when_absent_toggle() {
-    let mut app = editor_focused_app();
-    app.editor_field = EditorField::HideWhenAbsent;
-    let Segment::Template(t) = &app.config.lines[0].segments[0] else {
-        panic!("expected Template");
-    };
-    assert!(!t.hide_when_absent);
-    app.handle(key(KeyCode::Char(' ')));
-    let Segment::Template(t) = &app.config.lines[0].segments[0] else {
-        panic!("expected Template");
-    };
-    assert!(t.hide_when_absent);
-    assert!(app.dirty);
+fn new_initial_active_line_zero() {
+    assert_eq!(mk_app().active_line, 0);
 }
 
 #[test]
-fn c_on_color_field_enters_picking_fg_color() {
-    let mut app = editor_focused_app();
-    app.editor_field = EditorField::Color;
-    app.handle(key(KeyCode::Char('c')));
-    assert_eq!(app.mode, Mode::PickingFgColor);
+fn new_initial_tab_workspace() {
+    assert_eq!(mk_app().active_tab, Category::Workspace);
 }
 
 #[test]
-fn b_on_bg_field_enters_picking_bg_color() {
-    let mut app = editor_focused_app();
-    app.editor_field = EditorField::Bg;
-    app.handle(key(KeyCode::Char('b')));
-    assert_eq!(app.mode, Mode::PickingBgColor);
+fn new_not_dirty() {
+    assert!(!mk_app().dirty);
 }
 
 #[test]
-fn flex_segment_editor_shows_no_editable_fields() {
-    let app = App::new(
-        Config {
-            schema_url: None,
-            powerline: false,
-            default_fg: None,
-            default_bg: None,
-            lines: vec![Line {
-                separator: String::new(),
-                segments: vec![Segment::Flex(FlexSegment { flex: true })],
+fn new_should_not_quit() {
+    assert!(!mk_app().should_quit);
+}
+
+// ── focus cycle ───────────────────────────────────────────────────────────────
+
+#[test]
+fn focus_forward_top_to_middle() {
+    let mut a = mk_app();
+    a.focus_cycle_forward();
+    assert_eq!(a.focus, Focus::Middle);
+}
+
+#[test]
+fn focus_forward_middle_to_bottom() {
+    let mut a = mk_app();
+    a.focus = Focus::Middle;
+    a.focus_cycle_forward();
+    assert_eq!(a.focus, Focus::Bottom);
+}
+
+#[test]
+fn focus_forward_bottom_to_top() {
+    let mut a = mk_app();
+    a.focus = Focus::Bottom;
+    a.focus_cycle_forward();
+    assert_eq!(a.focus, Focus::Top);
+}
+
+#[test]
+fn focus_backward_top_to_bottom() {
+    let mut a = mk_app();
+    a.focus_cycle_backward();
+    assert_eq!(a.focus, Focus::Bottom);
+}
+
+#[test]
+fn focus_backward_middle_to_top() {
+    let mut a = mk_app();
+    a.focus = Focus::Middle;
+    a.focus_cycle_backward();
+    assert_eq!(a.focus, Focus::Top);
+}
+
+#[test]
+fn focus_backward_bottom_to_middle() {
+    let mut a = mk_app();
+    a.focus = Focus::Bottom;
+    a.focus_cycle_backward();
+    assert_eq!(a.focus, Focus::Middle);
+}
+
+#[test]
+fn focus_forward_full_round_trip() {
+    let mut a = mk_app();
+    for _ in 0..3 {
+        a.focus_cycle_forward();
+    }
+    assert_eq!(a.focus, Focus::Top);
+}
+
+// ── tab cycle ─────────────────────────────────────────────────────────────────
+
+#[test]
+fn tab_next_workspace_to_git() {
+    let mut a = mk_app();
+    a.tab_cycle_next();
+    assert_eq!(a.active_tab, Category::Git);
+}
+
+#[test]
+fn tab_next_wraps_appearance_to_workspace() {
+    let mut a = mk_app();
+    a.active_tab = Category::Appearance;
+    a.tab_cycle_next();
+    assert_eq!(a.active_tab, Category::Workspace);
+}
+
+#[test]
+fn tab_prev_workspace_to_appearance() {
+    let mut a = mk_app();
+    a.tab_cycle_prev();
+    assert_eq!(a.active_tab, Category::Appearance);
+}
+
+#[test]
+fn tab_prev_git_to_workspace() {
+    let mut a = mk_app();
+    a.active_tab = Category::Git;
+    a.tab_cycle_prev();
+    assert_eq!(a.active_tab, Category::Workspace);
+}
+
+#[test]
+fn tab_all_8_categories_round_trip() {
+    let mut a = mk_app();
+    for _ in 0..8 {
+        a.tab_cycle_next();
+    }
+    assert_eq!(a.active_tab, Category::Workspace);
+}
+
+// ── cursor walks ──────────────────────────────────────────────────────────────
+
+#[test]
+fn cursor_right_gutter_no_segments_stays() {
+    let mut a = mk_app();
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Gutter);
+}
+
+#[test]
+fn cursor_right_gutter_moves_to_segment0() {
+    let mut a = mk_app();
+    a.toggle_preset(Category::SessionModel, 0);
+    a.cursor = Cursor::Gutter;
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(0));
+}
+
+#[test]
+fn cursor_right_at_last_segment_no_op() {
+    let mut a = mk_app();
+    a.toggle_preset(Category::SessionModel, 0);
+    a.cursor = Cursor::Segment(0);
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(0));
+}
+
+#[test]
+fn cursor_left_segment0_to_gutter() {
+    let mut a = mk_app();
+    a.toggle_preset(Category::SessionModel, 0);
+    a.cursor = Cursor::Segment(0);
+    a.cursor_left();
+    assert_eq!(a.cursor, Cursor::Gutter);
+}
+
+#[test]
+fn cursor_left_segment1_to_segment0() {
+    let mut a = mk_app();
+    a.toggle_preset(Category::SessionModel, 0);
+    a.toggle_preset(Category::SessionModel, 1);
+    a.cursor = Cursor::Segment(1);
+    a.cursor_left();
+    assert_eq!(a.cursor, Cursor::Segment(0));
+}
+
+#[test]
+fn cursor_left_gutter_no_op() {
+    let mut a = mk_app();
+    a.cursor_left();
+    assert_eq!(a.cursor, Cursor::Gutter);
+}
+
+#[test]
+fn cursor_down_from_last_line_shows_virtual() {
+    let mut a = mk_app();
+    a.cursor_down_line();
+    assert_eq!(a.cursor, Cursor::VirtualNewLine);
+}
+
+#[test]
+fn cursor_down_virtual_no_op() {
+    let mut a = mk_app();
+    a.cursor = Cursor::VirtualNewLine;
+    a.cursor_down_line();
+    assert_eq!(a.cursor, Cursor::VirtualNewLine);
+}
+
+#[test]
+fn cursor_up_from_virtual_goes_to_last_real_gutter() {
+    let mut a = mk_app();
+    a.cursor = Cursor::VirtualNewLine;
+    a.cursor_up_line();
+    assert_eq!(a.active_line, 0);
+    assert_eq!(a.cursor, Cursor::Gutter);
+}
+
+#[test]
+fn cursor_up_from_line0_no_op() {
+    let mut a = mk_app();
+    a.cursor_up_line();
+    assert_eq!(a.active_line, 0);
+}
+
+#[test]
+fn cursor_down_no_virtual_at_max_lines() {
+    let mut a = app_with_builder(three_line_state());
+    a.active_line = MAX_LINES - 1;
+    a.cursor_down_line();
+    assert_ne!(a.cursor, Cursor::VirtualNewLine);
+    assert_eq!(a.active_line, MAX_LINES - 1);
+}
+
+#[test]
+fn cursor_down_walks_real_lines() {
+    let mut a = app_with_builder(three_line_state());
+    a.active_line = 0;
+    a.cursor_down_line();
+    assert_eq!(a.active_line, 1);
+    assert_eq!(a.cursor, Cursor::Gutter);
+}
+
+#[test]
+fn cursor_right_advances_through_multi_segment_line() {
+    // 2 segments: Gutter → Seg(0) → Seg(1) → no-op at Seg(1)
+    let mut a = mk_app();
+    a.toggle_preset(Category::Workspace, 0); // cwd_basename
+    a.toggle_preset(Category::SessionModel, 0); // model_name
+    assert_eq!(a.builder.lines[0].segments.len(), 2);
+    a.cursor = Cursor::Gutter;
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(0));
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(1));
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(1), "no-op at last segment");
+
+    // cursor_left walks back: Seg(1) → Seg(0) → Gutter → no-op
+    a.cursor_left();
+    assert_eq!(a.cursor, Cursor::Segment(0));
+    a.cursor_left();
+    assert_eq!(a.cursor, Cursor::Gutter);
+    a.cursor_left();
+    assert_eq!(a.cursor, Cursor::Gutter, "no-op at Gutter");
+}
+
+#[test]
+fn cursor_right_advances_through_three_segment_line() {
+    // 3 segments: confirm correct boundary at Seg(2)
+    let mut a = mk_app();
+    a.toggle_preset(Category::Workspace, 0);
+    a.toggle_preset(Category::SessionModel, 0);
+    a.toggle_preset(Category::SessionModel, 1);
+    assert_eq!(a.builder.lines[0].segments.len(), 3);
+    a.cursor = Cursor::Gutter;
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(0));
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(1));
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(2));
+    a.cursor_right();
+    assert_eq!(a.cursor, Cursor::Segment(2), "no-op at last segment");
+}
+
+// ── add_line ──────────────────────────────────────────────────────────────────
+
+#[test]
+fn add_line_pushes_and_moves_cursor() {
+    let mut a = mk_app();
+    a.add_line();
+    assert_eq!(a.builder.lines.len(), 2);
+    assert_eq!(a.active_line, 1);
+    assert_eq!(a.cursor, Cursor::Gutter);
+    assert!(a.dirty);
+}
+
+#[test]
+fn add_line_at_max_sets_status() {
+    let mut a = app_with_builder(three_line_state());
+    a.add_line();
+    assert_eq!(a.builder.lines.len(), 3);
+    let (msg, _) = a.status_message.as_ref().unwrap();
+    assert_eq!(msg, "max 3 lines");
+}
+
+// ── edit_separator / ConfirmQuit / status_message ────────────────────────────
+
+#[test]
+fn edit_separator_enters_mode() {
+    let mut a = mk_app();
+    a.edit_separator();
+    assert_eq!(a.mode, Mode::EditingSeparator);
+}
+
+#[test]
+fn request_quit_clean() {
+    let mut a = mk_app();
+    a.request_quit();
+    assert!(a.should_quit);
+}
+
+#[test]
+fn request_quit_dirty_enters_confirm() {
+    let mut a = mk_app();
+    a.dirty = true;
+    a.request_quit();
+    assert_eq!(a.mode, Mode::ConfirmQuit);
+    assert!(!a.should_quit);
+}
+
+#[test]
+fn confirm_quit_yes() {
+    let mut a = mk_app();
+    a.mode = Mode::ConfirmQuit;
+    a.confirm_quit_yes();
+    assert!(a.should_quit);
+    assert_eq!(a.mode, Mode::Browsing);
+}
+
+#[test]
+fn confirm_quit_no() {
+    let mut a = mk_app();
+    a.mode = Mode::ConfirmQuit;
+    a.confirm_quit_no();
+    assert_eq!(a.mode, Mode::Browsing);
+    assert!(!a.should_quit);
+}
+
+#[test]
+fn cannot_remove_last_line_sets_status() {
+    let mut a = mk_app();
+    a.delete_line();
+    assert_eq!(a.builder.lines.len(), 1);
+    let (msg, expiry) = a.status_message.as_ref().unwrap();
+    assert_eq!(msg, "cannot remove last line");
+    assert!(*expiry > 0);
+}
+
+// ── toggle_preset ─────────────────────────────────────────────────────────────
+
+#[test]
+fn toggle_preset_adds() {
+    let mut a = mk_app();
+    a.toggle_preset(Category::SessionModel, 0);
+    assert_eq!(a.builder.lines[0].segments.len(), 1);
+    assert!(a.dirty);
+}
+
+#[test]
+fn toggle_preset_removes() {
+    let mut a = mk_app();
+    a.toggle_preset(Category::SessionModel, 0);
+    a.dirty = false;
+    a.toggle_preset(Category::SessionModel, 0);
+    assert_eq!(a.builder.lines[0].segments.len(), 0);
+    assert!(a.dirty);
+}
+
+#[test]
+fn toggle_preset_out_of_range_no_op() {
+    let mut a = mk_app();
+    a.toggle_preset(Category::Workspace, 9999);
+    assert_eq!(a.builder.lines[0].segments.len(), 0);
+    assert!(!a.dirty);
+}
+
+#[test]
+fn toggle_preset_custom_protection() {
+    use crate::tui::catalog::by_category;
+    let preset = by_category(Category::SessionModel).next().unwrap();
+    let mut a = app_with_builder(BuilderState {
+        lines: vec![BuilderLine {
+            separator: " | ".into(),
+            segments: vec![BuilderSegment::Custom {
+                template: preset.template.to_owned(),
+                color: None,
+                bg: None,
+                padding: 0,
+                hide_when_absent: false,
             }],
-        },
-        PathBuf::from("/tmp/out.json"),
+        }],
+        powerline: false,
+        default_fg: None,
+        default_bg: None,
+        schema_url: None,
+    });
+    a.toggle_preset(Category::SessionModel, 0);
+    assert_eq!(a.builder.lines[0].segments.len(), 2);
+    assert!(
+        a.builder.lines[0]
+            .segments
+            .iter()
+            .any(|s| matches!(s, BuilderSegment::Custom { .. }))
     );
-    // Verify the segment at index 0 is indeed Flex — the widget render branch
-    // for Flex shows "no editable fields" (verified in segment_editor tests).
-    let seg = &app.config.lines[0].segments[0];
-    assert!(matches!(seg, Segment::Flex(_)));
-}
-
-#[test]
-fn esc_in_editor_focus_returns_to_segment_list() {
-    let mut app = editor_focused_app();
-    app.handle(key(KeyCode::Esc));
-    assert_eq!(app.focus, Focus::SegmentList);
-}
-
-#[test]
-fn padding_increment_works() {
-    let mut app = editor_focused_app();
-    app.editor_field = EditorField::Padding;
-    app.handle(key(KeyCode::Char('+')));
-    let Segment::Template(t) = &app.config.lines[0].segments[0] else {
-        panic!("expected Template");
-    };
-    assert_eq!(t.padding, 1);
-    assert!(app.dirty);
-}
-
-#[test]
-fn padding_decrement_works() {
-    let mut app = editor_focused_app();
-    app.editor_field = EditorField::Padding;
-    if let Segment::Template(t) = &mut app.config.lines[0].segments[0] {
-        t.padding = 3;
-    }
-    app.handle(key(KeyCode::Char('-')));
-    let Segment::Template(t) = &app.config.lines[0].segments[0] else {
-        panic!("expected Template");
-    };
-    assert_eq!(t.padding, 2);
-    assert!(app.dirty);
+    assert!(
+        a.builder.lines[0]
+            .segments
+            .iter()
+            .any(|s| matches!(s, BuilderSegment::Preset { id, .. } if *id == preset.id))
+    );
 }
