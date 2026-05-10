@@ -572,23 +572,45 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 
 ### Task 14: Verify acceptance criteria
 
-- [ ] verify all design points from Overview are implemented:
+- [x] verify all design points from Overview are implemented:
       preset checkboxes, top-pane preview with cursor, virtual
       `+ new line` row, line gutter ops (s/J/K/y/x), cursor-aware
       bottom keymap, custom-segment passthrough with DIM rendering,
       Appearance tab settings.
-- [ ] verify edge cases: 1-line minimum, 3-line maximum, custom-only
+- [x] verify edge cases: 1-line minimum, 3-line maximum, custom-only
       config, empty fixture rendering with `—` placeholders,
       malformed config recovery.
-- [ ] verify all hard invariants: `bash scripts/check-loc.sh`,
+- [x] verify all hard invariants: `bash scripts/check-loc.sh`,
       `bash scripts/check-invariants.sh`, `cargo fmt --check`,
       `cargo clippy --all-targets -- -D warnings`,
       `cargo test --all`, `shellcheck scripts/*.sh`.
-- [ ] run cold-start benchmark — confirm `--configure` startup is
+- [x] run cold-start benchmark — confirm `--configure` startup is
       not regressed: `time target/release/cc-myasl --configure
       < /dev/tty` (manual smoke).
-- [ ] confirm release build still ≤ 1.5 MB stripped: `ls -lh
+- [x] confirm release build still ≤ 1.5 MB stripped: `ls -lh
       target/release/cc-myasl`.
+
+### Discovered gaps
+
+- ⚠️ **Binary size regressed past 1.5 MB target.** The stripped
+  release binary is 1,930,200 bytes (~1.84 MB) after Phase 4 adds
+  ratatui + crossterm pane infrastructure (~400 KB over budget).
+  `Cargo.toml` already has `strip = true`, `lto = "fat"`,
+  `codegen-units = 1`, `panic = "abort"` — no easy knob left.
+  Options for a follow-up: (a) accept the new floor and update the
+  CLAUDE.md budget to ≤ 2 MB; (b) investigate `opt-level = "z"` in
+  `[profile.release]`; (c) enable `upx` compression in the release
+  workflow. User decision required before Task 15.
+- ⚠️ **Malformed config recovery has no dedicated TUI builder test.**
+  The behavior is correct (config::resolve falls back to embedded
+  default, TUI opens with working state), and it is covered
+  indirectly by `check_tests::config_section_malformed_config_falls_back_and_passes`.
+  A direct test that feeds a syntactically broken config file to
+  `tui::run` (via integration_tests.rs) is missing. Low risk given
+  the fallback is in config::resolve, not in TUI code, but worth
+  adding in a fixup task.
+- ⚠️ **Cold-start benchmark (`time --configure`) is a manual smoke**
+  only — no automated regression gate (hyperfine not wired to CI).
 
 ### Task 15: README + CLAUDE.md final
 
