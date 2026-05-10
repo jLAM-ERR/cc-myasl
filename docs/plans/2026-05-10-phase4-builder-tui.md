@@ -529,28 +529,28 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 - Modify: `scripts/check-invariants.sh`
 - Modify: `CLAUDE.md`
 
-- [ ] delete every Phase 3 TUI file listed above (13 in `src/tui/`
+- [x] delete every Phase 3 TUI file listed above (13 in `src/tui/`
       + 8 in `src/tui/widgets/`, plus the empty widgets directory).
       The full rewrite replaces them; nothing is preserved.
-- [ ] retain only Phase 4 files (created in Tasks 1-11): `mod.rs`,
+- [x] retain only Phase 4 files (created in Tasks 1-11): `mod.rs`,
       `app.rs`, `app_tests.rs`, `catalog.rs`, `catalog_tests.rs`,
       `builder.rs`, `builder_tests.rs`, `ansi.rs`, `ansi_tests.rs`,
       `draw.rs`, `panes/*`, `overlays/*`, `preview_fixture.json`,
       `integration_tests.rs`, `filter_tests.rs`.
-- [ ] add invariant 12 to `scripts/check-invariants.sh`: a grep
+- [x] add invariant 12 to `scripts/check-invariants.sh`: a grep
       asserting every preset's template (extracted from
       `catalog.rs`) appears as a `name => …` arm in
       `format/placeholders/mod.rs`.  (If grepping the source is
       brittle, fall back to a Rust unit test in `catalog_tests.rs`
       and skip the shell check.)
-- [ ] update `CLAUDE.md`: replace the Phase 3 module tree with the
+- [x] update `CLAUDE.md`: replace the Phase 3 module tree with the
       Phase 4 tree; add invariant 12 to the hard-invariants list;
       bump "interactive TUI" wording to v1.1.
-- [ ] write test: every `*.rs` under `src/tui/` is ≤ 500 LOC
+- [x] write test: every `*.rs` under `src/tui/` is ≤ 500 LOC
       (already enforced by `scripts/check-loc.sh` — confirm pass).
-- [ ] run `bash scripts/check-loc.sh && bash scripts/check-invariants.sh`
+- [x] run `bash scripts/check-loc.sh && bash scripts/check-invariants.sh`
       — both must pass before Task 13.
-- [ ] run `cargo test --all` — full suite green.
+- [x] run `cargo test --all` — full suite green.
 
 ### Task 13: Round-trip golden test for builtin templates
 
