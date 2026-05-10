@@ -245,6 +245,19 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
         }
     }
 
+    // ── committed-filter hint (Middle focus, Browsing mode, active filter) ───
+    if app.focus == Focus::Middle
+        && app.mode == Mode::Browsing
+        && !app.picker_filter.is_empty()
+        && inner_height > 1
+    {
+        let hint = format!("filter: {}  /:clear", app.picker_filter);
+        ratatui_lines.push(Line::from(vec![Span::styled(
+            hint,
+            Style::default().fg(Color::Cyan).add_modifier(Modifier::DIM),
+        )]));
+    }
+
     // ── keymap line ──────────────────────────────────────────────────────────
     let pairs = keymap_pairs(app);
     let pairs = truncate_pairs(pairs, width);

@@ -24,7 +24,7 @@ use crate::format::RenderCtx;
 use crate::payload::Payload;
 use crate::payload_mapping;
 use crate::tui::ansi::ansi_to_lines;
-use crate::tui::app4::{App, Focus, Mode};
+use crate::tui::app4::{App, Focus};
 use crate::tui::builder::BuilderSegment;
 use crate::tui::catalog::{Category, by_category};
 
@@ -175,11 +175,8 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     }
 
     let ctx = fixture_ctx();
-    let filter = if app.mode == Mode::Filter {
-        app.picker_filter.as_str()
-    } else {
-        ""
-    };
+    // Apply picker_filter in both Filter mode and Browsing (committed filter).
+    let filter = app.picker_filter.as_str();
 
     let presets: Vec<_> = by_category(app.active_tab)
         .filter(|p| preset_matches_filter(p.label, p.template, filter))

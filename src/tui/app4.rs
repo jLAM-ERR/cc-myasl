@@ -161,12 +161,18 @@ impl App {
         let cats = Category::ordered();
         let pos = cats.iter().position(|c| *c == self.active_tab).unwrap_or(0);
         self.active_tab = cats[(pos + 1) % cats.len()];
+        // Category change clears filter (per plan decision).
+        self.picker_filter.clear();
+        self.picker_selected = 0;
     }
 
     pub fn tab_cycle_prev(&mut self) {
         let cats = Category::ordered();
         let pos = cats.iter().position(|c| *c == self.active_tab).unwrap_or(0);
         self.active_tab = cats[(pos + cats.len() - 1) % cats.len()];
+        // Category change clears filter (per plan decision).
+        self.picker_filter.clear();
+        self.picker_selected = 0;
     }
 
     // ── line ops ──────────────────────────────────────────────────────────────
@@ -341,6 +347,51 @@ impl App {
         self.dirty = true;
     }
 
+    // ── filter mode ──────────────────────────────────────────────────────────
+
+    /// Open filter mode.  If already in Filter mode, clears filter and stays.
+    /// If already in Browsing with an active filter, pressing `/` clears it.
+    pub fn open_filter(&mut self) {
+        if self.mode == Mode::Filter {
+            // Already filtering — `/` again clears and re-opens.
+            self.picker_filter.clear();
+        } else {
+            self.mode = Mode::Filter;
+            self.picker_filter.clear();
+            self.picker_selected = 0;
+        }
+    }
+
+    /// Esc in filter mode: clear filter and return to Browsing.
+    pub fn cancel_filter(&mut self) {
+        self.picker_filter.clear();
+        self.mode = Mode::Browsing;
+    }
+
+    /// Enter in filter mode: leave filter mode but keep filter active.
+    pub fn commit_filter(&mut self) {
+        self.mode = Mode::Browsing;
+        // picker_filter retained intentionally.
+    }
+
+    /// Append a char to the filter input (resets cursor to first visible row).
+    pub fn filter_type(&mut self, c: char) {
+        self.picker_filter.push(c);
+        self.picker_selected = 0;
+    }
+
+    /// Backspace in the filter input (resets cursor to first visible row).
+    pub fn filter_backspace(&mut self) {
+        self.picker_filter.pop();
+        self.picker_selected = 0;
+    }
+
+    /// Clear an active committed filter (e.g. from the clear-hint action).
+    pub fn clear_filter(&mut self) {
+        self.picker_filter.clear();
+        self.picker_selected = 0;
+    }
+
     // ── appearance settings mutations ────────────────────────────────────────
 
     pub fn toggle_powerline(&mut self) {
@@ -406,3 +457,7 @@ mod tests;
 #[cfg(test)]
 #[path = "app4_tests_b.rs"]
 mod tests_b;
+
+#[cfg(test)]
+#[path = "filter_tests.rs"]
+mod filter_tests;
