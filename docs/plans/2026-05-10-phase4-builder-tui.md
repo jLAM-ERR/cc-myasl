@@ -423,16 +423,16 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 - Create: `src/tui/overlays/confirm.rs`
 - Create: `src/tui/overlays/tests.rs`
 
-- [ ] in `overlays/mod.rs` declare submodules.
-- [ ] `color_picker.rs` — lift Phase 3's `tui/widgets/color_picker.rs`
+- [x] in `overlays/mod.rs` declare submodules.
+- [x] `color_picker.rs` — lift Phase 3's `tui/widgets/color_picker.rs`
       with minimal API change: `pub fn render(frame, area, selected:
       usize, mode: PickerMode)` and `pub fn handle(event: KeyEvent,
       selected: &mut usize) -> Option<NamedColor>` (returns Some on
       Enter commit, None on movement/Esc).
-- [ ] `help.rs` — full-screen overlay listing every key in every
+- [x] `help.rs` — full-screen overlay listing every key in every
       mode + the preset catalog grouped by category.  `?` toggles;
       any other key dismisses.
-- [ ] `save.rs` — atomic write (`<path>.tmp` → fsync → rename →
+- [x] `save.rs` — atomic write (`<path>.tmp` → fsync → rename →
       fsync parent).  Backup rule: if `<path>` exists AND
       `<path>.bak` does NOT exist, copy `<path>` → `<path>.bak`
       before writing the tmp file (preserves the user's first
@@ -440,17 +440,17 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
       `.bak`).  Returns `Result<PathBuf, io::Error>`.  Sets
       `app.status_message = Some(("saved → /path".into(), now + 2))`
       on success; `("save failed: <io>".into(), now + 5)` on failure.
-- [ ] `confirm.rs` — modal dialogs for `delete line with N segments?
+- [x] `confirm.rs` — modal dialogs for `delete line with N segments?
       y/n` and `unsaved changes — quit anyway? y/n`.
-- [ ] write tests for color_picker selection wraparound.
-- [ ] write tests for save: writes to tmp first, atomically renames,
+- [x] write tests for color_picker selection wraparound.
+- [x] write tests for save: writes to tmp first, atomically renames,
       creates `.bak` only when `.bak` does not already exist
       (subsequent saves leave `.bak` untouched, preserving the
       original pre-TUI snapshot).
-- [ ] write tests for save failure path (read-only directory) sets
+- [x] write tests for save failure path (read-only directory) sets
       error status_message.
-- [ ] write tests for confirm dialogs: y commits, n/Esc cancels.
-- [ ] run `cargo test overlays::` — must pass before Task 10.
+- [x] write tests for confirm dialogs: y commits, n/Esc cancels.
+- [x] run `cargo test overlays::` — must pass before Task 10.
 
 ### Task 10: Filter mode wiring
 
