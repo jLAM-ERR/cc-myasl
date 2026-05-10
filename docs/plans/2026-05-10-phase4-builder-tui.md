@@ -333,29 +333,29 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 - Create: `src/tui/panes/middle.rs`
 - Create: `src/tui/panes/middle_tests.rs`
 
-- [ ] implement `pub fn render(frame: &mut Frame, area: Rect, app:
+- [x] implement `pub fn render(frame: &mut Frame, area: Rect, app:
       &App)` — top row: tab strip with all 8 categories, active one
       reverse-video; below: checkbox list for `app.active_tab`.
-- [ ] for each preset row: `[x]` if active line contains a
+- [x] for each preset row: `[x]` if active line contains a
       `BuilderSegment::Preset { id, .. }` matching the row, `[ ]`
       otherwise; label column; live-rendered preview column.
-- [ ] live preview column: render the preset's template against
+- [x] live preview column: render the preset's template against
       fixture, run through `ansi_to_lines`, take first line of
       spans.  Empty placeholder → dim `—`.
-- [ ] when `mode == Filter`, narrow visible rows by case-insensitive
+- [x] when `mode == Filter`, narrow visible rows by case-insensitive
       substring match against label OR template.
-- [ ] honor active-pane visual style identical to top pane.
-- [ ] when `app.active_tab == Category::Appearance`, dispatch to
+- [x] honor active-pane visual style identical to top pane.
+- [x] when `app.active_tab == Category::Appearance`, dispatch to
       `panes::appearance::render` instead.
-- [ ] write test: checkbox state correctly reflects active line for
+- [x] write test: checkbox state correctly reflects active line for
       each tab.
-- [ ] write test: filter narrows rows correctly (case-insensitive,
+- [x] write test: filter narrows rows correctly (case-insensitive,
       label or template hits both work).
-- [ ] write test: switching `active_tab` rerenders to a different
+- [x] write test: switching `active_tab` rerenders to a different
       preset list.
-- [ ] write test: a preset with an empty placeholder value (e.g.
+- [x] write test: a preset with an empty placeholder value (e.g.
       `git_branch` when fixture has no repo) shows dim `—`.
-- [ ] run `cargo test panes::middle::` — must pass before Task 7.
+- [x] run `cargo test panes::middle::` — must pass before Task 7.
 
 ### Task 7: Middle pane — Appearance settings
 
@@ -363,7 +363,7 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 - Create: `src/tui/panes/appearance.rs`
 - Create: `src/tui/panes/appearance_tests.rs`
 
-- [ ] implement `pub fn render(frame: &mut Frame, area: Rect, app:
+- [x] implement `pub fn render(frame: &mut Frame, area: Rect, app:
       &App)` — settings form:
       `[ ] Powerline mode      (off | on)`
       `[ ] Default fg color    (none | named)`
@@ -371,20 +371,20 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
       `Line 1 separator        " | "`
       `Line 2 separator        " · "`
       `Line 3 separator        " "`  (only shown when line exists).
-- [ ] `Space` on Powerline row toggles `app.builder.powerline`,
+- [x] `Space` on Powerline row toggles `app.builder.powerline`,
       sets `dirty=true`.
-- [ ] `Space` on Default fg/bg row → opens corresponding color
+- [x] `Space` on Default fg/bg row → opens corresponding color
       picker overlay; on commit, writes to `app.builder.default_fg`
       / `default_bg` (new fields, see Task 3 — add if missing).
-- [ ] `Enter` on a separator row → opens EditingSeparator popover
+- [x] `Enter` on a separator row → opens EditingSeparator popover
       pre-filled with current value.
-- [ ] write test: powerline toggle flips and dirties state.
-- [ ] write test: separator edit commit updates the right line's
+- [x] write test: powerline toggle flips and dirties state.
+- [x] write test: separator edit commit updates the right line's
       separator.
-- [ ] write test: separator edit cancel (Esc) leaves state unchanged.
-- [ ] write test: when `lines.len() == 2`, only Line 1 / Line 2 rows
+- [x] write test: separator edit cancel (Esc) leaves state unchanged.
+- [x] write test: when `lines.len() == 2`, only Line 1 / Line 2 rows
       visible.
-- [ ] run `cargo test panes::appearance::` — must pass before Task 8.
+- [x] run `cargo test panes::appearance::` — must pass before Task 8.
 
 ### Task 8: Bottom pane — cursor-aware keymap
 
@@ -392,26 +392,26 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 - Create: `src/tui/panes/bottom.rs`
 - Create: `src/tui/panes/bottom_tests.rs`
 
-- [ ] implement `pub fn render(frame: &mut Frame, area: Rect, app:
+- [x] implement `pub fn render(frame: &mut Frame, area: Rect, app:
       &App)` — produces a keymap based on tuple `(focus, mode,
       cursor-position)`.
-- [ ] key→action mapping table per state:
+- [x] key→action mapping table per state:
   - Top + Browsing + Cursor::Segment: `←/→:cursor  </>:reorder  x:delete  c:fg  b:bg  ↑/↓:line  Tab:middle  q:quit  ?:help`
   - Top + Browsing + Cursor::Gutter: `↑/↓:line  s:separator  J/K:move-line  y:duplicate  x:delete-line  Tab:middle  q:quit  ?:help`
   - Top + Browsing + Cursor::VirtualNewLine: `Enter:add-line  ↑:back  Tab:middle  q:quit  ?:help`
   - Middle + Browsing (preset row): `Space:toggle  /:filter  [/]:tab  j/k:row  Tab:top  Ctrl+S:save  q:quit  ?:help`
   - Middle + Browsing (Appearance tab): `Space:toggle  Enter:edit  [/]:tab  j/k:row  Tab:top  Ctrl+S:save  q:quit`
   - Mode::Filter / EditingSeparator / etc.: `[edit] type to change  Enter:commit  Esc:cancel`
-- [ ] when cursor on a `BuilderSegment::Custom` segment, prepend a
+- [x] when cursor on a `BuilderSegment::Custom` segment, prepend a
       one-line note: ``custom: `{template}` — toggle disabled``.
-- [ ] truncate lowest-priority pairs first when width < 60 cols;
+- [x] truncate lowest-priority pairs first when width < 60 cols;
       `q:quit` and `Ctrl+S:save` always visible.
-- [ ] write test: keymap content matches expected for each (focus,
+- [x] write test: keymap content matches expected for each (focus,
       mode, cursor) tuple.
-- [ ] write test: custom-segment hint appears when cursor on Custom.
-- [ ] write test: truncation at narrow widths preserves required
+- [x] write test: custom-segment hint appears when cursor on Custom.
+- [x] write test: truncation at narrow widths preserves required
       pairs.
-- [ ] run `cargo test panes::bottom::` — must pass before Task 9.
+- [x] run `cargo test panes::bottom::` — must pass before Task 9.
 
 ### Task 9: Overlays — color picker, help, save, confirm
 
