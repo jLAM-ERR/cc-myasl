@@ -557,18 +557,18 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 **Files:**
 - Create: `tests/golden_phase4.rs`
 
-- [ ] for each `name` in `config::builtins::all_names()`: load the
+- [x] for each `name` in `config::builtins::all_names()`: load the
       builtin → `BuilderState::from_config` → `to_config` →
       serialize with canonical key ordering → assert byte-identical
       to the canonical-serialized original.
-- [ ] script a multi-step session via synthetic `KeyEvent`s:
+- [x] script a multi-step session via synthetic `KeyEvent`s:
       Tab→Middle, `]→]→]` to rates tab, `Space` on row 0 (5h left%),
       `Tab→Top`, `s` to edit separator → type ` | ` → Enter,
       `Ctrl+S` to save.  Read the saved JSON and assert structure.
-- [ ] script a delete-line + dirty-quit-confirm sequence; assert
+- [x] script a delete-line + dirty-quit-confirm sequence; assert
       file is NOT modified after Esc on confirm.
-- [ ] run `cargo test --test golden_phase4` — all green.
-- [ ] run full suite: `cargo test --all` — all green.
+- [x] run `cargo test --test golden_phase4` — all green.
+- [x] run full suite: `cargo test --all` — all green.
 
 ### Task 14: Verify acceptance criteria
 
