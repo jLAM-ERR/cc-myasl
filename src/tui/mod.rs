@@ -87,7 +87,7 @@ pub fn run_with_app(
 
 /// Execute the save block once.  Sets status, clears dirty on success only.
 /// Called from `run_with_app` and exposed for integration tests.
-pub(crate) fn process_save_if_needed(app: &mut App) {
+pub fn process_save_if_needed(app: &mut App) {
     app.set_status_ok("saving\u{2026}".into());
     let cfg = builder::to_config(&app.builder);
     match overlays::save::save(&app.output_path, &cfg) {
