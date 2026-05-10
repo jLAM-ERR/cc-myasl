@@ -105,6 +105,10 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
                 ])
             }
             AppearanceRow::Separator(i) => {
+                debug_assert!(
+                    *i < app.builder.lines.len(),
+                    "rows() produced Separator({i}) past lines.len()"
+                );
                 let sep = app
                     .builder
                     .lines

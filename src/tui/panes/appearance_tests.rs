@@ -293,3 +293,88 @@ fn fg_shows_none_when_unset() {
         "fg row must show [ ] when unset: {text:?}"
     );
 }
+
+#[test]
+fn set_separator_out_of_bounds_is_noop() {
+    let mut app = mk_app();
+    assert_eq!(app.builder.lines.len(), 1);
+    let was_dirty = app.dirty;
+
+    app.set_separator(5, "x".into());
+
+    assert_eq!(
+        app.dirty, was_dirty,
+        "out-of-bounds set_separator must not dirty"
+    );
+    assert_eq!(
+        app.builder.lines.len(),
+        1,
+        "no phantom line must be created"
+    );
+}
+
+#[test]
+fn set_default_fg_round_trip() {
+    let mut app = mk_app();
+
+    app.set_default_fg(Some(NamedColor::Red));
+    assert_eq!(app.builder.default_fg, Some(NamedColor::Red));
+    assert!(app.dirty);
+
+    app.dirty = false;
+    app.set_default_fg(None);
+    assert_eq!(app.builder.default_fg, None);
+    assert!(app.dirty);
+
+    app.dirty = false;
+    app.set_default_fg(Some(NamedColor::Cyan));
+    assert_eq!(app.builder.default_fg, Some(NamedColor::Cyan));
+    assert!(app.dirty);
+}
+
+#[test]
+fn set_default_bg_round_trip() {
+    let mut app = mk_app();
+
+    app.set_default_bg(Some(NamedColor::Red));
+    assert_eq!(app.builder.default_bg, Some(NamedColor::Red));
+    assert!(app.dirty);
+
+    app.dirty = false;
+    app.set_default_bg(None);
+    assert_eq!(app.builder.default_bg, None);
+    assert!(app.dirty);
+
+    app.dirty = false;
+    app.set_default_bg(Some(NamedColor::Cyan));
+    assert_eq!(app.builder.default_bg, Some(NamedColor::Cyan));
+    assert!(app.dirty);
+}
+
+#[test]
+fn render_cramped_area_no_panic() {
+    let app = mk_app();
+    let backend = TestBackend::new(20, 6);
+    let mut terminal = ratatui::Terminal::new(backend).unwrap();
+    terminal.draw(|f| render(f, f.area(), &app)).unwrap();
+    // if we get here, no panic
+}
+
+#[test]
+fn picker_selected_out_of_bounds_no_panic_no_reversed() {
+    let mut app = mk_app();
+    // rows().len() == 4 for a 1-line app
+    app.picker_selected = 99;
+    app.focus = Focus::Middle;
+
+    let buf = render_to_buffer(&app);
+
+    // None of the 4 real rows should be REVERSED (index 99 matches nothing).
+    for y in 0..4u16 {
+        let cell = buf.cell((0, y)).expect("cell exists");
+        assert!(
+            !cell.modifier.contains(ratatui::style::Modifier::REVERSED),
+            "row {y} must not be REVERSED when picker_selected is out of bounds"
+        );
+    }
+}
