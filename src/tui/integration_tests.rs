@@ -6,7 +6,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifi
 
 use crate::config::schema::{Config, Line};
 use crate::tui::app4::{App, Focus, Mode};
-use crate::tui::builder::{BuilderSegment, to_config};
+use crate::tui::builder::BuilderSegment;
 use crate::tui::catalog::Category;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -86,13 +86,10 @@ fn navigate_and_save() {
     app.handle(press_mod(KeyCode::Char('s'), KeyModifiers::CONTROL));
     assert_eq!(app.mode, Mode::Saving);
 
-    // Simulate the run4 save-handler: save synchronously, then reset mode.
-    let cfg = to_config(&app.builder);
-    let result = crate::tui::overlays::save::save(&app.output_path, &cfg);
-    assert!(result.is_ok(), "save must succeed: {:?}", result);
-    app.set_status_ok(format!("saved → {}", result.unwrap().display()));
-    app.dirty = false;
-    app.mode = Mode::Browsing;
+    // Drive the save via the shared helper (same logic as run4_with_app).
+    crate::tui::process_save_if_needed(&mut app);
+    assert_eq!(app.mode, Mode::Browsing);
+    assert!(!app.dirty, "dirty must be false after successful save");
 
     // Verify the file was written and contains the toggled preset.
     let saved_json = std::fs::read_to_string(&out_path).expect("saved file must exist");
@@ -308,5 +305,195 @@ fn toggled_preset_is_preset_variant() {
     match &app.builder.lines[0].segments[0] {
         BuilderSegment::Preset { .. } => {}
         other => panic!("expected Preset variant, got {:?}", other),
+    }
+}
+
+// ── Test 13: dirty stays true on save failure ─────────────────────────────────
+
+#[test]
+fn dirty_stays_true_on_save_failure() {
+    // Point output_path to a non-writable directory entry so save fails.
+    let mut app = App::new(fresh_config(), PathBuf::from("/dev/null/cannot_write.json"));
+    app.dirty = true;
+    app.mode = Mode::Saving;
+
+    crate::tui::process_save_if_needed(&mut app);
+
+    assert_eq!(app.mode, Mode::Browsing);
+    assert!(app.dirty, "dirty must remain true after a failed save");
+    // Status message must be set and start with "save failed".
+    let msg = app
+        .status_message
+        .as_ref()
+        .map(|(m, _)| m.as_str())
+        .unwrap_or("");
+    assert!(
+        msg.starts_with("save failed"),
+        "expected save-failed status, got: {msg:?}"
+    );
+}
+
+// ── Test 14: ? opens Help from any focus ─────────────────────────────────────
+
+#[test]
+fn help_from_all_foci() {
+    for focus in [
+        crate::tui::app4::Focus::Top,
+        crate::tui::app4::Focus::Middle,
+        crate::tui::app4::Focus::Bottom,
+    ] {
+        let mut app = fresh_app();
+        app.focus = focus;
+        app.handle(press(KeyCode::Char('?')));
+        assert_eq!(app.mode, Mode::Help, "? should open Help from {focus:?}");
+    }
+}
+
+// ── Test 15: ConfirmDelete flow ───────────────────────────────────────────────
+
+#[test]
+fn confirm_delete_line_flow() {
+    use crate::tui::app4::Cursor;
+
+    // Build app with 2 lines, first line has 1 segment.
+    let mut cfg = fresh_config();
+    cfg.lines.push(crate::config::schema::Line {
+        separator: " | ".into(),
+        segments: vec![],
+    });
+    let mut app = App::new(cfg, PathBuf::from("/tmp/confirm_delete_test.json"));
+
+    // Add a segment to line 0 via middle pane.
+    app.handle(press(KeyCode::Tab)); // → Middle
+    app.handle(press(KeyCode::Char(' '))); // toggle first preset on
+    assert_eq!(app.builder.lines[0].segments.len(), 1);
+
+    // Go to Top, make sure cursor is on Gutter of line 0.
+    app.handle(press(KeyCode::Tab)); // Middle → Bottom
+    app.handle(press(KeyCode::Tab)); // Bottom → Top
+    assert_eq!(app.focus, crate::tui::app4::Focus::Top);
+    app.cursor = Cursor::Gutter;
+    app.active_line = 0;
+
+    // 'x' on Gutter with 1 segment → ConfirmDelete.
+    app.handle(press(KeyCode::Char('x')));
+    assert_eq!(app.mode, Mode::ConfirmDelete);
+
+    // 'n' → back to Browsing, line still present.
+    app.handle(press(KeyCode::Char('n')));
+    assert_eq!(app.mode, Mode::Browsing);
+    assert_eq!(
+        app.builder.lines.len(),
+        2,
+        "line must still exist after 'n'"
+    );
+
+    // 'x' again → ConfirmDelete again.
+    app.handle(press(KeyCode::Char('x')));
+    assert_eq!(app.mode, Mode::ConfirmDelete);
+
+    // 'y' → Browsing, line removed, dirty=true.
+    app.handle(press(KeyCode::Char('y')));
+    assert_eq!(app.mode, Mode::Browsing);
+    assert_eq!(app.builder.lines.len(), 1, "line must be removed after 'y'");
+    assert!(app.dirty);
+}
+
+// ── Test 16: color-picker fg/bg/cancel ───────────────────────────────────────
+
+#[test]
+fn color_picker_fg_flow() {
+    use crate::config::named_color::NamedColor;
+    use crate::tui::app4::Cursor;
+    use crate::tui::overlays::color_picker::ENTRY_COUNT;
+
+    let mut app = fresh_app();
+    // Add a segment.
+    app.handle(press(KeyCode::Tab)); // → Middle
+    app.handle(press(KeyCode::Char(' '))); // toggle first preset on
+    app.handle(press(KeyCode::Tab)); // Middle → Bottom
+    app.handle(press(KeyCode::Tab)); // Bottom → Top
+    app.cursor = Cursor::Segment(0);
+
+    // 'c' → PickingFgColor.
+    app.handle(press(KeyCode::Char('c')));
+    assert_eq!(app.mode, Mode::PickingFgColor);
+
+    let before = app.color_picker_selected;
+    // Down moves selection.
+    app.handle(press(KeyCode::Down));
+    assert_eq!(app.color_picker_selected, (before + 1) % ENTRY_COUNT);
+
+    // Enter commits: first entry maps to NamedColor::Red (index 0) or whatever index says.
+    app.color_picker_selected = 0; // "red"
+    app.handle(press(KeyCode::Enter));
+    assert_eq!(app.mode, Mode::Browsing);
+
+    // Segment's color must be Some(NamedColor::Red).
+    match &app.builder.lines[0].segments[0] {
+        BuilderSegment::Preset { color, .. } => {
+            assert_eq!(*color, Some(NamedColor::Red));
+        }
+        other => panic!("expected Preset, got {:?}", other),
+    }
+}
+
+#[test]
+fn color_picker_bg_flow() {
+    use crate::config::named_color::NamedColor;
+    use crate::tui::app4::Cursor;
+
+    let mut app = fresh_app();
+    app.handle(press(KeyCode::Tab));
+    app.handle(press(KeyCode::Char(' ')));
+    app.handle(press(KeyCode::Tab));
+    app.handle(press(KeyCode::Tab));
+    app.cursor = Cursor::Segment(0);
+
+    // 'b' → PickingBgColor.
+    app.handle(press(KeyCode::Char('b')));
+    assert_eq!(app.mode, Mode::PickingBgColor);
+
+    app.color_picker_selected = 1; // "green"
+    app.handle(press(KeyCode::Enter));
+    assert_eq!(app.mode, Mode::Browsing);
+
+    match &app.builder.lines[0].segments[0] {
+        BuilderSegment::Preset { bg, .. } => {
+            assert_eq!(*bg, Some(NamedColor::Green));
+        }
+        other => panic!("expected Preset, got {:?}", other),
+    }
+}
+
+#[test]
+fn color_picker_cancel_no_change() {
+    use crate::tui::app4::Cursor;
+
+    let mut app = fresh_app();
+    app.handle(press(KeyCode::Tab));
+    app.handle(press(KeyCode::Char(' ')));
+    app.handle(press(KeyCode::Tab));
+    app.handle(press(KeyCode::Tab));
+    app.cursor = Cursor::Segment(0);
+
+    // Record initial color.
+    let initial_color = match &app.builder.lines[0].segments[0] {
+        BuilderSegment::Preset { color, .. } => *color,
+        other => panic!("expected Preset, got {:?}", other),
+    };
+
+    app.handle(press(KeyCode::Char('c')));
+    assert_eq!(app.mode, Mode::PickingFgColor);
+
+    // Esc cancels — color must be unchanged.
+    app.handle(press(KeyCode::Esc));
+    assert_eq!(app.mode, Mode::Browsing);
+
+    match &app.builder.lines[0].segments[0] {
+        BuilderSegment::Preset { color, .. } => {
+            assert_eq!(*color, initial_color);
+        }
+        other => panic!("expected Preset, got {:?}", other),
     }
 }

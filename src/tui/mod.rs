@@ -108,13 +108,7 @@ pub fn run4_with_app(mut app: app4::App) -> Result<(), Error> {
             }
             // Saving is synchronous — handle here so the loop sees updated state.
             if app.mode == app4::Mode::Saving {
-                let cfg = builder::to_config(&app.builder);
-                match overlays::save::save(&app.output_path, &cfg) {
-                    Ok(p) => app.set_status_ok(format!("saved \u{2192} {}", p.display())),
-                    Err(e) => app.set_status_err(format!("save failed: {e}")),
-                }
-                app.dirty = false;
-                app.mode = app4::Mode::Browsing;
+                process_save_if_needed(&mut app);
             }
         }
         Ok(())
@@ -125,6 +119,24 @@ pub fn run4_with_app(mut app: app4::App) -> Result<(), Error> {
     crossterm::terminal::disable_raw_mode().map_err(Error::Io)?;
 
     result
+}
+
+/// Execute the save block once.  Sets status, clears dirty on success only.
+/// Called from `run4_with_app` and exposed for integration tests.
+pub(crate) fn process_save_if_needed(app: &mut app4::App) {
+    app.set_status_ok("saving\u{2026}".into());
+    let cfg = builder::to_config(&app.builder);
+    match overlays::save::save(&app.output_path, &cfg) {
+        Ok(p) => {
+            app.set_status_ok(format!("saved \u{2192} {}", p.display()));
+            app.dirty = false;
+        }
+        Err(e) => {
+            app.set_status_err(format!("save failed: {e}"));
+            // dirty stays true so user can retry
+        }
+    }
+    app.mode = app4::Mode::Browsing;
 }
 
 #[cfg(test)]

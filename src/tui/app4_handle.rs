@@ -31,6 +31,7 @@ impl App {
             (KeyCode::Char('q'), KeyModifiers::NONE) => self.request_quit(),
             (KeyCode::Char('c'), KeyModifiers::CONTROL) => self.should_quit = true,
             (KeyCode::Char('s'), KeyModifiers::CONTROL) => self.mode = Mode::Saving,
+            (KeyCode::Char('?'), KeyModifiers::NONE) => self.mode = Mode::Help,
             _ => match self.focus {
                 Focus::Top => self.handle_browsing_top(event),
                 Focus::Middle => self.handle_browsing_middle(event),
@@ -48,22 +49,22 @@ impl App {
             (KeyCode::Down, _) | (KeyCode::Char('j'), KeyModifiers::NONE) => {
                 self.cursor_down_line()
             }
-            (KeyCode::Char('<'), _) => {
+            (KeyCode::Char('<'), KeyModifiers::NONE) => {
                 if matches!(self.cursor, Cursor::Segment(_)) {
                     self.reorder_left();
                 }
             }
-            (KeyCode::Char('>'), _) => {
+            (KeyCode::Char('>'), KeyModifiers::NONE) => {
                 if matches!(self.cursor, Cursor::Segment(_)) {
                     self.reorder_right();
                 }
             }
-            (KeyCode::Char('x'), _) => match self.cursor {
+            (KeyCode::Char('x'), KeyModifiers::NONE) => match self.cursor {
                 Cursor::Segment(_) => self.delete_segment(),
                 Cursor::Gutter => self.delete_line(),
                 Cursor::VirtualNewLine => {}
             },
-            (KeyCode::Char('s'), _) => {
+            (KeyCode::Char('s'), KeyModifiers::NONE) => {
                 if matches!(self.cursor, Cursor::Gutter) {
                     self.mode = Mode::EditingSeparator;
                     // pre-fill buffer with current separator
@@ -86,7 +87,7 @@ impl App {
                     self.move_line_up();
                 }
             }
-            (KeyCode::Char('y'), _) => {
+            (KeyCode::Char('y'), KeyModifiers::NONE) => {
                 if matches!(self.cursor, Cursor::Gutter) {
                     self.duplicate_line();
                 }
@@ -106,24 +107,24 @@ impl App {
                     self.add_line();
                 }
             }
-            (KeyCode::Char('1'), _) => self.set_active_line(0),
-            (KeyCode::Char('2'), _) => self.set_active_line(1),
-            (KeyCode::Char('3'), _) => self.set_active_line(2),
-            (KeyCode::Char('?'), _) => self.mode = Mode::Help,
+            (KeyCode::Char('1'), KeyModifiers::NONE) => self.set_active_line(0),
+            (KeyCode::Char('2'), KeyModifiers::NONE) => self.set_active_line(1),
+            (KeyCode::Char('3'), KeyModifiers::NONE) => self.set_active_line(2),
             _ => {}
         }
     }
 
     fn handle_browsing_middle(&mut self, event: crossterm::event::KeyEvent) {
-        use crossterm::event::KeyCode;
+        use crossterm::event::{KeyCode, KeyModifiers};
         match (event.code, event.modifiers) {
-            (KeyCode::Up, _) | (KeyCode::Char('k'), _) => self.picker_select_up(),
-            (KeyCode::Down, _) | (KeyCode::Char('j'), _) => self.picker_select_down(),
-            (KeyCode::Char('['), _) => self.tab_cycle_prev(),
-            (KeyCode::Char(']'), _) => self.tab_cycle_next(),
-            (KeyCode::Char(' '), _) => self.toggle_selected_preset(),
-            (KeyCode::Char('/'), _) => self.open_filter(),
-            (KeyCode::Char('?'), _) => self.mode = Mode::Help,
+            (KeyCode::Up, _) | (KeyCode::Char('k'), KeyModifiers::NONE) => self.picker_select_up(),
+            (KeyCode::Down, _) | (KeyCode::Char('j'), KeyModifiers::NONE) => {
+                self.picker_select_down()
+            }
+            (KeyCode::Char('['), KeyModifiers::NONE) => self.tab_cycle_prev(),
+            (KeyCode::Char(']'), KeyModifiers::NONE) => self.tab_cycle_next(),
+            (KeyCode::Char(' '), KeyModifiers::NONE) => self.toggle_selected_preset(),
+            (KeyCode::Char('/'), KeyModifiers::NONE) => self.open_filter(),
             _ => {}
         }
     }
@@ -165,7 +166,7 @@ impl App {
     }
 
     fn handle_picking_color(&mut self, event: crossterm::event::KeyEvent) {
-        use crate::tui::overlays::color_picker::{handle as pick_handle, PickerEvent};
+        use crate::tui::overlays::color_picker::{PickerEvent, handle as pick_handle};
         let ev = pick_handle(event, &mut self.color_picker_selected);
         let is_fg = self.mode == Mode::PickingFgColor;
         match ev {
@@ -250,7 +251,7 @@ impl App {
     }
 
     fn visible_preset_count(&self) -> usize {
-        use crate::tui::catalog::{by_category, Category};
+        use crate::tui::catalog::{Category, by_category};
         if self.active_tab == Category::Appearance {
             return 3 + self.builder.lines.len();
         }
