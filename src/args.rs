@@ -21,6 +21,10 @@ pub struct Args {
     pub debug: bool,
     /// `--check`
     pub check: bool,
+    /// `--configure` — open the interactive TUI config editor.
+    pub configure: bool,
+    /// `--output <PATH>` — override the output path for `--configure`.
+    pub output: Option<std::path::PathBuf>,
     /// `--version` or `-V`
     pub version: bool,
     /// `--help` or `-h`
@@ -62,6 +66,14 @@ pub fn parse(args: &[String]) -> Args {
                 match key {
                     "config" => out.config_path = Some(std::path::PathBuf::from(val)),
                     "template" => out.template_name = Some(val.to_owned()),
+                    "output" => out.output = Some(std::path::PathBuf::from(val)),
+                    "configure" => {
+                        out.configure = true;
+                        if !val.is_empty() {
+                            out.unknown.push(arg.clone());
+                            out.configure = false;
+                        }
+                    }
                     "print-config" => {
                         out.print_config = true;
                         // `=VALUE` suffix on a boolean flag is unexpected; treat
@@ -129,6 +141,18 @@ pub fn parse(args: &[String]) -> Args {
                         out.unknown.push(arg.clone());
                     }
                 }
+                "output" => {
+                    if iter
+                        .as_slice()
+                        .first()
+                        .is_some_and(|v| !v.starts_with("--"))
+                    {
+                        out.output = Some(std::path::PathBuf::from(iter.next().unwrap()));
+                    } else {
+                        out.unknown.push(arg.clone());
+                    }
+                }
+                "configure" => out.configure = true,
                 "print-config" => out.print_config = true,
                 "debug" => out.debug = true,
                 "check" => out.check = true,

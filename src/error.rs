@@ -33,6 +33,10 @@ pub enum Error {
     FormatRender(String),
     /// Failure to read or parse a config file.
     ConfigParse(String),
+    /// --configure invoked on a non-TTY (e.g. piped or in CI).
+    NotATty,
+    /// I/O error from the TUI runtime (crossterm / ratatui terminal init).
+    Io(std::io::Error),
 }
 
 impl fmt::Display for Error {
@@ -47,6 +51,8 @@ impl fmt::Display for Error {
             Error::CacheWrite(msg) => write!(f, "[CacheWrite] {msg}"),
             Error::FormatRender(msg) => write!(f, "[FormatRender] {msg}"),
             Error::ConfigParse(msg) => write!(f, "[ConfigParse] {msg}"),
+            Error::NotATty => write!(f, "[NotATty] --configure requires an interactive terminal"),
+            Error::Io(e) => write!(f, "[Io] {e}"),
         }
     }
 }
@@ -189,7 +195,7 @@ mod tests {
 
     #[test]
     fn all_variant_displays_are_non_empty() {
-        let variants: &[Error] = &[
+        let variants: Vec<Error> = vec![
             Error::StdinParse("x".into()),
             Error::CredsRead("x".into()),
             Error::ApiTransport("x".into()),
@@ -198,10 +204,24 @@ mod tests {
             Error::CacheRead("x".into()),
             Error::CacheWrite("x".into()),
             Error::FormatRender("x".into()),
+            Error::NotATty,
+            Error::Io(std::io::Error::from(std::io::ErrorKind::Other)),
         ];
-        for v in variants {
+        for v in &variants {
             let s = v.to_string();
             assert!(!s.is_empty(), "Display must be non-empty for {v:?}");
         }
+    }
+
+    #[test]
+    fn not_a_tty_display() {
+        let e = Error::NotATty;
+        assert!(e.to_string().contains("NotATty"));
+    }
+
+    #[test]
+    fn io_variant_display() {
+        let e = Error::Io(std::io::Error::from(std::io::ErrorKind::BrokenPipe));
+        assert!(e.to_string().contains("Io"));
     }
 }

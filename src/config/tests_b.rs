@@ -389,6 +389,9 @@ fn print_config_overrides_existing_schema_url_with_canonical() {
 fn print_config_empty_lines_produces_valid_json() {
     let cfg = Config {
         schema_url: None,
+        powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![],
     };
     let out = print_config(&cfg);

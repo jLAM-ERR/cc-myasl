@@ -14,3 +14,4 @@ pub mod git;
 pub mod payload;
 pub mod payload_mapping;
 pub mod time;
+pub mod tui;

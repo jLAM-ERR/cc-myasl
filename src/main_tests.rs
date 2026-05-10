@@ -215,6 +215,9 @@ fn make_config_with_template(template: &str) -> cc_myasl::config::Config {
     use cc_myasl::config::{Config, Line, Segment, TemplateSegment};
     Config {
         schema_url: None,
+        powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: " ".to_owned(),
             segments: vec![Segment::Template(TemplateSegment::new(template))],
@@ -254,6 +257,9 @@ fn config_uses_git_empty_config_returns_false() {
     use cc_myasl::config::Config;
     let cfg = Config {
         schema_url: None,
+        powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![],
     };
     assert!(!config_uses_git(&cfg));
@@ -308,6 +314,9 @@ fn config_uses_git_multiple_segments_any_match_returns_true() {
     use cc_myasl::config::{Config, Line, Segment, TemplateSegment};
     let cfg = Config {
         schema_url: None,
+        powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![Line {
             separator: " ".to_owned(),
             segments: vec![
@@ -324,6 +333,9 @@ fn config_uses_git_multiple_lines_any_match_returns_true() {
     use cc_myasl::config::{Config, Line, Segment, TemplateSegment};
     let cfg = Config {
         schema_url: None,
+        powerline: false,
+        default_fg: None,
+        default_bg: None,
         lines: vec![
             Line {
                 separator: " ".to_owned(),

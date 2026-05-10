@@ -17,6 +17,11 @@
       "items": {
         "$ref": "#/definitions/Line"
       }
+    },
+    "powerline": {
+      "description": "When true, render segments as Powerline blocks with chevron transitions between adjacent background colors. Requires a Nerd Font for the chevron glyph.",
+      "type": "boolean",
+      "default": false
     }
   },
   "definitions": {
@@ -71,6 +76,16 @@
           "description": "When true, the segment is omitted entirely (including its adjacent separator) if every placeholder in the template resolves to an absent value.",
           "type": "boolean",
           "default": false
+        },
+        "color": {
+          "description": "Foreground (text) color using a named ANSI-16 color. Omit or set to null for the terminal default.",
+          "type": "string",
+          "enum": ["red", "green", "yellow", "blue", "magenta", "cyan", "white", "default"]
+        },
+        "bg": {
+          "description": "Background color using a named ANSI-16 color. Omit or set to null for the terminal default.",
+          "type": "string",
+          "enum": ["red", "green", "yellow", "blue", "magenta", "cyan", "white", "default"]
         }
       }
     },

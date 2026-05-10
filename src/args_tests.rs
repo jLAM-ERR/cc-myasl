@@ -368,3 +368,61 @@ fn all_known_flags_together() {
     assert_eq!(a.template_name, Some("compact".into()));
     assert!(a.unknown.is_empty());
 }
+
+// ── --configure ──────────────────────────────────────────────────────────
+
+#[test]
+fn configure_alone() {
+    let a = parse(&s(&["--configure"]));
+    assert!(a.configure);
+    assert!(a.output.is_none());
+    assert!(!a.debug);
+    assert!(a.unknown.is_empty());
+}
+
+#[test]
+fn configure_with_output() {
+    let a = parse(&s(&["--configure", "--output", "/tmp/x.json"]));
+    assert!(a.configure);
+    assert_eq!(a.output, Some(std::path::PathBuf::from("/tmp/x.json")));
+    assert!(a.unknown.is_empty());
+}
+
+#[test]
+fn configure_with_output_equals() {
+    let a = parse(&s(&["--configure", "--output=/tmp/y.json"]));
+    assert!(a.configure);
+    assert_eq!(a.output, Some(std::path::PathBuf::from("/tmp/y.json")));
+    assert!(a.unknown.is_empty());
+}
+
+#[test]
+fn output_dangling_goes_to_unknown() {
+    let a = parse(&s(&["--output"]));
+    assert!(a.output.is_none());
+    assert_eq!(a.unknown, vec!["--output".to_string()]);
+}
+
+#[test]
+fn configure_with_debug() {
+    let a = parse(&s(&["--configure", "--debug"]));
+    assert!(a.configure);
+    assert!(a.debug);
+    assert!(a.output.is_none());
+    assert!(a.unknown.is_empty());
+}
+
+#[test]
+fn configure_with_value_suffix_is_unknown() {
+    let a = parse(&s(&["--configure=yes"]));
+    assert!(!a.configure);
+    assert_eq!(a.unknown, vec!["--configure=yes".to_string()]);
+}
+
+#[test]
+fn output_without_configure_still_parses() {
+    let a = parse(&s(&["--output", "/tmp/z.json"]));
+    assert!(!a.configure);
+    assert_eq!(a.output, Some(std::path::PathBuf::from("/tmp/z.json")));
+    assert!(a.unknown.is_empty());
+}
