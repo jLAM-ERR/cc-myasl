@@ -331,6 +331,48 @@ fn bottom_pane_no_filter_hint_in_filter_mode() {
     );
 }
 
+// ── tab cycle resets mode ─────────────────────────────────────────────────────
+
+#[test]
+fn tab_cycle_resets_mode_from_filter_to_browsing() {
+    let mut app = fresh_app();
+    app.open_filter();
+    app.filter_type('m');
+    assert_eq!(app.mode, Mode::Filter);
+    app.tab_cycle_next();
+    assert_eq!(app.mode, Mode::Browsing);
+    assert_eq!(app.picker_filter, "");
+}
+
+#[test]
+fn tab_cycle_prev_resets_mode_from_filter_to_browsing() {
+    let mut app = fresh_app();
+    app.open_filter();
+    app.filter_type('x');
+    assert_eq!(app.mode, Mode::Filter);
+    app.tab_cycle_prev();
+    assert_eq!(app.mode, Mode::Browsing);
+    assert_eq!(app.picker_filter, "");
+}
+
+// ── filter hint hidden on Appearance tab ──────────────────────────────────────
+
+#[test]
+fn filter_hint_hidden_on_appearance_tab() {
+    let mut app = fresh_app();
+    app.active_tab = Category::Appearance;
+    app.open_filter();
+    app.filter_type('t');
+    app.filter_type('e');
+    app.commit_filter();
+    app.focus = crate::tui::app4::Focus::Middle;
+    let output = render_bottom(&app);
+    assert!(
+        !output.contains("filter:"),
+        "filter hint must not appear on Appearance tab; output={output:?}"
+    );
+}
+
 // ── clear_filter ──────────────────────────────────────────────────────────────
 
 #[test]

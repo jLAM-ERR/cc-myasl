@@ -249,6 +249,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     if app.focus == Focus::Middle
         && app.mode == Mode::Browsing
         && !app.picker_filter.is_empty()
+        && app.active_tab != Category::Appearance
         && inner_height > 1
     {
         let hint = format!("filter: {}  /:clear", app.picker_filter);

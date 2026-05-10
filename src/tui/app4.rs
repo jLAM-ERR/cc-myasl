@@ -158,6 +158,7 @@ impl App {
     // ── tab cycle ─────────────────────────────────────────────────────────────
 
     pub fn tab_cycle_next(&mut self) {
+        self.mode = Mode::Browsing;
         let cats = Category::ordered();
         let pos = cats.iter().position(|c| *c == self.active_tab).unwrap_or(0);
         self.active_tab = cats[(pos + 1) % cats.len()];
@@ -167,6 +168,7 @@ impl App {
     }
 
     pub fn tab_cycle_prev(&mut self) {
+        self.mode = Mode::Browsing;
         let cats = Category::ordered();
         let pos = cats.iter().position(|c| *c == self.active_tab).unwrap_or(0);
         self.active_tab = cats[(pos + cats.len() - 1) % cats.len()];
@@ -349,8 +351,10 @@ impl App {
 
     // ── filter mode ──────────────────────────────────────────────────────────
 
-    /// Open filter mode.  If already in Filter mode, clears filter and stays.
-    /// If already in Browsing with an active filter, pressing `/` clears it.
+    /// Open filter mode. If already in `Mode::Filter`, clear the input but stay
+    /// in Filter mode. If in `Mode::Browsing` with or without a committed filter,
+    /// transition to `Mode::Filter` with an empty input. The previous filter (if
+    /// any) is discarded.
     pub fn open_filter(&mut self) {
         if self.mode == Mode::Filter {
             // Already filtering — `/` again clears and re-opens.
