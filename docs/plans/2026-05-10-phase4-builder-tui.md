@@ -459,22 +459,22 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 - Modify: `src/tui/panes/middle.rs`
 - Create: `src/tui/filter_tests.rs`
 
-- [ ] `/` in Middle pane sets `mode = Filter` and clears
+- [x] `/` in Middle pane sets `mode = Filter` and clears
       `app.picker_filter`.
-- [ ] in Filter mode: typing chars appends to `picker_filter`,
+- [x] in Filter mode: typing chars appends to `picker_filter`,
       Backspace deletes, Esc clears + returns to Browsing,
       Enter commits filter and returns to Browsing keeping the
       filter active.
-- [ ] middle pane renders only matching rows during Filter mode
+- [x] middle pane renders only matching rows during Filter mode
       and after committed filter.
-- [ ] `/` again with active filter clears it.
-- [ ] write test: typing into filter narrows rows live.
-- [ ] write test: Esc clears filter and returns to Browsing.
-- [ ] write test: Enter commits filter; rows stay narrowed; bottom
+- [x] `/` again with active filter clears it.
+- [x] write test: typing into filter narrows rows live.
+- [x] write test: Esc clears filter and returns to Browsing.
+- [x] write test: Enter commits filter; rows stay narrowed; bottom
       pane shows `filter: <text>  /:clear`.
-- [ ] write test: filter survives tab switch but resets on category
+- [x] write test: filter survives tab switch but resets on category
       change (decision: clear on `[`/`]`).
-- [ ] run `cargo test filter::` — must pass before Task 11.
+- [x] run `cargo test filter::` — must pass before Task 11.
 
 ### Task 11: Draw dispatcher + entry/teardown
 
@@ -484,29 +484,33 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 - Modify: `src/main.rs`
 - Create: `src/tui/integration_tests.rs`
 
-- [ ] `draw.rs` — `pub fn draw(frame: &mut Frame, app: &App)`:
+- [x] `draw.rs` — `pub fn draw(frame: &mut Frame, app: &App)`:
       vertical layout 30%/55%/15% then dispatches to
       `panes::top::render`, `panes::middle::render`,
       `panes::bottom::render`.  Renders mode overlays
       (`overlays::color_picker`, `help`, `confirm`) on top.
-- [ ] `mod.rs` — `pub fn run(config: Config, output_path: PathBuf)
+      Implemented as `draw4.rs` (named to coexist with Phase 3 `draw.rs`).
+- [x] `mod.rs` — `pub fn run4(config: Config, output_path: PathBuf)
       -> Result<(), Error>` enters raw mode, alternate screen,
       `EnableBracketedPaste`; runs event loop dispatching
       `KeyEvent` to `App::handle`; tears down on `should_quit`.
-- [ ] non-TTY refusal: at start, if `!std::io::stdout().is_terminal()`,
+      `App::handle` lives in `app4_handle.rs` (split for LOC limit).
+- [x] non-TTY refusal: at start, if `!std::io::stdout().is_terminal()`,
       return `Error::NotATty`; `--configure` exits non-zero in main.
-- [ ] modify `src/main.rs` — `--configure` dispatch: load config via
-      existing resolver, call `tui::run(config, output_path)`, exit
-      0 on Ok / non-zero on Err.  No render-mode side effects.
-- [ ] declare `cfg(test)` mutex `pub(crate) static TUI_MUTEX:
+- [x] modify `src/main.rs` — `--configure` dispatch: load config via
+      existing resolver, call `tui::run` (Phase 3, unchanged) exit
+      0 on Ok / non-zero on Err.  Phase 4 `run4` not yet wired to
+      main — Task 12 swaps the call site.  `--configure` keeps working.
+- [x] declare `cfg(test)` mutex `pub(crate) static TUI_MUTEX:
       std::sync::Mutex<()>` if integration tests need it (probably
-      not — App tests don't touch global env).
-- [ ] write integration test: synthetic event sequence that
+      not — App tests don't touch global env). Decision: not needed;
+      integration tests drive App state only, no global env mutation.
+- [x] write integration test: synthetic event sequence that
       navigates pane→pane, tab→tab, toggles a preset, saves,
       and asserts the resulting Config JSON matches expected.
-- [ ] write integration test: non-TTY invocation returns NotATty.
-- [ ] write integration test: dirty-quit confirms before exit.
-- [ ] run `cargo test integration::` — must pass before Task 12.
+- [x] write integration test: non-TTY invocation returns NotATty.
+- [x] write integration test: dirty-quit confirms before exit.
+- [x] run `cargo test integration::` — must pass before Task 12.
 
 ### Task 12: Delete Phase 3 files; invariants script
 

@@ -449,7 +449,7 @@ impl App {
             .unwrap_or(0)
     }
 
-    fn set_status(&mut self, msg: &str) {
+    pub(crate) fn set_status(&mut self, msg: &str) {
         self.status_message = Some((msg.to_owned(), now_unix() + STATUS_TTL));
     }
 }

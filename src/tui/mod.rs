@@ -1,6 +1,7 @@
 pub mod ansi;
 pub mod app;
 pub mod app4;
+pub mod app4_handle;
 pub mod app_color;
 pub mod app_editor;
 pub mod app_picker;
@@ -8,6 +9,7 @@ pub mod app_save;
 pub mod builder;
 pub mod catalog;
 pub mod draw;
+pub mod draw4;
 pub mod overlays;
 pub mod panes;
 pub mod preview;
@@ -15,6 +17,7 @@ pub mod save;
 pub mod widgets;
 
 use std::io;
+use std::io::IsTerminal;
 use std::path::PathBuf;
 
 use crossterm::{
@@ -25,6 +28,7 @@ use crossterm::{
 use ratatui::{Terminal, backend::CrosstermBackend};
 
 use crate::config::schema::Config;
+use crate::error::Error;
 
 use app::App;
 use draw::draw;
@@ -39,6 +43,7 @@ impl Drop for TerminalGuard {
     }
 }
 
+/// Phase 3 entry point — kept intact for `--configure` while Phase 4 develops.
 pub fn run(config: Config, output_path: PathBuf) -> io::Result<()> {
     enable_raw_mode()?;
     execute!(io::stdout(), EnterAlternateScreen)?;
@@ -62,6 +67,69 @@ pub fn run(config: Config, output_path: PathBuf) -> io::Result<()> {
 
     Ok(())
 }
+
+/// Phase 4 entry point — 3-pane builder TUI.
+///
+/// Exposed for integration testing via `run4_with_app` below.  Not yet wired
+/// to `--configure` in main.rs — Task 12 swaps the call site once Phase 3
+/// is removed.  `--configure` continues to call `tui::run` (Phase 3) during
+/// Phase 4 development.
+pub fn run4(config: Config, output_path: PathBuf) -> Result<(), Error> {
+    if !io::stdout().is_terminal() {
+        return Err(Error::NotATty);
+    }
+    let app = app4::App::new(config, output_path);
+    run4_with_app(app)
+}
+
+/// Headless-testable Phase 4 event loop. Callers may construct any `App` state.
+pub fn run4_with_app(mut app: app4::App) -> Result<(), Error> {
+    use crossterm::event::{DisableBracketedPaste, EnableBracketedPaste, KeyEventKind};
+    use crossterm::terminal::{EnterAlternateScreen as Enter, LeaveAlternateScreen as Leave};
+
+    crossterm::terminal::enable_raw_mode().map_err(Error::Io)?;
+    let mut stdout = io::stdout();
+    crossterm::execute!(stdout, Enter, EnableBracketedPaste).map_err(Error::Io)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend).map_err(Error::Io)?;
+
+    let result = (|| -> Result<(), Error> {
+        loop {
+            terminal.draw(|f| draw4::draw(f, &app)).map_err(Error::Io)?;
+            if app.should_quit {
+                break;
+            }
+            if let crossterm::event::Event::Key(key) =
+                crossterm::event::read().map_err(Error::Io)?
+            {
+                if key.kind == KeyEventKind::Press {
+                    app.handle(key);
+                }
+            }
+            // Saving is synchronous — handle here so the loop sees updated state.
+            if app.mode == app4::Mode::Saving {
+                let cfg = builder::to_config(&app.builder);
+                match overlays::save::save(&app.output_path, &cfg) {
+                    Ok(p) => app.set_status_ok(format!("saved \u{2192} {}", p.display())),
+                    Err(e) => app.set_status_err(format!("save failed: {e}")),
+                }
+                app.dirty = false;
+                app.mode = app4::Mode::Browsing;
+            }
+        }
+        Ok(())
+    })();
+
+    crossterm::execute!(terminal.backend_mut(), DisableBracketedPaste, Leave,)
+        .map_err(Error::Io)?;
+    crossterm::terminal::disable_raw_mode().map_err(Error::Io)?;
+
+    result
+}
+
+#[cfg(test)]
+#[path = "integration_tests.rs"]
+mod integration;
 
 #[cfg(test)]
 mod tests {
