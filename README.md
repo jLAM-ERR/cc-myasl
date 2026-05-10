@@ -83,24 +83,70 @@ echo '{}' | ~/.claude/bin/cc-myasl --template default
 cc-myasl --configure
 ```
 
-Opens a TUI for editing your config visually. Four panes:
+### Phase 4 builder TUI
 
-- **Lines** (top-left) — add, remove, reorder lines (max 3).
-- **Segments** (top-right) — add, remove, reorder segments on the
-  selected line. Pick from 69 placeholders via filter-as-you-type.
-- **Editor** (middle) — edit the current segment's template,
-  padding, `hide_when_absent` flag, and per-segment fg/bg colors.
-  Toggle Powerline mode globally.
-- **Preview** (bottom) — live-rendered output against a built-in
-  fixture, updates on every keystroke.
+Opens a 3-pane preset-driven builder:
 
-Press `?` for the keybinding overlay. `Ctrl+S` saves to
-`~/.config/cc-myasl/config.json` with a `.bak` backup. The save
-flow validates first — invalid configs are refused with the error
-shown in the status bar.
+- **Top pane — live preview** — shows your current statusline
+  rendered against a built-in fixture with real ANSI colors, icons,
+  and numbers. A `>` gutter marks the active line. The cursor
+  highlights the selected segment (reversed video); custom
+  hand-edited segments render dim. A `+ new line` virtual row
+  appears when fewer than 3 lines exist.
 
-`--configure` requires an interactive terminal (TTY on both stdin
-and stdout). Pipes exit with code 1 and a clear stderr message.
+- **Middle pane — preset catalog** — 8 tabs of checkbox presets:
+  **Workspace** (6 presets: cwd, basename, worktree, project dir,
+  added dirs, worktree branch), **Git** (5: branch, status, staged,
+  unstaged, untracked), **Session/Model** (8: model, version, vim
+  mode, effort, output style, thinking, agent, session id),
+  **Context** (5: bar, used%, remaining%, size, exceeds-200k),
+  **Tokens** (6: input, output, cached creation, cached read, total,
+  turn total), **Cost** (5: USD, session clock, API duration, lines
+  added/removed), **Rates** (8: 5h left/used/bar/reset/countdown,
+  7d left/used/bar), **Appearance** (powerline toggle, default
+  fg/bg colors, per-line separators). Each row shows `[x]`/`[ ]`,
+  a label, and a live-rendered preview value. Type `/` to filter by
+  label or template; `[`/`]` to cycle tabs.
+
+- **Bottom pane — dynamic keymap** — rewrites itself based on
+  current (focus, mode, cursor) state. Always visible: `Ctrl+S`
+  save, `q` quit, `?` help.
+
+**Keybindings:**
+
+| Key | Action |
+|---|---|
+| `Tab` / `Shift+Tab` | Cycle focus: top → middle → bottom |
+| `[` / `]` | Previous / next tab in middle pane |
+| `h`/`l`, `←`/`→` | Move cursor between segments (top pane) |
+| `j`/`k`, `↑`/`↓` | Move cursor between lines |
+| `<` / `>` | Reorder segment left / right |
+| `x` | Delete segment (on segment cursor) or delete line (on gutter) |
+| `s` | Edit line separator (opens inline editor) |
+| `J` / `K` | Move active line up / down |
+| `y` | Duplicate active line |
+| `c` / `b` | Pick fg / bg color for the cursor segment |
+| `Space` | Toggle preset on/off (middle pane); toggle powerline (Appearance tab) |
+| `/` | Enter filter mode — type to narrow the preset list |
+| `Enter` | Add new line (on virtual row); commit edit |
+| `Ctrl+S` | Save to `~/.config/cc-myasl/config.json` |
+| `?` | Full help overlay |
+| `q` | Quit (prompts if unsaved changes) |
+
+**Custom-template passthrough.** Hand-edited segments in your JSON
+(templates not matching any preset, e.g. `${cost_usd}`) load as
+custom segments. They render dim in the top pane and cannot be
+toggled from the middle pane, but reorder, delete, and color
+operations still work. The JSON is the source of truth — edit
+complex templates there directly.
+
+**Save behavior.** `Ctrl+S` writes atomically (tmp → fsync →
+rename → fsync parent). The first save copies the original file
+to `<path>.bak`; subsequent saves leave `.bak` untouched, preserving
+your pre-TUI snapshot.
+
+`--configure` requires an interactive terminal (TTY). Pipes exit
+with code 1 and a clear stderr message.
 
 To save somewhere other than the default path:
 

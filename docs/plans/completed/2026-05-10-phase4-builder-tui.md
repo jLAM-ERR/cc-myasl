@@ -618,19 +618,19 @@ top-level deps.  ANSI-to-Spans parser is hand-rolled (~50 LOC) — no
 - Modify: `README.md`
 - Modify: `CLAUDE.md`
 
-- [ ] rewrite `README.md` `--configure` section with new
+- [x] rewrite `README.md` `--configure` section with new
       screenshots/asciicast (or markdown-rendered screenshot —
       manual capture step listed in Post-Completion).
-- [ ] add a `### Phase 4 builder TUI` paragraph to README explaining
+- [x] add a `### Phase 4 builder TUI` paragraph to README explaining
       the preset checkbox model, custom passthrough, and that
       hand-edited templates remain editable in the JSON file.
-- [ ] update `CLAUDE.md`: bump module tree to Phase 4 layout;
+- [x] update `CLAUDE.md`: bump module tree to Phase 4 layout;
       reference `2026-05-10-phase4-builder-tui.md` plan; add to the
       "completed" section once moved.
-- [ ] update `docs/plans/completed/` references at bottom of
+- [x] update `docs/plans/completed/` references at bottom of
       `CLAUDE.md`.
-- [ ] run final full test suite + lint gates.
-- [ ] move this plan: `mkdir -p docs/plans/completed && mv
+- [x] run final full test suite + lint gates.
+- [x] move this plan: `mkdir -p docs/plans/completed && mv
       docs/plans/2026-05-10-phase4-builder-tui.md
       docs/plans/completed/`.
 

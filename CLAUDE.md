@@ -83,7 +83,11 @@ src/
     tui/overlays/{mod,color_picker,help,        Invariant 12: every preset template references
     save,confirm}.rs +                          a valid placeholder name (catalog_tests).
     tui/{integration_tests,filter_tests,
-    ansi_tests,catalog_tests,builder_tests}.rs +
+    ansi_tests,catalog_tests,builder_tests,
+    app_tests,app_tests_b}.rs +
+    tui/panes/{top_tests,middle_tests,middle_tests_b,
+    bottom_tests,appearance_tests}.rs +
+    tui/overlays/tests.rs +
     tui/preview_fixture.json
 ```
 
@@ -272,5 +276,6 @@ acquire the appropriate mutex and restore prior values before releasing.
   Implementation complete.
 - `docs/plans/completed/2026-05-01-phase3-interactive-tui.md` — Phase 3
   interactive TUI (`--configure`, colors, Powerline). Implementation complete.
-- `docs/plans/2026-05-10-phase4-builder-tui.md` — Phase 4 builder TUI
-  (3-pane preset-driven `--configure` editor, v1.1). Tasks 1-12 complete.
+- `docs/plans/completed/2026-05-10-phase4-builder-tui.md` — Phase 4
+  builder-style TUI (interactive preset checkboxes, 3-pane builder,
+  custom-template passthrough). Implementation complete.
