@@ -6,8 +6,10 @@
 //! one-line powerline-preview note.
 //!
 //! Truncation: when width < total formatted length, drops pairs from
-//! the front (lowest priority) while always preserving `q:quit`,
-//! `Ctrl+S:save`, and `?:help` (if present in the current state's list).
+//! the front (lowest priority) while always preserving `q:quit` and
+//! `Ctrl+S:save` (priority 255).
+
+use std::collections::HashSet;
 
 use ratatui::{
     Frame,
@@ -24,10 +26,11 @@ use crate::tui::catalog::Category;
 // ── priority helpers ──────────────────────────────────────────────────────────
 
 /// Returns a priority value (higher = keep longer during truncation).
+/// Only priority 255 is unconditionally required; lower values are optional.
 fn priority(key: &str) -> u8 {
     match key {
         "q" | "Ctrl+S" => 255,
-        "?" => 254,
+        "?" => 200,
         _ => 1,
     }
 }
@@ -46,6 +49,19 @@ fn keymap_pairs(app: &App) -> Vec<(&'static str, &'static str)> {
         }
         (_, Mode::PickingFgColor, _) | (_, Mode::PickingBgColor, _) => {
             vec![("j/k", "move"), ("Enter", "pick"), ("Esc", "cancel")]
+        }
+        // Confirm / overlay modes.
+        (_, Mode::ConfirmDelete, _) => {
+            vec![("y", "confirm"), ("n", "cancel")]
+        }
+        (_, Mode::ConfirmQuit, _) => {
+            vec![("y", "quit"), ("n", "cancel"), ("Esc", "cancel")]
+        }
+        (_, Mode::Help, _) => {
+            vec![("Esc", "close"), ("?", "close"), ("any", "close")]
+        }
+        (_, Mode::Saving, _) => {
+            vec![("Esc", "cancel")]
         }
         // Top pane — Segment cursor.
         (Focus::Top, Mode::Browsing, Cursor::Segment(_)) => vec![
@@ -99,7 +115,7 @@ fn keymap_pairs(app: &App) -> Vec<(&'static str, &'static str)> {
             ("q", "quit"),
             ("?", "help"),
         ],
-        // Fallback (Bottom focus, Help, ConfirmQuit, etc.).
+        // Fallback (Bottom focus, etc.).
         _ => vec![("q", "quit"), ("?", "help")],
     }
 }
@@ -108,7 +124,8 @@ fn keymap_pairs(app: &App) -> Vec<(&'static str, &'static str)> {
 
 fn pair_width(key: &str, action: &str) -> usize {
     // "KEY:action  " — key + ":" + action + 2 spaces separator.
-    key.len() + 1 + action.len() + 2
+    // Use char count for multi-byte keys like ←/→.
+    key.chars().count() + 1 + action.chars().count() + 2
 }
 
 fn append_pair(spans: &mut Vec<Span<'static>>, key: &'static str, action: &'static str) {
@@ -134,13 +151,12 @@ fn truncate_pairs(
         return pairs;
     }
 
-    // Separate required pairs from optional ones.
+    // Separate required pairs (priority 255) from optional ones.
     let mut required: Vec<(&'static str, &'static str)> = Vec::new();
     let mut optional: Vec<(&'static str, &'static str)> = Vec::new();
 
     for &(k, a) in &pairs {
-        if priority(k) >= 254 {
-            // q/Ctrl+S/? — always keep.
+        if priority(k) == 255 {
             required.push((k, a));
         } else {
             optional.push((k, a));
@@ -150,25 +166,21 @@ fn truncate_pairs(
     // Add optional pairs from the end (highest semantic priority) until full.
     let req_width: usize = required.iter().map(|(k, a)| pair_width(k, a)).sum();
     let mut budget = width.saturating_sub(req_width);
-    let mut kept: Vec<(&'static str, &'static str)> = Vec::new();
+    let mut kept: HashSet<(&str, &str)> = HashSet::new();
     for &(k, a) in optional.iter().rev() {
         let w = pair_width(k, a);
         if w <= budget {
-            kept.push((k, a));
+            kept.insert((k, a));
             budget -= w;
         }
     }
-    kept.reverse();
 
-    // Reconstruct in original order: kept optional then required.
-    // Re-sort to preserve original order using index into pairs.
-    let mut result: Vec<(&'static str, &'static str)> = Vec::new();
-    for &(k, a) in &pairs {
-        if kept.contains(&(k, a)) || required.contains(&(k, a)) {
-            result.push((k, a));
-        }
-    }
-    result
+    // Reconstruct in original order.
+    let required_set: HashSet<(&str, &str)> = required.iter().copied().collect();
+    pairs
+        .into_iter()
+        .filter(|&(k, a)| kept.contains(&(k, a)) || required_set.contains(&(k, a)))
+        .collect()
 }
 
 // ── public render entry point ─────────────────────────────────────────────────
@@ -196,10 +208,13 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     }
 
     let width = inner.width as usize;
+    let inner_height = inner.height as usize;
     let mut ratatui_lines: Vec<Line<'static>> = Vec::new();
 
-    // ── custom-segment hint ──────────────────────────────────────────────────
-    if app.focus == Focus::Top {
+    // ── hints (only when there is room above the mandatory keymap row) ────────
+    if app.focus == Focus::Top && inner_height > 1 {
+        let mut hint_count = 0usize;
+
         if let Cursor::Segment(seg_idx) = app.cursor {
             if let Some(BuilderSegment::Custom { template, .. }) = app
                 .builder
@@ -215,11 +230,12 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
                     hint,
                     Style::default().add_modifier(Modifier::DIM),
                 )]));
+                hint_count += 1;
             }
         }
 
-        // ── powerline preview hint ───────────────────────────────────────────
-        if app.builder.powerline {
+        // Powerline hint — only if it fits alongside any prior hint + keymap.
+        if app.builder.powerline && hint_count + 1 < inner_height {
             ratatui_lines.push(Line::from(vec![Span::styled(
                 "(powerline preview shows plain — actual render uses chevrons)".to_owned(),
                 Style::default()
